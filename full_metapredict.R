@@ -10,12 +10,19 @@ if(all(c('tidyverse', 'furrr', 'optparse', 'progress') %in% rownames(installed.p
 
 #function to parse in new KEGG Orthology data for genomes; still in development. this will allow users to
 #add their own metabolic data from their own microbial genomes to MetaPredict, to include in its calculations
-add_new_data = function(filePath, filePattern) {
+add_new_data = function(filePath, filePattern, flatfile, flatDelim, workingDir) {
   setwd(filePath)
   index = list.files(path = filePath, pattern = filePattern)
   res = list()
   
   #NOTE: need to add in function to read in a req'd user flatfile which gives genus, a unique organism ID, and domain (bacteria or archaea) for each add
+  user_key = read_delim(flatfile, delim = flatDelim) %>%
+    mutate(colnames(user_key) = case_when(
+      str_detect(colnames(user_key), regex('Genus', ignore_case = T)) ~ 'Genus',
+      str_detect(colnames(user_key), regex('Genome.ID', ignore_case = T)) ~ 'Genome.ID',
+      str_detect(colnames(user_key), regex('Domain', ignore_case = T)) ~ 'Domain',
+      TRUE ~ colnames(user_key))) %>%
+    select(Genus, Genome.ID, Domain)
   
   future_map(1:length(index), .progress = T, ~ {
     col = sub('(.*)-ko.tsv', '\\1', index[.x], perl = T)
@@ -28,7 +35,6 @@ add_new_data = function(filePath, filePattern) {
       rename(!!col := KO) %>%
       filter(!(duplicated(.data[[col]])))
   })
-  
   res = tibble(res)
   
   res.rxn.matrix = future_map_dfc(1:length(res[[1]]), function(x)
@@ -41,19 +47,54 @@ add_new_data = function(filePath, filePattern) {
     t() %>%
     as.data.frame() %>%
     rownames_to_column(var = 'Genome.ID') %>%
-    inner_join(select(user_key, Genome.ID, Genus), by = 'Genome.ID') %>%
-    select(Genome.ID, Genus, everything())
+    inner_join(select(user_key, Genome.ID, Genus, Domain), by = 'Genome.ID') %>%
+    select(Genome.ID, Genus, Domain, everything()) %>%
+    arrange(Domain) %>%
+    group_by(Domain) %>%
+    group_split()
   
-  
-  #bind the user input and the pre-existing MetaPredict reaction matrices together
-  #NOTE: requires some kind of conditional add - to add to either the bacteria or archaea rxn matrix
-  rxn.mat = rxn.mat %>%
-    ungroup() %>%
-    bind_rows(ncbi.rxn.mat) %>%
-    group_by(Genus)
+  if (length(res.rxn.matrix == 2)) {  #need to verify that 'archaea' will always be grouped as the first of two lists
+    res.rxn.matrix = res.rxn.matrix %>% map(select, -Domain)
+    
+    imgm.archaea.rxn.matrix = imgm.archaea.rxn.matrix %>%
+      ungroup() %>%
+      bind_rows(res.rxn.matrix[[1]]) %>%
+      group_by(Genus)
+    
+    bacteria.rxn.matrix = bacteria.rxn.matrix %>%
+      ungroup() %>%
+      bind_rows(res.rxn.matrix[[2]]) %>%
+      group_by(Genus)
+    
+  } else if (length(res.rxn.matrix == 1)) {
+    if (all(res.rxn.matrix[[1]]$Domain == regex('bacteria', ignore_case = T))) {
+      res.rxn.matrix = res.rxn.matrix %>% map(select, -Domain)
+      
+      bacteria.rxn.matrix = bacteria.rxn.matrix %>%
+        ungroup() %>%
+        bind_rows(res.rxn.matrix[[1]]) %>%
+        group_by(Genus)
+      
+    } else if (all(res.rxn.matrix[[1]]$Domain == regex('archaea', ignore_case = T))) {
+      res.rxn.matrix = res.rxn.matrix %>% map(select, -Domain)
+      
+      imgm.archaea.rxn.matrix = imgm.archaea.rxn.matrix %>%
+        ungroup() %>%
+        bind_rows(res.rxn.matrix[[1]]) %>%
+        group_by(Genus)
+      
+    } else {
+      stop("The domain is not specified for one or more genomes as either 'Archaea' or 'Bacteria' (case insensitive).")
+    }
+    
+  } else {
+    stop('Please check that your input flatfile contains Domain, Genus, and Genome.ID columns')
+  }
 
-  #NOTE: need to input command to save the updated rxn matrix/matrices
+  save(bacteria.rxn.matrix, imgm.archaea.rxn.matrix, pathways.tibble, ko_term.tibble,
+       file = paste(workingDir, 'reqd-metapredict-data-objects.RData'))
 }
+
 
 
 #function to parse in user data for pathway reconstruction & reaction prediction
@@ -86,11 +127,13 @@ read_data = function(filePath, filePattern) {
 }
 
 
+
 #beta binomial pmf/maximum likelihood function
 LogL.bb.5 = function(v, y_k = 5, n_k = 15) { alpha = v[1]; beta = v[2];
 sum(-lgamma(alpha + y_k) - lgamma(beta + n_k - y_k) + lgamma(alpha + beta + n_k)
     + lgamma(alpha) + lgamma(beta) - lgamma(alpha + beta)) 
 }
+
 
 
 #function to find maximum likelihood estimates of alpha and beta
@@ -151,6 +194,7 @@ calculate = function(reactions, organism)  {
 }
 
 
+
 #function to reconstruct and predict KEGG metabolic pathways
 metapredict = function(userData, orgNames) {
   orgs = read_csv(orgNames, col_names = 'col', col_types = cols())
@@ -191,6 +235,7 @@ metapredict = function(userData, orgNames) {
 }
 
 
+
 #create options to parse user command line arguments
 option_list = list(
   make_option(c('-p', '--path'), action = 'store',
@@ -221,6 +266,7 @@ option_list = list(
               help = 'E-value for hmm hits from Kofamscan. All hits above the given value will be 
               discarded [default %default]', type = 'double')
 )
+
 
 
 #save user command line arguments to argv object
