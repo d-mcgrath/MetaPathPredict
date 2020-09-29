@@ -1,0 +1,234 @@
+#load required packages and their dependencies
+if(all(c('tidyverse', 'furrr', 'optparse', 'progress') %in% rownames(installed.packages()))) {
+  invisible(lapply(c('tidyverse', 'furrr', 'optparse', 'progress'), function(package) {
+    suppressWarnings(suppressPackageStartupMessages(library(package, character.only = T)))})) 
+  } else {
+  stop('One or more of the required packages are not installed. Are you currently running the 
+       MetaPredict conda environment?')
+}
+
+
+#function to parse in new KO term data for organisms, can be added to rxn.matrix
+add_new_data = function(filePath, filePattern) {
+  setwd(filePath)
+  index = list.files(path = filePath, pattern = filePattern)
+  res = list()
+  
+  for (i in seq_along(1:length(index))) {
+    col = sub('(.*)\\.ko\\.tab\\.txt', '\\1', index[i], perl = T)
+    res[[i]] = read_tsv(index[i], col_types = cols()) %>%
+      select(ko_id) %>%
+      mutate(ko_id = sub('KO:', '', ko_id)) %>%
+      rename(!!col := ko_id) %>%
+      filter(!(duplicated(.data[[col]])))
+  }
+  res = res %>%
+    tibble() %>%
+    unnest(cols = everything()) %>% 
+    #gather(key = 'organism', value = 'ko_term', na.rm = T) %>%
+    pivot_longer(cols = everything(), names_to = 'organism', 
+                 values_to = 'ko_term', values_drop_na = T) %>%
+    group_by(organism)
+  
+  return(res)
+}
+
+
+#function to parse in user data for pathway reconstruction & reaction prediction
+read_data = function(filePath, filePattern) {
+  setwd(filePath)
+  index = list.files(path = filePath, pattern = filePattern)
+  res = list()
+  
+  for (i in seq_along(1:length(index))) {
+    col = sub('(.*)-ko.tsv', '\\1', index[i], perl = T)
+    res[[i]] = read_delim(index[i], col_types = cols(), delim = '\t') %>%
+      slice(-1) %>%
+      select(KO, `E-value`) %>%
+      mutate(`E-value` = as.numeric(`E-value`)) %>%
+      filter(`E-value` <= argv$`e-value`) %>% #e-value is set by argv, default = 1e-3
+      select(KO) %>%
+      rename(!!col := KO) %>%
+      filter(!(duplicated(.data[[col]])))
+  }
+  res = res %>%
+    tibble() %>%
+    unnest(cols = everything()) %>% 
+    #gather(key = 'organism', value = 'ko_term', na.rm = T) %>%
+    pivot_longer(cols = everything(), names_to = 'organism', 
+                 values_to = 'ko_term', values_drop_na = T) %>%
+    group_by(organism)
+  
+  return(res)
+}
+
+
+#beta binomial pmf/maximum likelihood function
+LogL.bb.5 = function(v, y_k = 5, n_k = 15) { alpha = v[1]; beta = v[2];
+sum(-lgamma(alpha + y_k) - lgamma(beta + n_k - y_k) + lgamma(alpha + beta + n_k)
+    + lgamma(alpha) + lgamma(beta) - lgamma(alpha + beta)) 
+}
+
+
+#function to find maximum likelihood estimates of alpha and beta
+calculate = function(reactions, organism)  {
+  #if (argv$verbose == T) {
+  #  pb = progress_bar$new(show_after = 0, total = length(reactions), clear = F,
+  #                        format = '[:bar] :current/:total | :percent complete | eta: :eta | time elapsed: :elapsedfull',
+  #                        callback = invisible, width = 200)
+  #} else {
+  #  pb = progress_bar$new(show_after = 0, total = length(reactions), clear = F,
+  #                        format = 'Calculating :what [:bar] :current/:total | :percent complete | eta: :eta | time elapsed: :elapsedfull',
+  #                        callback = invisible, width = 200) }
+  
+  future_map(reactions, .progress = T, ~ { #need to play with the future_map built-in progress bar...
+    if (organism %in% bacteria.rxn.matrix$Genus) {
+      coll.k = bacteria.rxn.matrix %>%
+        filter(Genus != organism) %>%
+        summarize(y_k = sum(.data[[.x]]), n_k = length(Genus)) 
+      
+      coll.j = bacteria.rxn.matrix %>%
+        filter(Genus == organism) %>%
+        summarize(y_j = sum(.data[[.x]]), n_j = length(Genus))
+      
+    } else if (organism %in% imgm.archaea.rxn.matrix$Genus) {
+      coll.k = imgm.archaea.rxn.matrix %>%
+        filter(Genus != organism) %>%
+        summarize(y_k = sum(.data[[.x]]), n_k = length(Genus)) 
+      
+      coll.j = imgm.archaea.rxn.matrix %>%
+        filter(Genus == organism) %>%
+        summarize(y_j = sum(.data[[.x]]), n_j = length(Genus))
+      
+    } else {
+      stop('Genus not found. Please see MetaPredict usage instructions [-h].')
+    }
+
+   # if (argv$verbose == T) {
+  #  message('Calculating alpha and beta maximum likelihood estimates for reaction ', 
+  #        .x, ' for organism ', organism, '...', sep = '') 
+  #    pb$tick()
+  #  
+  #    } else {
+  #      pb$tick(tokens = list(what = paste(organism, ': ', .x, sep = ''))) }
+    
+    #opt = optim(par = c(0.01, 0.01), LogL.bb.5, y_k = coll.k$y_k, n_k = coll.k$n_k)
+                #method = 'L-BFGS-B', lower = 0.01, upper = 10000)
+    
+    opt = optim(par = c(0.01, 0.01), LogL.bb.5, y_k = coll.k$y_k, n_k = coll.k$n_k,
+                method = 'L-BFGS-B', lower = 1e-10, upper = 1000000)
+    
+    res = (opt$par[1] + coll.j$y_j) / (opt$par[1] + opt$par[2] + coll.j$n_j)
+    names(res) = .x
+    
+    if (argv$verbose == T) {
+    message('\nDone\n') }
+    
+    return(res) })
+}
+
+
+#function to reconstruct and predict KEGG metabolic pathways
+metapredict = function(userData, orgNames) {
+  orgs = read_csv(orgNames, col_names = 'col', col_types = cols())
+  
+  temp = userData %>% 
+    inner_join(ko_term.tibble, by = 'ko_term') %>%
+    filter(!(duplicated(reaction)))
+  
+  res = temp %>%
+    group_split() %>%
+    map(full_join, pathways.tibble, temp, by = 'reaction') %>%
+    map(arrange, pathway) %>%
+    map(group_by, pathway) %>%
+    map(filter, !(all(is.na(organism))), !(is.na(pathway)))
+  
+  scan = res %>%
+    map(ungroup) %>%
+    map(filter, is.na(ko_term), reaction %in% colnames(bacteria.rxn.matrix)) %>% #bacteria/archaea matrices have the same column names
+    map(select, reaction, pathway)
+  
+  predictions = map(1:length(orgs$col), ~ {
+    calculate(scan[[.x]]$reaction, orgs$col[[.x]]) })
+  
+  #this can probably be combined with command below, using the ~ map syntax
+  pred = map(predictions, function(prediction) {
+    tibble(reaction = as_vector(map(prediction, names)),
+           probability = as_vector(prediction)) })
+  
+  scan = scan %>% 
+    map2(pred, ~ mutate(.x, probability = .y$probability)) %>%
+    map(group_by, pathway)
+  
+  out = map2(res, scan, full_join, by = c('reaction', 'pathway'))
+  
+  message('Finished KEGG metabolic pathway reconstruction and reaction probability calculations.')
+  
+  return(out)  
+}
+
+
+#create options to parse user command line arguments
+option_list = list(
+  make_option(c('-p', '--path'), action = 'store',
+              help = 'Path to directory containing KEGG orthology files', type = 'character',
+              default = NA),
+  
+  make_option(c('-f', '--filePattern'), action = 'store',
+              help = 'Regex suffix pattern for KEGG orthology files [default %default]',
+              type = 'character', default = '*-ko.tsv'),
+  
+  make_option(c('-g', '--genusList'),
+              help = 'Path to a CSV file of genera of each organism, with each genus on a new line, 
+              in the same order as the corresponding KEGG orthology files listed in --path',
+              action = 'store', type = 'character', default = NA),
+  
+  make_option(c('-c','--cores'), default = 1, help = 'Number of CPU cores to utilize [default %default]', 
+              action = 'store', type = 'integer'),
+  
+  make_option(c('-o', '--output'), action = 'store', default = './',
+              help = 'Path to output directory. It will be created if it does not already exist [default %default]',
+              type = 'character'),
+  
+  make_option(c('-v', '--verbose'), action = 'store_true', default = F,
+              help = 'If TRUE, lists progress information for each reaction probability calculation, 
+              prints one progress bar for entire job if FALSE [default %default]'),
+  
+  make_option(c('-e', '--e-value'), action = 'store', default = 1e-3,
+              help = 'E-value for hmm hits from Kofamscan. All hits above the given value will be 
+              discarded [default %default]', type = 'double')
+)
+
+
+#save user command line arguments to argv object
+message('Parsing command line arguments...')
+argv = parse_args(OptionParser(option_list = option_list))
+message('Done\n')
+
+if(all(!is.na(c(argv$path, argv$genusList)))) {
+
+#load required objects for analysis
+message('Loading required data objects...')
+load('../reqd-metapredict-data-objects.RData')
+message('Done\n')
+
+#setting parallel computing settings based on user input
+message('Setting parallel computing parameters...')
+plan(multicore, workers = argv$cores)
+options(future.globals.maxSize = 3145728000) #setting max mem for objects to 3GB [default is 500MB]
+message('Done\n')
+
+#read in user data, run MetaPredict
+message('Parsing HMM hits and E-values into MetaPredict. Using E-value cutoff: ', argv$`e-value`)
+userData = read_data(argv$path, argv$filePattern)
+message('Done\n\nPerforming metabolic pathway reconstruction and reaction predictions...')
+result = metapredict(userData, argv$genusList)
+
+#save results to output folder, one TSV for each organism
+outpath = pmap(list(argv$output, unique(userData$organism), '-MetaPredict.tsv'), paste, sep = '')
+map2(result, outpath, write_tsv)
+message('\nAll done. Saving output.')
+
+} else {
+    stop('You did not specify --path and --genusList arguments properly. Please see usage')
+}
