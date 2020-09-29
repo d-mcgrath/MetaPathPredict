@@ -8,29 +8,51 @@ if(all(c('tidyverse', 'furrr', 'optparse', 'progress') %in% rownames(installed.p
 }
 
 
-#function to parse in new KO term data for organisms, can be added to rxn.matrix
+#function to parse in new KEGG Orthology data for genomes; still in development. this will allow users to
+#add their own metabolic data from their own microbial genomes to MetaPredict, to include in its calculations
 add_new_data = function(filePath, filePattern) {
   setwd(filePath)
   index = list.files(path = filePath, pattern = filePattern)
   res = list()
   
-  for (i in seq_along(1:length(index))) {
-    col = sub('(.*)\\.ko\\.tab\\.txt', '\\1', index[i], perl = T)
-    res[[i]] = read_tsv(index[i], col_types = cols()) %>%
-      select(ko_id) %>%
-      mutate(ko_id = sub('KO:', '', ko_id)) %>%
-      rename(!!col := ko_id) %>%
-      filter(!(duplicated(.data[[col]])))
-  }
-  res = res %>%
-    tibble() %>%
-    unnest(cols = everything()) %>% 
-    #gather(key = 'organism', value = 'ko_term', na.rm = T) %>%
-    pivot_longer(cols = everything(), names_to = 'organism', 
-                 values_to = 'ko_term', values_drop_na = T) %>%
-    group_by(organism)
+  #NOTE: need to add in function to read in a req'd user flatfile which gives genus, a unique organism ID, and domain (bacteria or archaea) for each add
   
-  return(res)
+  future_map(1:length(index), .progress = T, ~ {
+    col = sub('(.*)-ko.tsv', '\\1', index[.x], perl = T)
+    res[[.x]] = read_delim(index[.x], col_types = cols(), delim = '\t') %>%
+      slice(-1) %>%
+      select(KO, `E-value`) %>%
+      mutate(`E-value` = as.numeric(`E-value`)) %>%
+      filter(`E-value` <= argv$`e-value`) %>% #e-value is set by argv, default = 1e-3
+      select(KO) %>%
+      rename(!!col := KO) %>%
+      filter(!(duplicated(.data[[col]])))
+  })
+  
+  res = tibble(res)
+  
+  res.rxn.matrix = future_map_dfc(1:length(res[[1]]), function(x)
+    map_lgl(1:length(rxn.tib[[1]]), function(y) 
+      any(str_detect(res[[1]][[x]][[1]], rxn.tib[[1]][[y]][[1]])))) %>%
+    rename_all(funs(map_chr(res[[1]], names))) %>%
+    map_dfc(as.numeric) %>%
+    add_column(col = map_chr(rxn.tib[[1]], names), .before = 1) %>%
+    column_to_rownames(var = 'col') %>%
+    t() %>%
+    as.data.frame() %>%
+    rownames_to_column(var = 'Genome.ID') %>%
+    inner_join(select(user_key, Genome.ID, Genus), by = 'Genome.ID') %>%
+    select(Genome.ID, Genus, everything())
+  
+  
+  #bind the user input and the pre-existing MetaPredict reaction matrices together
+  #NOTE: requires some kind of conditional add - to add to either the bacteria or archaea rxn matrix
+  rxn.mat = rxn.mat %>%
+    ungroup() %>%
+    bind_rows(ncbi.rxn.mat) %>%
+    group_by(Genus)
+
+  #NOTE: need to input command to save the updated rxn matrix/matrices
 }
 
 
@@ -40,9 +62,9 @@ read_data = function(filePath, filePattern) {
   index = list.files(path = filePath, pattern = filePattern)
   res = list()
   
-  for (i in seq_along(1:length(index))) {
-    col = sub('(.*)-ko.tsv', '\\1', index[i], perl = T)
-    res[[i]] = read_delim(index[i], col_types = cols(), delim = '\t') %>%
+  future_map(1:length(index), .progress = T, ~ {
+    col = sub('(.*)-ko.tsv', '\\1', index[.x], perl = T)
+    res[[.x]] = read_delim(index[.x], col_types = cols(), delim = '\t') %>%
       slice(-1) %>%
       select(KO, `E-value`) %>%
       mutate(`E-value` = as.numeric(`E-value`)) %>%
@@ -50,7 +72,8 @@ read_data = function(filePath, filePattern) {
       select(KO) %>%
       rename(!!col := KO) %>%
       filter(!(duplicated(.data[[col]])))
-  }
+  })
+  
   res = res %>%
     tibble() %>%
     unnest(cols = everything()) %>% 
@@ -81,7 +104,7 @@ calculate = function(reactions, organism)  {
   #                        format = 'Calculating :what [:bar] :current/:total | :percent complete | eta: :eta | time elapsed: :elapsedfull',
   #                        callback = invisible, width = 200) }
   
-  future_map(reactions, .progress = T, ~ { #need to play with the future_map built-in progress bar...
+  future_map(reactions, .progress = T, ~ {         #need to play with the future_map built-in progress bar...
     if (organism %in% bacteria.rxn.matrix$Genus) {
       coll.k = bacteria.rxn.matrix %>%
         filter(Genus != organism) %>%
@@ -232,3 +255,4 @@ message('\nAll done. Saving output.')
 } else {
     stop('You did not specify --path and --genusList arguments properly. Please see usage')
 }
+
