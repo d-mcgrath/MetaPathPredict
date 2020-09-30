@@ -13,11 +13,11 @@ function usage() {
     echo "  -o, --output-dir   : The directory for output files. Will be created in working directory if it does not exist [default metapredict_output]"
     echo "  -g, --genus-file   : Full path to a CSV file containing the genus of each input fasta file, in the same order as fasta files in the working directory"
     echo "  -c, --cores        : Number of CPU cores to use [default 1]"
-    echo "  -f, --files        : One or more input genome fasta files"
+    echo "  -f, --files        : One or more input genome fasta files. Can use regex patterns in quotes for multiple files, e.g., \"*.fa\""
     echo ""
-    echo "Example with long flags: $0 --working-dir /path/to/input_files --output-dir /path/to/output_dir --genus-file /full/path/to/genus_file.csv --cores 1 --files *.fa"
+    echo "Example with long flags: $0 --working-dir /path/to/input_files --output-dir /path/to/output_dir --genus-file /full/path/to/genus_file.csv --cores 1 --files \"*.fa\""
     echo ""
-    echo "Example with short flags: $0 -w /path/to/input_files -o /path/to/output_dir -g /full/path/to/genus_file.csv -c 1 -f *.fa"
+    echo "Example with short flags: $0 -w /path/to/input_files -o /path/to/output_dir -g /full/path/to/genus_file.csv -c 1 -f \"*.fa\""
     exit 1
 }
 
@@ -48,11 +48,11 @@ if [ -d "${OUTPUT_DIR}" ]; then cd "${OUTPUT_DIR}"
 else mkdir "${OUTPUT_DIR}"; cd "${OUTPUT_DIR}"; fi
 
 #run prodigal using parallel processing
-find "${WORKING_DIR}" -maxdepth 1 -name \""${FILES}"\" -printf "%f\n" | parallel --jobs "${CORES}" "echo Running Prodigal on {}; prodigal -i "${WORKING_DIR}"/{} -a {.}-genes.fa; printf "\nDone with %s\n\n" {}"
+find "${WORKING_DIR}" -maxdepth 1 -name ${FILES} -printf "%f\n" | parallel --jobs "${CORES}" "echo Running Prodigal on {}; prodigal -i "${WORKING_DIR}"/{} -a {.}-genes.fa; printf "\nDone with %s\n\n" {}"
 
 #run kofamscan
 for FILE in $(ls *-genes.fa)
-do echo Running Kofamscan on "${FILE}"...
+do echo /nRunning Kofamscan on "${FILE}"...
 PREFIX=$(echo "${FILE}" | sed -r 's/(.*)-genes.fa/\1/')
 exec_annotation -o "${PREFIX}"-ko.tsv --cpu "${CORES}" -f detail-tsv -p ../profiles/ -k ../ko_list "${FILE}"
 #cat "${PREFIX}"-ko.tsv | awk -F"\t" '{print $3,$6}' | sed '/^--/d' > "${PREFIX}"-ko-only.txt
