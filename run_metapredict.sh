@@ -51,12 +51,12 @@ else mkdir "${OUTPUT_DIR}"; cd "${OUTPUT_DIR}"; fi
 find "${WORKING_DIR}" -maxdepth 1 -name ${FILES} -printf "%f\n" | parallel --jobs "${CORES}" "echo Running Prodigal on {}; prodigal -i "${WORKING_DIR}"/{} -a {.}-genes.fa; printf "\nDone with %s\n\n" {}"
 
 #run kofamscan
-for FILE in $(ls *-genes.fa)
-do echo /nRunning Kofamscan on "${FILE}"...
+#for FILE in $(ls *-genes.fa)
+for FILE in $(find "${OUTPUT_DIR}" -maxdepth 1 -name "*-genes.fa" -printf "%f\n")
+#do echo /nRunning Kofamscan on "${FILE}"...
+do printf "/nRunning Kofamscan on %s..." "${FILE}"
 PREFIX=$(echo "${FILE}" | sed -r 's/(.*)-genes.fa/\1/')
-exec_annotation -o "${PREFIX}"-ko.tsv --cpu "${CORES}" -f detail-tsv -p ../profiles/ -k ../ko_list "${FILE}"
-#cat "${PREFIX}"-ko.tsv | awk -F"\t" '{print $3,$6}' | sed '/^--/d' > "${PREFIX}"-ko-only.txt
-#echo Parsing HMM hits and E-values into file "${PREFIX}"-ko-only.txt...
+exec_annotation -o "${PREFIX}"-ko.tsv --cpu "${CORES}" -f detail-tsv -p ../profiles/prokaryote.hal -k ../ko_list "${FILE}"
 printf "Done with %s\n\n" "${FILE}"
 done
 
