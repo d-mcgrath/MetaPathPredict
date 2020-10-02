@@ -8,92 +8,91 @@ if(all(c('tidyverse', 'furrr', 'optparse', 'progress') %in% rownames(installed.p
 }
 
 
+#still under development: 
 #function to parse in new KEGG Orthology data for genomes; still in development. this will allow users to
 #add their own metabolic data from their own microbial genomes to MetaPredict, to include in its calculations
-add_new_data = function(filePath, filePattern, flatfile, flatDelim, workingDir) {
-  setwd(filePath)
-  index = list.files(path = filePath, pattern = filePattern)
-  res = list()
+#add_new_data = function(filePath, filePattern, flatfile, flatDelim, workingDir) {
+#  setwd(filePath)
+#  index = list.files(path = filePath, pattern = filePattern)
+#  res = list()
   
   #NOTE: need to add in function to read in a req'd user flatfile which gives genus, a unique organism ID, and domain (bacteria or archaea) for each add
-  user_key = read_delim(flatfile, delim = flatDelim) %>%
-    mutate(colnames(user_key) = case_when(
-      str_detect(colnames(user_key), regex('Genus', ignore_case = T)) ~ 'Genus',
-      str_detect(colnames(user_key), regex('Genome.ID', ignore_case = T)) ~ 'Genome.ID',
-      str_detect(colnames(user_key), regex('Domain', ignore_case = T)) ~ 'Domain',
-      TRUE ~ colnames(user_key))) %>%
-    select(Genus, Genome.ID, Domain)
+#  user_key = read_delim(flatfile, delim = flatDelim) %>%
+#    mutate(colnames = case_when(
+#      str_detect(colnames(user_key), regex('Genus', ignore_case = T)) ~ 'Genus',
+#      str_detect(colnames(user_key), regex('Genome.ID', ignore_case = T)) ~ 'Genome.ID',
+#      str_detect(colnames(user_key), regex('Domain', ignore_case = T)) ~ 'Domain',
+#      TRUE ~ colnames(user_key))) %>%
+#    select(Genus, Genome.ID, Domain)
   
-  future_map(1:length(index), .progress = T, ~ {
-    col = sub('(.*)-ko.tsv', '\\1', index[.x], perl = T)
-    res[[.x]] = read_delim(index[.x], col_types = cols(), delim = '\t') %>%
-      slice(-1) %>%
-      select(KO, `E-value`) %>%
-      mutate(`E-value` = as.numeric(`E-value`)) %>%
-      filter(`E-value` <= argv$`e-value`) %>% #e-value is set by argv, default = 1e-3
-      select(KO) %>%
-      rename(!!col := KO) %>%
-      filter(!(duplicated(.data[[col]])))
-  })
-  res = tibble(res)
+#  future_map(1:length(index), .progress = T, ~ {
+#    col = sub('(.*)-ko.tsv', '\\1', index[.x], perl = T)
+#    res[[.x]] = read_delim(index[.x], col_types = cols(), delim = '\t') %>%
+#      slice(-1) %>%
+#      select(KO, `E-value`) %>%
+#      mutate(`E-value` = as.numeric(`E-value`)) %>%
+#      filter(`E-value` <= argv$`e-value`) %>% #e-value is set by argv, default = 1e-3
+#      select(KO) %>%
+#      rename(!!col := KO) %>%
+#      filter(!(duplicated(.data[[col]])))
+#  })
+#  res = tibble(res)
   
-  res.rxn.matrix = future_map_dfc(1:length(res[[1]]), function(x)
-    map_lgl(1:length(rxn.tib[[1]]), function(y) 
-      any(str_detect(res[[1]][[x]][[1]], rxn.tib[[1]][[y]][[1]])))) %>%
-    rename_all(funs(map_chr(res[[1]], names))) %>%
-    map_dfc(as.numeric) %>%
-    add_column(col = map_chr(rxn.tib[[1]], names), .before = 1) %>%
-    column_to_rownames(var = 'col') %>%
-    t() %>%
-    as.data.frame() %>%
-    rownames_to_column(var = 'Genome.ID') %>%
-    inner_join(select(user_key, Genome.ID, Genus, Domain), by = 'Genome.ID') %>%
-    select(Genome.ID, Genus, Domain, everything()) %>%
-    arrange(Domain) %>%
-    group_by(Domain) %>%
-    group_split()
+#  res.rxn.matrix = future_map_dfc(1:length(res[[1]]), function(x)
+#    map_lgl(1:length(rxn.tib[[1]]), function(y) 
+#      any(str_detect(res[[1]][[x]][[1]], rxn.tib[[1]][[y]][[1]])))) %>%
+#    rename_all(funs(map_chr(res[[1]], names))) %>%
+#    map_dfc(as.numeric) %>%
+#    add_column(col = map_chr(rxn.tib[[1]], names), .before = 1) %>%
+#    column_to_rownames(var = 'col') %>%
+#    t() %>%
+#    as.data.frame() %>%
+#    rownames_to_column(var = 'Genome.ID') %>%
+#    inner_join(select(user_key, Genome.ID, Genus, Domain), by = 'Genome.ID') %>%
+#    select(Genome.ID, Genus, Domain, everything()) %>%
+#    arrange(Domain) %>%
+#    group_by(Domain) %>%
+#    group_split()
   
-  if (length(res.rxn.matrix == 2)) {  #need to verify that 'archaea' will always be grouped as the first of two lists
-    res.rxn.matrix = res.rxn.matrix %>% map(select, -Domain)
+#  if (length(res.rxn.matrix == 2)) {  #need to verify that 'archaea' will always be grouped as the first of two lists
+#    res.rxn.matrix = res.rxn.matrix %>% map(select, -Domain)
     
-    imgm.archaea.rxn.matrix = imgm.archaea.rxn.matrix %>%
-      ungroup() %>%
-      bind_rows(res.rxn.matrix[[1]]) %>%
-      group_by(Genus)
+#    imgm.archaea.rxn.matrix = imgm.archaea.rxn.matrix %>%
+#      ungroup() %>%
+#      bind_rows(res.rxn.matrix[[1]]) %>%
+#      group_by(Genus)
     
-    bacteria.rxn.matrix = bacteria.rxn.matrix %>%
-      ungroup() %>%
-      bind_rows(res.rxn.matrix[[2]]) %>%
-      group_by(Genus)
+#    bacteria.rxn.matrix = bacteria.rxn.matrix %>%
+#      ungroup() %>%
+#      bind_rows(res.rxn.matrix[[2]]) %>%
+#      group_by(Genus)
     
-  } else if (length(res.rxn.matrix == 1)) {
-    if (all(res.rxn.matrix[[1]]$Domain == regex('bacteria', ignore_case = T))) {
-      res.rxn.matrix = res.rxn.matrix %>% map(select, -Domain)
+#  } else if (length(res.rxn.matrix == 1)) {
+#    if (all(res.rxn.matrix[[1]]$Domain == regex('bacteria', ignore_case = T))) {
+#      res.rxn.matrix = res.rxn.matrix %>% map(select, -Domain)
       
-      bacteria.rxn.matrix = bacteria.rxn.matrix %>%
-        ungroup() %>%
-        bind_rows(res.rxn.matrix[[1]]) %>%
-        group_by(Genus)
+#      bacteria.rxn.matrix = bacteria.rxn.matrix %>%
+#        ungroup() %>%
+#        bind_rows(res.rxn.matrix[[1]]) %>%
+#        group_by(Genus)
       
-    } else if (all(res.rxn.matrix[[1]]$Domain == regex('archaea', ignore_case = T))) {
-      res.rxn.matrix = res.rxn.matrix %>% map(select, -Domain)
+#    } else if (all(res.rxn.matrix[[1]]$Domain == regex('archaea', ignore_case = T))) {
+#      res.rxn.matrix = res.rxn.matrix %>% map(select, -Domain)
       
-      imgm.archaea.rxn.matrix = imgm.archaea.rxn.matrix %>%
-        ungroup() %>%
-        bind_rows(res.rxn.matrix[[1]]) %>%
-        group_by(Genus)
+#      imgm.archaea.rxn.matrix = imgm.archaea.rxn.matrix %>%
+#        ungroup() %>%
+#        bind_rows(res.rxn.matrix[[1]]) %>%
+#        group_by(Genus)
       
-    } else {
-      stop("The domain is not specified for one or more genomes as either 'Archaea' or 'Bacteria' (case insensitive).")
-    }
-    
-  } else {
-    stop('Please check that your input flatfile contains Domain, Genus, and Genome.ID columns')
-  }
+#    } else {
+#      stop("The domain is not specified for one or more genomes as either 'Archaea' or 'Bacteria' (case insensitive).") }
 
-  save(bacteria.rxn.matrix, imgm.archaea.rxn.matrix, pathways.tibble, ko_term.tibble,
-       file = paste(workingDir, 'reqd-metapredict-data-objects.RData'))
-}
+#  } else {
+#    stop('Please check that your input flatfile contains Domain, Genus, and Genome.ID columns') }
+
+#  save(bacteria.rxn.matrix, imgm.archaea.rxn.matrix, pathways.tibble, ko_term.tibble,
+#       file = paste(workingDir, 'reqd-metapredict-data-objects.RData'))
+#}
 
 
 
@@ -301,4 +300,3 @@ message('\nAll done. Saving output.')
 } else {
     stop('You did not specify --path and --genusList arguments properly. Please see usage')
 }
-
