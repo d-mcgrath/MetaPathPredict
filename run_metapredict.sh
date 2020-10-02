@@ -48,13 +48,14 @@ if [ -d "${OUTPUT_DIR}" ]; then cd "${OUTPUT_DIR}"
 else mkdir "${OUTPUT_DIR}"; cd "${OUTPUT_DIR}"; fi
 
 #run prodigal using parallel processing
-find "${WORKING_DIR}" -maxdepth 1 -name ${FILES} -printf "%f\n" | parallel --jobs "${CORES}" "echo Running Prodigal on {}; prodigal -i "${WORKING_DIR}"/{} -a {.}-genes.fa; printf "\nDone with %s\n\n" {}"
+find "${WORKING_DIR}" -maxdepth 1 -name ${FILES} -printf "%f\n" | parallel --will-cite --jobs "${CORES}" "echo Running Prodigal on {}; prodigal -i "${WORKING_DIR}"/{} -a {.}-genes.fa; printf "\nDone with %s\n\n" {}"
 
 #run kofamscan
-#for FILE in $(ls *-genes.fa)
-for FILE in $(find "${OUTPUT_DIR}" -maxdepth 1 -name "*-genes.fa" -printf "%f\n")
-#do echo /nRunning Kofamscan on "${FILE}"...
-do printf "/nRunning Kofamscan on %s..." "${FILE}"
+for FILE in $(ls *-genes.fa)
+#for FILE in $(find "${OUTPUT_DIR}" -maxdepth 1 -name "*-genes.fa" -printf "%f\n")
+do echo ""
+echo Running Kofamscan on "${FILE}"...
+#do printf "\nRunning Kofamscan on %s..." "${FILE}"
 PREFIX=$(echo "${FILE}" | sed -r 's/(.*)-genes.fa/\1/')
 exec_annotation -o "${PREFIX}"-ko.tsv --cpu "${CORES}" -f detail-tsv -p ../profiles/prokaryote.hal -k ../ko_list "${FILE}"
 printf "Done with %s\n\n" "${FILE}"
