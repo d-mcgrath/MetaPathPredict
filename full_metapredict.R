@@ -102,7 +102,7 @@ read_data = function(filePath, filePattern) {
   index = list.files(path = filePath, pattern = filePattern)
   res = list()
   
-  future_map(1:length(index), .progress = T, ~ {
+  res = future_map(1:length(index), .progress = T, ~ {
     col = sub('(.*)-ko.tsv', '\\1', index[.x], perl = T)
     res[[.x]] = read_delim(index[.x], col_types = cols(), delim = '\t') %>%
       slice(-1) %>%
@@ -111,8 +111,7 @@ read_data = function(filePath, filePattern) {
       filter(`E-value` <= argv$`e-value`) %>% #e-value is set by argv, default = 1e-3
       select(KO) %>%
       rename(!!col := KO) %>%
-      filter(!(duplicated(.data[[col]])))
-  })
+      filter(!(duplicated(.data[[col]]))) })
   
   res = res %>%
     tibble() %>%
@@ -179,15 +178,14 @@ calculate = function(reactions, organism)  {
     
     #opt = optim(par = c(0.01, 0.01), LogL.bb.5, y_k = coll.k$y_k, n_k = coll.k$n_k)
                 #method = 'L-BFGS-B', lower = 0.01, upper = 10000)
-    
     opt = optim(par = c(0.01, 0.01), LogL.bb.5, y_k = coll.k$y_k, n_k = coll.k$n_k,
                 method = 'L-BFGS-B', lower = 1e-10, upper = 1000000)
     
     res = (opt$par[1] + coll.j$y_j) / (opt$par[1] + opt$par[2] + coll.j$n_j)
     names(res) = .x
     
-    if (argv$verbose == T) {
-    message('\nDone\n') }
+    #if (argv$verbose == T) {
+    #message('\nDone\n') }
     
     return(res) })
 }
@@ -198,9 +196,9 @@ calculate = function(reactions, organism)  {
 metapredict = function(userData, orgNames) {
   orgs = read_csv(orgNames, col_names = 'col', col_types = cols())
   
-  temp = userData %>% 
+  temp = userData %>%
     inner_join(ko_term.tibble, by = 'ko_term') %>%
-    filter(!(duplicated(reaction)))
+    filter(!(duplicated(reaction))) #at this point we have ko_term, reaction, and reaction_description columns
   
   res = temp %>%
     group_split() %>%
@@ -212,21 +210,25 @@ metapredict = function(userData, orgNames) {
   scan = res %>%
     map(ungroup) %>%
     map(filter, is.na(ko_term), reaction %in% colnames(bacteria.rxn.matrix)) %>% #bacteria/archaea matrices have the same column names
-    map(select, reaction, pathway)
+    map(select, -ko_term)
   
   predictions = map(1:length(orgs$col), ~ {
+    message('Processing ', orgs$col[.x], '...')
     calculate(scan[[.x]]$reaction, orgs$col[[.x]]) })
   
   #this can probably be combined with command below, using the ~ map syntax
   pred = map(predictions, function(prediction) {
     tibble(reaction = as_vector(map(prediction, names)),
-           probability = as_vector(prediction)) })
+           probability = as_vector(prediction)) }) 
+      #left_join(ko_term.tibble, by = 'reaction') %>%
+      #select(-ko_term) })
   
-  scan = scan %>% 
+  scan = scan %>%
     map2(pred, ~ mutate(.x, probability = .y$probability)) %>%
     map(group_by, pathway)
   
-  out = map2(res, scan, full_join, by = c('reaction', 'pathway'))
+  out = map2(res, scan, full_join, by = c('reaction', 'reaction_description', 
+                                          'pathway', 'pathway_name', 'pathway_class', 'organism'))
   
   message('Finished KEGG metabolic pathway reconstruction and reaction probability calculations.')
   
@@ -289,7 +291,7 @@ message('Done\n')
 #read in user data, run MetaPredict
 message('Parsing HMM hits and E-values into MetaPredict. Using E-value cutoff: ', argv$`e-value`)
 userData = read_data(argv$path, argv$filePattern)
-message('Done\n\nPerforming metabolic pathway reconstruction and reaction predictions...')
+message('Done\n\nPerforming metabolic pathway reconstruction and reaction predictions...\n')
 result = metapredict(userData, argv$genusList)
 
 #save results to output folder, one TSV for each organism
@@ -300,3 +302,4 @@ message('\nAll done. Saving output.')
 } else {
     stop('You did not specify --path and --genusList arguments properly. Please see usage')
 }
+
