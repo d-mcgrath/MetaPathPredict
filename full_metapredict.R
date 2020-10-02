@@ -228,7 +228,10 @@ metapredict = function(userData, orgNames) {
     map(group_by, pathway)
   
   out = map2(res, scan, full_join, by = c('reaction', 'reaction_description', 
-                                          'pathway', 'pathway_name', 'pathway_class', 'organism'))
+                                          'pathway', 'pathway_name', 'pathway_class', 'organism')) %>%
+    map(mutate, probability = as.character(probability)) %>%
+    map(mutate, probability = case_when(!(is.na(ko_term)) & is.na(probability) ~ 'Present',
+                                TRUE ~ probability))
   
   message('Finished KEGG metabolic pathway reconstruction and reaction probability calculations.')
   
