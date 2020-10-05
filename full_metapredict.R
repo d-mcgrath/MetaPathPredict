@@ -1,5 +1,5 @@
 #load required packages and their dependencies
-if(all(c('tidyverse', 'furrr', 'optparse', 'progress') %in% rownames(installed.packages()))) {
+if(all(c('tidyverse', 'furrr', 'optparse', 'progress', 'duckdb', 'dbplyr', 'DBI') %in% rownames(installed.packages()))) {
   invisible(lapply(c('tidyverse', 'furrr', 'optparse', 'progress'), function(package) {
     suppressWarnings(suppressPackageStartupMessages(library(package, character.only = T)))})) 
   } else {
@@ -192,6 +192,42 @@ calculate = function(reactions, organism)  {
 
 
 
+calculate_sql = function(reactions, organism)  {
+  bac.table = tbl(meta.DB, 'bacteria.rxn.table')
+  arc.table = tbl(meta.DB, 'archaea.rxn.table')
+  
+  future_map(reactions, .progress = T, ~ {
+    if (organism %in% bac.table$Genus) {
+      coll.k = bac.table %>%
+        filter(Genus != organism) %>%
+        summarize(y_k = sum(.data[[.x]]), n_k = length(Genus)) 
+      
+      coll.j = bac.table %>%
+        filter(Genus == organism) %>%
+        summarize(y_j = sum(.data[[.x]]), n_j = length(Genus))
+      
+    } else if (organism %in% arc.table$Genus) {
+      coll.k = arc.table %>%
+        filter(Genus != organism) %>%
+        summarize(y_k = sum(.data[[.x]]), n_k = length(Genus)) 
+      
+      coll.j = arc.table %>%
+        filter(Genus == organism) %>%
+        summarize(y_j = sum(.data[[.x]]), n_j = length(Genus))
+      
+    } else {
+      stop('Genus not found. Please see MetaPredict usage instructions [-h].') }
+    
+    opt = optim(par = c(0.01, 0.01), LogL.bb.5, y_k = coll.k$y_k, n_k = coll.k$n_k,
+                method = 'L-BFGS-B', lower = 1e-10, upper = 1000000)
+    
+    res = (opt$par[1] + coll.j$y_j) / (opt$par[1] + opt$par[2] + coll.j$n_j)
+    names(res) = .x
+    return(res) })
+}
+
+
+
 #function to reconstruct and predict KEGG metabolic pathways
 metapredict = function(userData, orgNames) {
   orgs = read_csv(orgNames, col_names = 'col', col_types = cols())
@@ -214,7 +250,7 @@ metapredict = function(userData, orgNames) {
   
   predictions = map(1:length(orgs$col), ~ {
     message('Processing ', orgs$col[.x], '...')
-    calculate(scan[[.x]]$reaction, orgs$col[[.x]]) })
+    calculate_sql(scan[[.x]]$reaction, orgs$col[[.x]]) })
   
   #this can probably be combined with command below, using the ~ map syntax
   pred = map(predictions, function(prediction) {
@@ -285,6 +321,10 @@ message('Loading required data objects...')
 load('../reqd-metapredict-data-objects.RData')
 message('Done\n')
 
+message('Connecting to SQL database...')
+meta.DB = dbConnect(duckdb::duckdb(), '/vortexfs1/omics/pachiadaki/dgellermcgrath/scripts/metapredict/sql_databases')
+message('Done\n')
+
 #setting parallel computing settings based on user input
 message('Setting parallel computing parameters...')
 plan(multicore, workers = argv$cores)
@@ -299,8 +339,10 @@ result = metapredict(userData, argv$genusList)
 
 #save results to output folder, one TSV for each organism
 outpath = pmap(list(argv$output, unique(userData$organism), '-MetaPredict.tsv'), paste, sep = '')
+message('\nSaving output...')
 map2(result, outpath, write_tsv)
-message('\nAll done. Saving output.')
+dbDisconnect(meta.DB)
+message('All done')
 
 } else {
     stop('You did not specify --path and --genusList arguments properly. Please see usage')
