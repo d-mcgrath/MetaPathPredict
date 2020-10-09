@@ -207,7 +207,7 @@ metapredict = function(userData, orgNames) {
   
   res = temp %>%
     group_split() %>%
-    map(full_join, pathways.tibble, temp, by = 'reaction') %>%
+    map(full_join, pathways.tibble, temp, by = c('reaction', 'reaction_description')) %>%
     map(arrange, pathway) %>%
     map(group_by, pathway) %>%
     map(filter, !(all(is.na(organism))), !(is.na(pathway)))
@@ -284,11 +284,11 @@ message('Parsing command line arguments...')
 argv = parse_args(OptionParser(option_list = option_list))
 message('Done\n')
 
-if(all(!is.na(c(argv$path, argv$genusList)))) {
+if(all(!is.na(c(argv$path, argv$taxonList)))) {
 
 #load required objects for analysis
 message('Loading required data objects...')
-load('../reqd-metapredict-data-objects-v2.RData')
+load('../reqd-metapredict-data-objects-v3.RData')
 message('Done\n')
 
 #message('Connecting to SQL database...')
@@ -305,7 +305,7 @@ message('Done\n')
 message('Parsing HMM hits and E-values into MetaPredict. Using E-value cutoff: ', argv$`e-value`)
 userData = read_data(argv$path, argv$filePattern)
 message('Done\n\nPerforming metabolic pathway reconstruction and reaction predictions...\n')
-metapredict(userData, argv$genusList)
+metapredict(userData, argv$taxonList)
 #result = metapredict(userData, argv$genusList)
 
 
