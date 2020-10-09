@@ -8,94 +8,6 @@ if(all(c('tidyverse', 'furrr', 'optparse') %in% rownames(installed.packages())))
 }
 
 
-#still under development: 
-#function to parse in new KEGG Orthology data for genomes; still in development. this will allow users to
-#add their own metabolic data from their own microbial genomes to MetaPredict, to include in its calculations
-#add_new_data = function(filePath, filePattern, flatfile, flatDelim, workingDir) {
-#  setwd(filePath)
-#  index = list.files(path = filePath, pattern = filePattern)
-#  res = list()
-  
-  #NOTE: need to add in function to read in a req'd user flatfile which gives genus, a unique organism ID, and domain (bacteria or archaea) for each add
-#  user_key = read_delim(flatfile, delim = flatDelim) %>%
-#    mutate(colnames = case_when(
-#      str_detect(colnames(user_key), regex('Genus', ignore_case = T)) ~ 'Genus',
-#      str_detect(colnames(user_key), regex('Genome.ID', ignore_case = T)) ~ 'Genome.ID',
-#      str_detect(colnames(user_key), regex('Domain', ignore_case = T)) ~ 'Domain',
-#      TRUE ~ colnames(user_key))) %>%
-#    select(Genus, Genome.ID, Domain)
-  
-#  future_map(1:length(index), .progress = T, ~ {
-#    col = sub('(.*)-ko.tsv', '\\1', index[.x], perl = T)
-#    res[[.x]] = read_delim(index[.x], col_types = cols(), delim = '\t') %>%
-#      slice(-1) %>%
-#      select(KO, `E-value`) %>%
-#      mutate(`E-value` = as.numeric(`E-value`)) %>%
-#      filter(`E-value` <= argv$`e-value`) %>% #e-value is set by argv, default = 1e-3
-#      select(KO) %>%
-#      rename(!!col := KO) %>%
-#      filter(!(duplicated(.data[[col]])))
-#  })
-#  res = tibble(res)
-  
-#  res.rxn.matrix = future_map_dfc(1:length(res[[1]]), function(x)
-#    map_lgl(1:length(rxn.tib[[1]]), function(y) 
-#      any(str_detect(res[[1]][[x]][[1]], rxn.tib[[1]][[y]][[1]])))) %>%
-#    rename_all(funs(map_chr(res[[1]], names))) %>%
-#    map_dfc(as.numeric) %>%
-#    add_column(col = map_chr(rxn.tib[[1]], names), .before = 1) %>%
-#    column_to_rownames(var = 'col') %>%
-#    t() %>%
-#    as.data.frame() %>%
-#    rownames_to_column(var = 'Genome.ID') %>%
-#    inner_join(select(user_key, Genome.ID, Genus, Domain), by = 'Genome.ID') %>%
-#    select(Genome.ID, Genus, Domain, everything()) %>%
-#    arrange(Domain) %>%
-#    group_by(Domain) %>%
-#    group_split()
-  
-#  if (length(res.rxn.matrix == 2)) {  #need to verify that 'archaea' will always be grouped as the first of two lists
-#    res.rxn.matrix = res.rxn.matrix %>% map(select, -Domain)
-    
-#    imgm.archaea.rxn.matrix = imgm.archaea.rxn.matrix %>%
-#      ungroup() %>%
-#      bind_rows(res.rxn.matrix[[1]]) %>%
-#      group_by(Genus)
-    
-#    bacteria.rxn.matrix = bacteria.rxn.matrix %>%
-#      ungroup() %>%
-#      bind_rows(res.rxn.matrix[[2]]) %>%
-#      group_by(Genus)
-    
-#  } else if (length(res.rxn.matrix == 1)) {
-#    if (all(res.rxn.matrix[[1]]$Domain == regex('bacteria', ignore_case = T))) {
-#      res.rxn.matrix = res.rxn.matrix %>% map(select, -Domain)
-      
-#      bacteria.rxn.matrix = bacteria.rxn.matrix %>%
-#        ungroup() %>%
-#        bind_rows(res.rxn.matrix[[1]]) %>%
-#        group_by(Genus)
-      
-#    } else if (all(res.rxn.matrix[[1]]$Domain == regex('archaea', ignore_case = T))) {
-#      res.rxn.matrix = res.rxn.matrix %>% map(select, -Domain)
-      
-#      imgm.archaea.rxn.matrix = imgm.archaea.rxn.matrix %>%
-#        ungroup() %>%
-#        bind_rows(res.rxn.matrix[[1]]) %>%
-#        group_by(Genus)
-      
-#    } else {
-#      stop("The domain is not specified for one or more genomes as either 'Archaea' or 'Bacteria' (case insensitive).") }
-
-#  } else {
-#    stop('Please check that your input flatfile contains Domain, Genus, and Genome.ID columns') }
-
-#  save(bacteria.rxn.matrix, imgm.archaea.rxn.matrix, pathways.tibble, ko_term.tibble,
-#       file = paste(workingDir, 'reqd-metapredict-data-objects.RData'))
-#}
-
-
-
 #function to parse in user data for pathway reconstruction & reaction prediction
 read_data = function(filePath, filePattern) {
   setwd(filePath)
@@ -116,7 +28,6 @@ read_data = function(filePath, filePattern) {
   res = res %>%
     tibble() %>%
     unnest(cols = everything()) %>% 
-    #gather(key = 'organism', value = 'ko_term', na.rm = T) %>%
     pivot_longer(cols = everything(), names_to = 'organism', 
                  values_to = 'ko_term', values_drop_na = T) %>%
     group_by(organism)
@@ -130,64 +41,6 @@ read_data = function(filePath, filePattern) {
 LogL.bb.5 = function(v, y_k = 5, n_k = 15) { alpha = v[1]; beta = v[2];
 sum(-lgamma(alpha + y_k) - lgamma(beta + n_k - y_k) + lgamma(alpha + beta + n_k)
     + lgamma(alpha) + lgamma(beta) - lgamma(alpha + beta)) 
-}
-
-
-
-#function to find maximum likelihood estimates of alpha and beta
-calculate = function(reactions, organism)  {
-  #if (argv$verbose == T) {
-  #  pb = progress_bar$new(show_after = 0, total = length(reactions), clear = F,
-  #                        format = '[:bar] :current/:total | :percent complete | eta: :eta | time elapsed: :elapsedfull',
-  #                        callback = invisible, width = 200)
-  #} else {
-  #  pb = progress_bar$new(show_after = 0, total = length(reactions), clear = F,
-  #                        format = 'Calculating :what [:bar] :current/:total | :percent complete | eta: :eta | time elapsed: :elapsedfull',
-  #                        callback = invisible, width = 200) }
-  
-  future_map(reactions, .progress = T, ~ {         #need to play with the future_map built-in progress bar...
-    if (organism %in% bacteria.rxn.matrix$Genus) {
-      coll.k = bacteria.rxn.matrix %>%
-        filter(Genus != organism) %>%
-        summarize(y_k = sum(.data[[.x]]), n_k = length(Genus)) 
-      
-      coll.j = bacteria.rxn.matrix %>%
-        filter(Genus == organism) %>%
-        summarize(y_j = sum(.data[[.x]]), n_j = length(Genus))
-      
-    } else if (organism %in% imgm.archaea.rxn.matrix$Genus) {
-      coll.k = imgm.archaea.rxn.matrix %>%
-        filter(Genus != organism) %>%
-        summarize(y_k = sum(.data[[.x]]), n_k = length(Genus)) 
-      
-      coll.j = imgm.archaea.rxn.matrix %>%
-        filter(Genus == organism) %>%
-        summarize(y_j = sum(.data[[.x]]), n_j = length(Genus))
-      
-    } else {
-      stop('Genus not found. Please see MetaPredict usage instructions [-h].')
-    }
-
-   # if (argv$verbose == T) {
-  #  message('Calculating alpha and beta maximum likelihood estimates for reaction ', 
-  #        .x, ' for organism ', organism, '...', sep = '') 
-  #    pb$tick()
-  #  
-  #    } else {
-  #      pb$tick(tokens = list(what = paste(organism, ': ', .x, sep = ''))) }
-    
-    #opt = optim(par = c(0.01, 0.01), LogL.bb.5, y_k = coll.k$y_k, n_k = coll.k$n_k)
-                #method = 'L-BFGS-B', lower = 0.01, upper = 10000)
-    opt = optim(par = c(0.01, 0.01), LogL.bb.5, y_k = coll.k$y_k, n_k = coll.k$n_k,
-                method = 'L-BFGS-B', lower = 1e-10, upper = 1000000)
-    
-    res = (opt$par[1] + coll.j$y_j) / (opt$par[1] + opt$par[2] + coll.j$n_j)
-    names(res) = .x
-    
-    #if (argv$verbose == T) {
-    #message('\nDone\n') }
-    
-    return(res) })
 }
 
 
@@ -220,7 +73,7 @@ calculate_sql = function(reactions, organism)  {
       stop('Genus not found. Please see MetaPredict usage instructions [-h].') }
     
     opt = optim(par = c(0.01, 0.01), LogL.bb.5, y_k = coll.k$y_k, n_k = coll.k$n_k,
-                method = 'L-BFGS-B', lower = 1e-10, upper = 1000000)
+                method = 'L-BFGS-B', lower = 1e-10, upper = 1e6)
     
     res = (opt$par[1] + coll.j$y_j) / (opt$par[1] + opt$par[2] + coll.j$n_j)
     names(res) = .x
@@ -285,14 +138,13 @@ calculate_p = function(reactions, rxn_matrix, taxonomic_lvl, organism, scan_list
 
 no_optim = function(reactions, rxn_matrix) {
   future_map(reactions, .progress = T, ~ {
-    collection = list()
     
-    collection[['j']] = rxn_matrix %>%
+    collection.j = rxn_matrix %>%
       group_by(Genus) %>%
       summarize(y_j = sum(.data[[.x]]), n_k = length(Genus))
     
     #future_map(reactions, .progress = T, ~ {
-    res = (1 + collection[['j']]$y_j) / (1 + 1 + collection[['j']]$n_j)
+    res = (1 + collection.j$y_j) / (1 + 1 + collection.j$n_j)
     names(res) = .x
     return(res) })
 }
@@ -404,7 +256,7 @@ option_list = list(
               help = 'Regex suffix pattern for KEGG orthology files [default %default]',
               type = 'character', default = '*-ko.tsv'),
   
-  make_option(c('-g', '--genusList'),
+  make_option(c('-x', '--taxonList'),
               help = 'Path to a CSV file of genera of each organism, with each genus on a new line, 
               in the same order as the corresponding KEGG orthology files listed in --path',
               action = 'store', type = 'character', default = NA),
@@ -465,6 +317,96 @@ metapredict(userData, argv$genusList)
 message('All done.')
 
 } else {
-    stop('You did not specify --path and --genusList arguments properly. Please see usage')
+    stop('You did not specify --path and --taxonList arguments properly. Please see usage')
 }
+
+
+
+
+
+#still under development: 
+#function to parse in new KEGG Orthology data for genomes; still in development. this will allow users to
+#add their own metabolic data from their own microbial genomes to MetaPredict, to include in its calculations
+#add_new_data = function(filePath, filePattern, flatfile, flatDelim, workingDir) {
+#  setwd(filePath)
+#  index = list.files(path = filePath, pattern = filePattern)
+#  res = list()
+
+#NOTE: need to add in function to read in a req'd user flatfile which gives genus, a unique organism ID, and domain (bacteria or archaea) for each add
+#  user_key = read_delim(flatfile, delim = flatDelim) %>%
+#    mutate(colnames = case_when(
+#      str_detect(colnames(user_key), regex('Genus', ignore_case = T)) ~ 'Genus',
+#      str_detect(colnames(user_key), regex('Genome.ID', ignore_case = T)) ~ 'Genome.ID',
+#      str_detect(colnames(user_key), regex('Domain', ignore_case = T)) ~ 'Domain',
+#      TRUE ~ colnames(user_key))) %>%
+#    select(Genus, Genome.ID, Domain)
+
+#  future_map(1:length(index), .progress = T, ~ {
+#    col = sub('(.*)-ko.tsv', '\\1', index[.x], perl = T)
+#    res[[.x]] = read_delim(index[.x], col_types = cols(), delim = '\t') %>%
+#      slice(-1) %>%
+#      select(KO, `E-value`) %>%
+#      mutate(`E-value` = as.numeric(`E-value`)) %>%
+#      filter(`E-value` <= argv$`e-value`) %>% #e-value is set by argv, default = 1e-3
+#      select(KO) %>%
+#      rename(!!col := KO) %>%
+#      filter(!(duplicated(.data[[col]])))
+#  })
+#  res = tibble(res)
+
+#  res.rxn.matrix = future_map_dfc(1:length(res[[1]]), function(x)
+#    map_lgl(1:length(rxn.tib[[1]]), function(y) 
+#      any(str_detect(res[[1]][[x]][[1]], rxn.tib[[1]][[y]][[1]])))) %>%
+#    rename_all(funs(map_chr(res[[1]], names))) %>%
+#    map_dfc(as.numeric) %>%
+#    add_column(col = map_chr(rxn.tib[[1]], names), .before = 1) %>%
+#    column_to_rownames(var = 'col') %>%
+#    t() %>%
+#    as.data.frame() %>%
+#    rownames_to_column(var = 'Genome.ID') %>%
+#    inner_join(select(user_key, Genome.ID, Genus, Domain), by = 'Genome.ID') %>%
+#    select(Genome.ID, Genus, Domain, everything()) %>%
+#    arrange(Domain) %>%
+#    group_by(Domain) %>%
+#    group_split()
+
+#  if (length(res.rxn.matrix == 2)) {  #need to verify that 'archaea' will always be grouped as the first of two lists
+#    res.rxn.matrix = res.rxn.matrix %>% map(select, -Domain)
+
+#    imgm.archaea.rxn.matrix = imgm.archaea.rxn.matrix %>%
+#      ungroup() %>%
+#      bind_rows(res.rxn.matrix[[1]]) %>%
+#      group_by(Genus)
+
+#    bacteria.rxn.matrix = bacteria.rxn.matrix %>%
+#      ungroup() %>%
+#      bind_rows(res.rxn.matrix[[2]]) %>%
+#      group_by(Genus)
+
+#  } else if (length(res.rxn.matrix == 1)) {
+#    if (all(res.rxn.matrix[[1]]$Domain == regex('bacteria', ignore_case = T))) {
+#      res.rxn.matrix = res.rxn.matrix %>% map(select, -Domain)
+
+#      bacteria.rxn.matrix = bacteria.rxn.matrix %>%
+#        ungroup() %>%
+#        bind_rows(res.rxn.matrix[[1]]) %>%
+#        group_by(Genus)
+
+#    } else if (all(res.rxn.matrix[[1]]$Domain == regex('archaea', ignore_case = T))) {
+#      res.rxn.matrix = res.rxn.matrix %>% map(select, -Domain)
+
+#      imgm.archaea.rxn.matrix = imgm.archaea.rxn.matrix %>%
+#        ungroup() %>%
+#        bind_rows(res.rxn.matrix[[1]]) %>%
+#        group_by(Genus)
+
+#    } else {
+#      stop("The domain is not specified for one or more genomes as either 'Archaea' or 'Bacteria' (case insensitive).") }
+
+#  } else {
+#    stop('Please check that your input flatfile contains Domain, Genus, and Genome.ID columns') }
+
+#  save(bacteria.rxn.matrix, imgm.archaea.rxn.matrix, pathways.tibble, ko_term.tibble,
+#       file = paste(workingDir, 'reqd-metapredict-data-objects.RData'))
+#}
 
