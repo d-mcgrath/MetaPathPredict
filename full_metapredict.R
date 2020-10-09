@@ -1,6 +1,6 @@
 #load required packages and their dependencies
-if(all(c('tidyverse', 'furrr', 'optparse', 'progress', 'duckdb', 'dbplyr', 'DBI') %in% rownames(installed.packages()))) {
-  invisible(lapply(c('tidyverse', 'furrr', 'optparse', 'progress'), function(package) {
+if(all(c('tidyverse', 'furrr', 'optparse') %in% rownames(installed.packages()))) {
+  invisible(lapply(c('tidyverse', 'furrr', 'optparse'), function(package) {
     suppressWarnings(suppressPackageStartupMessages(library(package, character.only = T)))})) 
   } else {
   stop('One or more of the required packages are not installed. Are you currently running the 
@@ -193,6 +193,7 @@ calculate = function(reactions, organism)  {
 
 
 calculate_sql = function(reactions, organism)  {
+  
   bac.table = tbl(meta.DB, 'bacteria.rxn.table')
   arc.table = tbl(meta.DB, 'archaea.rxn.table')
   
@@ -228,6 +229,122 @@ calculate_sql = function(reactions, organism)  {
 
 
 
+#updated function to find maximum likelihood estimates of alpha and beta
+calculate_p = function(reactions, rxn_matrix, taxonomic_lvl, organism, scan_list, res_list) {
+  predictions = future_map(reactions, .progress = T, ~ {
+    rlang::enquo(taxonomic_lvl)
+    
+    collection.k = rxn_matrix %>%
+      group_by(.data[[!!taxonomic_lvl]]) %>%
+      filter(.data[[!!taxonomic_lvl]] != organism) %>%
+      #{{taxonomic_lvl}} != regex('unclassified', ignore_case = T)) %>%
+      ungroup() %>%
+      group_by(Genus) %>%
+      summarize(y_k = sum(.data[[.x]]), n_k = length(Genus))
+    
+    collection.j = rxn_matrix %>%
+      group_by(.data[[!!taxonomic_lvl]]) %>%
+      filter(.data[[!!taxonomic_lvl]] == organism) %>%
+      summarize(y_j = sum(.data[[.x]]), n_j = length(.data[[!!taxonomic_lvl]]))
+    
+    if (length(collection.k$n_k) >= 2) {
+      opt = optim(par = c(0.01, 0.01), LogL.bb.5, y_k = collection.k$y_k, 
+                  n_k = collection.k$n_k, method = 'L-BFGS-B', lower = 1e-10, upper = 1e6)
+      
+      res = (opt$par[1] + collection.j$y_j) / (opt$par[1] + opt$par[2] + collection.j$n_j)
+      
+    } else {
+      res = NA } #need n_k to be >= 2, result is NA otherwise - can't be calculated
+    #stop('Cannot calculate MLE for alpha and beta when number of collections k < 2.') }
+    
+    names(res) = .x #output is a named vector(verify?) with p_j & rxn name for each element
+    
+    return(res) })
+  
+  scan_list = scan_list %>%
+    mutate(probability = as_vector(predictions)) %>%
+    group_by(pathway)
+  
+  res_list = res_list %>%
+    full_join(scan_list, by = c('reaction', 'reaction_description', 
+                                'pathway', 'pathway_name', 
+                                'pathway_class', 'organism')) %>%
+    mutate(probability = as.character(probability), probability = case_when(
+      !(is.na(ko_term)) & is.na(probability) ~ 'Present',
+      TRUE ~ probability), organism = case_when(
+        is.na(organism) ~ unique(na.omit(organism)),
+        TRUE ~ organism))
+  
+  message('Saving output...')
+  write_tsv(res_list, path = paste(argv$output, unique(na.omit(res_list$organism)),
+                                   '-MetaPredict.tsv', sep = ''))
+  message('Done with ', unique(na.omit(res_list$organism)), '\n')
+}
+
+
+
+no_optim = function(reactions, rxn_matrix) {
+  future_map(reactions, .progress = T, ~ {
+    collection = list()
+    
+    collection[['j']] = rxn_matrix %>%
+      group_by(Genus) %>%
+      summarize(y_j = sum(.data[[.x]]), n_k = length(Genus))
+    
+    #future_map(reactions, .progress = T, ~ {
+    res = (1 + collection[['j']]$y_j) / (1 + 1 + collection[['j']]$n_j)
+    names(res) = .x
+    return(res) })
+}
+
+
+
+pull_data = function(reactions, organism, scan_list, res_list)  { #added scan argument; to all below as well
+  if (organism %in% bacteria.rxn.matrix$Genus) {
+    res = calculate_p(reactions, bacteria.rxn.matrix, 'Genus', organism, scan_list, res_list)
+    
+  } else if (organism %in% bacteria.rxn.matrix$Family) {
+    res = calculate_p(reactions, bacteria.rxn.matrix, 'Family', organism, scan_list, res_list)
+    
+  } else if (organism %in% bacteria.rxn.matrix$Order) {
+    res = calculate_p(reactions, bacteria.rxn.matrix, 'Order', organism, scan_list, res_list)
+    
+  } else if (organism %in% bacteria.rxn.matrix$Class) {
+    res = calculate_p(reactions, bacteria.rxn.matrix, 'Class', organism, scan_list, res_list)
+    
+  } else if (organism %in% bacteria.rxn.matrix$Phylum) {
+    res = calculate_p(reactions, bacteria.rxn.matrix, 'Phylum', organism, scan_list, res_list)
+    
+  } else if (organism %in% bacteria.rxn.matrix$Domain) {
+    res = no_optim(reactions, bacteria.rxn.matrix)
+    
+    
+  } else if (organism %in% imgm.archaea.rxn.matrix$Genus) {
+    res = calculate_p(reactions, imgm.archaea.rxn.matrix, 'Genus', organism, scan_list, res_list)
+    
+  } else if (organism %in% imgm.archaea.rxn.matrix$Family) {
+    res = calculate_p(reactions, imgm.archaea.rxn.matrix, 'Family', organism, scan_list, res_list)
+    
+  } else if (organism %in% imgm.archaea.rxn.matrix$Order) {
+    res = calculate_p(reactions, imgm.archaea.rxn.matrix, 'Order', organism, scan_list, res_list)
+    
+  } else if (organism %in% imgm.archaea.rxn.matrix$Class) {
+    res = calculate_p(reactions, imgm.archaea.rxn.matrix, 'Class', organism, scan_list, res_list)
+    
+  } else if (organism %in% imgm.archaea.rxn.matrix$Phylum) {
+    res = calculate_p(reactions, imgm.archaea.rxn.matrix, 'Phylum', organism, scan_list, res_list)
+    
+  } else if (organism %in% imgm.archaea.rxn.matrix$Domain) {
+    res = no_optim(reactions, imgm.archaea.rxn.matrix)
+    
+  } else {
+    stop('Organism taxonomy not detected for ', organism, ', even at the domain level. Please see MetaPredict usage instructions [-h].') }
+  
+  return(res)
+}
+
+
+
 #function to reconstruct and predict KEGG metabolic pathways
 metapredict = function(userData, orgNames) {
   orgs = read_csv(orgNames, col_names = 'col', col_types = cols())
@@ -243,35 +360,36 @@ metapredict = function(userData, orgNames) {
     map(group_by, pathway) %>%
     map(filter, !(all(is.na(organism))), !(is.na(pathway)))
   
-  scan = res %>%
+  scan_missing = res %>%
     map(ungroup) %>%
     map(filter, is.na(ko_term), reaction %in% colnames(bacteria.rxn.matrix)) %>% #bacteria/archaea matrices have the same column names
     map(select, -ko_term)
   
-  predictions = map(1:length(orgs$col), ~ {
-    message('Processing ', orgs$col[.x], '...')
-    calculate_sql(scan[[.x]]$reaction, orgs$col[[.x]]) })
-  
+  map(1:length(orgs$col), ~ { #added scan here...changed 'predictions' to 'results'..
+    #message('Processing ', orgs$col[.x], '...')
+    message('Processing ', unique(userData$organism)[.x], '...')
+    pull_data(scan_missing[[.x]]$reaction, orgs$col[[.x]], scan_missing[[.x]],
+              res[[.x]]) }) # added .y (scan) here...
   #this can probably be combined with command below, using the ~ map syntax
-  pred = map(predictions, function(prediction) {
-    tibble(reaction = as_vector(map(prediction, names)),
-           probability = as_vector(prediction)) }) 
+  #pred = map(predictions, function(prediction) {
+  #  tibble(reaction = as_vector(map(prediction, names)),
+  #         probability = as_vector(prediction)) }) 
       #left_join(ko_term.tibble, by = 'reaction') %>%
       #select(-ko_term) })
   
-  scan = scan %>%
-    map2(pred, ~ mutate(.x, probability = .y$probability)) %>%
-    map(group_by, pathway)
+  #scan = scan %>%
+  #  map2(pred, ~ mutate(.x, probability = .y$probability)) %>%
+  #  map(group_by, pathway)
   
-  out = map2(res, scan, full_join, by = c('reaction', 'reaction_description', 
-                                          'pathway', 'pathway_name', 'pathway_class', 'organism')) %>%
-    map(mutate, probability = as.character(probability)) %>%
-    map(mutate, probability = case_when(!(is.na(ko_term)) & is.na(probability) ~ 'Present',
-                                TRUE ~ probability))
+  #out = map2(res, scan, full_join, by = c('reaction', 'reaction_description', 
+  #                                        'pathway', 'pathway_name', 'pathway_class', 'organism')) %>%
+  #  map(mutate, probability = as.character(probability)) %>%
+  #  map(mutate, probability = case_when(!(is.na(ko_term)) & is.na(probability) ~ 'Present',
+  #                              TRUE ~ probability))
   
   message('Finished KEGG metabolic pathway reconstruction and reaction probability calculations.')
   
-  return(out)  
+  #return(results)  
 }
 
 
@@ -318,12 +436,12 @@ if(all(!is.na(c(argv$path, argv$genusList)))) {
 
 #load required objects for analysis
 message('Loading required data objects...')
-load('../reqd-metapredict-data-objects.RData')
+load('../reqd-metapredict-data-objects-v2.RData')
 message('Done\n')
 
-message('Connecting to SQL database...')
-meta.DB = dbConnect(duckdb::duckdb(), '/vortexfs1/omics/pachiadaki/dgellermcgrath/scripts/metapredict/sql_databases')
-message('Done\n')
+#message('Connecting to SQL database...')
+#meta.DB = dbConnect(duckdb::duckdb(), '/vortexfs1/omics/pachiadaki/dgellermcgrath/scripts/metapredict/sql_databases')
+#message('Done\n')
 
 #setting parallel computing settings based on user input
 message('Setting parallel computing parameters...')
@@ -335,14 +453,16 @@ message('Done\n')
 message('Parsing HMM hits and E-values into MetaPredict. Using E-value cutoff: ', argv$`e-value`)
 userData = read_data(argv$path, argv$filePattern)
 message('Done\n\nPerforming metabolic pathway reconstruction and reaction predictions...\n')
-result = metapredict(userData, argv$genusList)
+metapredict(userData, argv$genusList)
+#result = metapredict(userData, argv$genusList)
+
 
 #save results to output folder, one TSV for each organism
-outpath = pmap(list(argv$output, unique(userData$organism), '-MetaPredict.tsv'), paste, sep = '')
-message('\nSaving output...')
-map2(result, outpath, write_tsv)
-dbDisconnect(meta.DB)
-message('All done')
+#outpath = pmap(list(argv$output, unique(userData$organism), '-MetaPredict.tsv'), paste, sep = '')
+#message('\nSaving output...')
+#map2(result, outpath, write_tsv)
+#dbDisconnect(meta.DB)
+message('All done.')
 
 } else {
     stop('You did not specify --path and --genusList arguments properly. Please see usage')
