@@ -8,16 +8,16 @@ function usage() {
   if [ -n "$1" ]; then
     echo -e "${RED}👉 $1${CLEAR}\n";
   fi
-    echo "Usage: $0 [-w -working-dir] [-o output-dir] [-g genus-file] [-c cores] [-f input-files]"
-    echo "  -w, --working-dir  : The directory containing input files [default current directory]"
-    echo "  -o, --output-dir   : The directory for output files. Will be created in working directory if it does not exist [default metapredict_output]"
-    echo "  -g, --genus-file   : Full path to a CSV file containing the genus of each input fasta file, in the same order as fasta files in the working directory"
-    echo "  -c, --cores        : Number of CPU cores to use [default 1]"
-    echo "  -f, --files        : One or more input genome fasta files. Can use regex patterns in quotes for multiple files, e.g., \"*.fa\""
+    echo "Usage: $0 [-w -working-dir] [-o output-dir] [-x taxonomy-file] [-c cores] [-f input-files]"
+    echo "  -w, --working-dir    : The directory containing input files [default current directory]"
+    echo "  -o, --output-dir     : The directory for output files. Will be created in working directory if it does not exist [default metapredict_output]"
+    echo "  -x, --taxonomy-file  : Full path to a CSV file containing the lowest taxonomic level of each input fasta file on a new line, in the same order as fasta files in the working directory"
+    echo "  -c, --cores          : Number of CPU cores to use [default 1]"
+    echo "  -f, --files          : One or more input genome fasta files. Can use regex patterns in quotes for multiple files, e.g., \"*.fa\""
     echo ""
-    echo "Example with long flags: $0 --working-dir /path/to/input_files --output-dir /path/to/output_dir --genus-file /full/path/to/genus_file.csv --cores 1 --files \"*.fa\""
+    echo "Example with long flags: $0 --working-dir /path/to/input_files --output-dir /path/to/output_dir --taxonomy-file /full/path/to/taxonomy_file.csv --cores 1 --files \"*.fa\""
     echo ""
-    echo "Example with short flags: $0 -w /path/to/input_files -o /path/to/output_dir -g /full/path/to/genus_file.csv -c 1 -f \"*.fa\""
+    echo "Example with short flags: $0 -w /path/to/input_files -o /path/to/output_dir -x /full/path/to/taxonomy_file.csv -c 1 -f \"*.fa\""
     exit 1
 }
 
@@ -25,7 +25,7 @@ function usage() {
 while [[ "$#" > 0 ]]; do case $1 in
   -w|--working-dir) WORKING_DIR="$2"; shift;shift;;
   -o|--output-dir) OUTPUT_DIR="$2"; shift;shift;;
-  -g|--genus-file) GENUS_FILE="$2"; shift;shift;;
+  -x|--taxonomy-file) TAXONOMY_FILE="$2"; shift;shift;;
   -c|--cores) CORES="$2"; shift;shift;;
   -f|--files) FILES="$2"; shift;shift;;
   *) usage "Unknown parameter passed $1"; shift;shift;;
@@ -34,7 +34,7 @@ esac; done
 #verify parameters
 if [ -z "${WORKING_DIR}" ]; then WORKING_DIR=$(pwd); fi;
 if [ -z "${OUTPUT_DIR}" ]; then OUTPUT_DIR=$(echo metapredict_output); fi;
-if [ -z "${GENUS_FILE}" ]; then usage "Error: no genus file detected. A genus CSV file is required. Did you provide the full path to the genus file?"; fi;
+if [ -z "${TAXONOMY_FILE}" ]; then usage "Error: no taxonomy file detected. A taxonomy CSV file is required. Did you provide the full path to the taxonomy file?"; fi;
 if [ -z "${CORES}" ]; then CORES=$(echo 1); fi;
 if [ -z "${FILES}" ]; then usage "Error: no input files detected. One or more input genome fasta files is required"; fi;
 
@@ -62,7 +62,8 @@ printf "Done with %s\n\n" "${FILE}"
 done
 
 #run metapredict
+cat ../logo.txt
 echo Starting MetaPredict on files: "$(ls *-ko.tsv | paste -s -d ,)"...
-Rscript ../full_metapredict.R -p ./ -g ../"${GENUS_FILE}" -c "${CORES}"
+Rscript ../full_metapredict.R -p ./ -x ../"${TAXONOMY_FILE}" -c "${CORES}"
 
 #all done
