@@ -119,14 +119,16 @@ calculate_p = function(reactions, rxn_matrix, taxonomic_lvl, organism, scan_list
     group_by(pathway)
   
   res_list = res_list %>%
-    full_join(scan_list, by = c('reaction', 'reaction_description', 
+    full_join(scan_list, by = c('ko_description', 'reaction', 'reaction_description', 
                                 'pathway', 'pathway_name', 
                                 'pathway_class', 'organism')) %>%
     mutate(probability = as.character(probability), probability = case_when(
       !(is.na(ko_term)) & is.na(probability) ~ 'Present',
       TRUE ~ probability), organism = case_when(
         is.na(organism) ~ unique(na.omit(organism)),
-        TRUE ~ organism))
+        TRUE ~ organism)) %>%
+    select(organism, pathway, reaction, ko_term, probability, 
+           pathway_name, reaction_description, ko_description, pathway_class)
   
   message('Saving output...')
   write_tsv(res_list, path = paste(argv$output, unique(na.omit(res_list$organism)),
@@ -137,21 +139,41 @@ calculate_p = function(reactions, rxn_matrix, taxonomic_lvl, organism, scan_list
 
 
 no_optim = function(reactions, rxn_matrix) {
-  future_map(reactions, .progress = T, ~ {
+  predictions = future_map(reactions, .progress = T, ~ {
     
     collection.j = rxn_matrix %>%
       group_by(Genus) %>%
       summarize(y_j = sum(.data[[.x]]), n_k = length(Genus))
     
-    #future_map(reactions, .progress = T, ~ {
     res = (1 + collection.j$y_j) / (1 + 1 + collection.j$n_j)
     names(res) = .x
     return(res) })
+  
+  scan_list = scan_list %>%
+    mutate(probability = as_vector(predictions)) %>%
+    group_by(pathway)
+  
+  res_list = res_list %>%
+    full_join(scan_list, by = c('ko_description', 'reaction', 'reaction_description', 
+                                'pathway', 'pathway_name', 
+                                'pathway_class', 'organism')) %>%
+    mutate(probability = as.character(probability), probability = case_when(
+      !(is.na(ko_term)) & is.na(probability) ~ 'Present',
+      TRUE ~ probability), organism = case_when(
+        is.na(organism) ~ unique(na.omit(organism)),
+        TRUE ~ organism)) %>%
+    select(organism, pathway, reaction, ko_term, probability, 
+           pathway_name, reaction_description, ko_description, pathway_class)
+  
+  message('Saving output...')
+  write_tsv(res_list, path = paste(argv$output, unique(na.omit(res_list$organism)),
+                                   '-MetaPredict.tsv', sep = ''))
+  message('Done with ', unique(na.omit(res_list$organism)), '\n')
 }
 
 
 
-pull_data = function(reactions, organism, scan_list, res_list)  { #added scan argument; to all below as well
+pull_data = function(reactions, organism, scan_list, res_list)  {
   if (organism %in% bacteria.rxn.matrix$Genus) {
     res = calculate_p(reactions, bacteria.rxn.matrix, 'Genus', organism, scan_list, res_list)
     
@@ -168,7 +190,7 @@ pull_data = function(reactions, organism, scan_list, res_list)  { #added scan ar
     res = calculate_p(reactions, bacteria.rxn.matrix, 'Phylum', organism, scan_list, res_list)
     
   } else if (organism %in% bacteria.rxn.matrix$Domain) {
-    res = no_optim(reactions, bacteria.rxn.matrix)
+    res = no_optim(reactions, bacteria.rxn.matrix, scan_list, res_list)
     
     
   } else if (organism %in% imgm.archaea.rxn.matrix$Genus) {
@@ -187,7 +209,7 @@ pull_data = function(reactions, organism, scan_list, res_list)  { #added scan ar
     res = calculate_p(reactions, imgm.archaea.rxn.matrix, 'Phylum', organism, scan_list, res_list)
     
   } else if (organism %in% imgm.archaea.rxn.matrix$Domain) {
-    res = no_optim(reactions, imgm.archaea.rxn.matrix)
+    res = no_optim(reactions, imgm.archaea.rxn.matrix, scan_list, res_list)
     
   } else {
     stop('Organism taxonomy not detected for ', organism, ', even at the domain level. Please see MetaPredict usage instructions [-h].') }
