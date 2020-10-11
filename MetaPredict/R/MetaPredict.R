@@ -5,9 +5,10 @@
 #'
 #' @param userData Created with the read_data function - KEGG Orthology data for one or more bacteria/archaea
 #' @param taxonList A CSV flatfile with lowest taxonomic level of each input organism. Same order as in userData, one per line
+#' @param cores Number of cores to use for computation. Default is 1
 #' @importFrom magrittr "%>%"
 #' @export
-MetaPredict <- function(userData, taxonList) {
+MetaPredict <- function(userData, taxonList, cores = 1) {
   orgs <- readr::read_csv(taxonList, col_names = 'col', col_types = readr::cols())
 
   temp <- userData %>%
@@ -25,6 +26,10 @@ MetaPredict <- function(userData, taxonList) {
     purrr::map(dplyr::ungroup) %>%
     purrr::map(dplyr::filter, is.na(ko_term), reaction %in% colnames(bacteria.rxn.matrix)) %>% #bacteria/archaea matrices have the same column names
     purrr::map(dplyr::select, -ko_term)
+
+  message('Setting parallel computing parameters...')
+  future::plan(multicore, workers = cores)
+  options(future.globals.maxSize = 3145728000)
 
   results <- purrr::map(1:length(orgs$col), ~ { #added scan here...changed 'predictions' to 'results'..
     message('Processing ', unique(userData$organism)[.x], '...')
