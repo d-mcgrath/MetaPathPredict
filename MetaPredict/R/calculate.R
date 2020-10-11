@@ -10,34 +10,39 @@ LogL.betabinomial <- function(v, y_k = 5, n_k = 15) {
 
 
 calculate_p <- function(reactions, rxn_matrix, taxonomic_lvl, organism, scan_list, res_list) {
+  rlang::enquo(taxonomic_lvl)
+
+  collection.k <- rxn_matrix %>%
+    group_by(.data[[!!taxonomic_lvl]]) %>%
+    filter(.data[[!!taxonomic_lvl]] != organism) %>%
+    ungroup() %>%
+    group_by(Genus)
+
+  collection.j <- rxn_matrix %>%
+    group_by(.data[[!!taxonomic_lvl]]) %>%
+    filter(.data[[!!taxonomic_lvl]] == organism)
+
+  n_k <- (collection.k %>%
+            summarize(n_k = length(Genus)))$n_k
+
+  n_j <- (collection.j %>%
+            summarize(n_j = length(.data[[!!taxonomic_lvl]])))$n_j
+
   predictions <- furrr::future_map(reactions, .progress = T, ~ {
-    rlang::enquo(taxonomic_lvl)
-
-    collection.k <- rxn_matrix %>%
-      group_by(.data[[!!taxonomic_lvl]]) %>%
-      filter(.data[[!!taxonomic_lvl]] != organism) %>%
-      ungroup() %>%
-      group_by(Genus) %>%
-      summarize(y_k = sum(.data[[.x]]), n_k = length(Genus))
-
-    collection.j <- rxn_matrix %>%
-      group_by(.data[[!!taxonomic_lvl]]) %>%
-      filter(.data[[!!taxonomic_lvl]] == organism) %>%
-      summarize(y_j = sum(.data[[.x]]),
-                       n_j = length(.data[[!!taxonomic_lvl]]))
-
-    if (length(collection.k$n_k) >= 2) {
-      opt <- optim(par = c(0.01, 0.01), LogL.betabinomial, y_k = collection.k$y_k,
-                  n_k = collection.k$n_k, method = 'L-BFGS-B', lower = 1e-10, upper = 1e6)
-
-      res <- (opt$par[1] + collection.j$y_j) / (opt$par[1] + opt$par[2] + collection.j$n_j)
+    if (length(n_k) >= 2) {
+      opt <- optim(par = c(0.01, 0.01), LogL.betabinomial,
+                   y_k = (collection.k %>% summarize(y_k = sum(.data[[.x]])))$y_k,
+                   n_k = n_k,
+                   method = 'L-BFGS-B', lower = 1e-10, upper = 1e6)
+      res <- (opt$par[1] + (collection.j %>% summarize(y_j = sum(.data[[.x]])))$y_j) /
+        (opt$par[1] + opt$par[2] + n_j)
 
     } else {
-      res <- NA } #need n_k to be >= 2, result is NA otherwise - can't be calculated
+      res <- NA }
 
-    names(res) <- .x #output is a named vector(verify?) with p_j & rxn name for each element
-
-    return(res) })
+    names(res) <- .x
+    return(res)
+    })
 
   scan_list <- scan_list %>%
     mutate(probability = purrr::as_vector(predictions)) %>%
@@ -55,10 +60,7 @@ calculate_p <- function(reactions, rxn_matrix, taxonomic_lvl, organism, scan_lis
     select(organism, pathway, reaction, ko_term, probability,
            pathway_name, reaction_description, ko_description, pathway_class)
 
-  #message('Saving output...')
-  #write_tsv(res_list, path = paste(argv$output, unique(na.omit(res_list$organism)),
-  #                                 '-MetaPredict.tsv', sep = ''))
-  #message('Done with ', unique(na.omit(res_list$organism)), '\n')
+  message('Done with ', unique(na.omit(res_list$organism)), '\n')
   return(res_list)
 }
 
@@ -92,10 +94,7 @@ no_optim <- function(reactions, rxn_matrix) {
     select(organism, pathway, reaction, ko_term, probability,
            pathway_name, reaction_description, ko_description, pathway_class)
 
-  #message('Saving output...')
-  #write_tsv(res_list, path = paste(argv$output, unique(na.omit(res_list$organism)),
-  #                                 '-MetaPredict.tsv', sep = '')) #probably better to save as an R object
-  #message('Done with ', unique(na.omit(res_list$organism)), '\n')
+  message('Done with ', unique(na.omit(res_list$organism)), '\n')
   return(res_list)
 }
 

@@ -10,8 +10,8 @@
 #' @export
 read_data <- function(filePath, filePattern, kofamscan = TRUE, evalue = 1e-3, delim = '\t') {
   message('Parsing HMM/Blast hits and E-values into MetaPredict. Using E-value cutoff: ', evalue)
-  setwd(filePath)
-  index <- list.files(path = filePath, pattern = '*-ko.tsv')
+  #setwd(filePath)
+  index <- list.files(path = filePath, pattern = '*-ko.tsv', full.names = TRUE)
   res <- list()
 
   res = furrr::future_map(1:length(index), .progress = T, ~ {
