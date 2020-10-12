@@ -7,14 +7,17 @@ Each file should end in "-ko.tsv" and contain a column of KEGG Orthology terms w
 and a column with their associated HMM or Blast E-values titled 'E-value'.}
 \usage{
 read_data(
-  filePath,
-  filePattern,
+  Data = NULL,
+  filePath = NULL,
+  filePattern = "*-ko.tsv",
   kofamscan = TRUE,
   evalue = 0.001,
   delim = "\\t"
 )
 }
 \arguments{
+\item{Data}{A dataframe or list of dataframes of HMM/Blast results which include KEGG Orthology terms and E-values in two of the columns of each dataframe}
+
 \item{filePath}{The full path to the input file or files}
 
 \item{filePattern}{The file extension pattern. If using multiple files, this will read in all files in the listed directory}
