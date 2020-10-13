@@ -27,8 +27,9 @@ MetaPredict <- function(userData, taxonList, cores = 1) {
     purrr::map(dplyr::filter, is.na(ko_term), reaction %in% colnames(bacteria.rxn.matrix)) %>% #bacteria/archaea matrices have the same column names
     purrr::map(dplyr::select, -ko_term)
 
-  message('Setting parallel computing parameters...')
-  future::plan(multicore, workers = cores)
+  message('Setting parallel computing parameters, using ', cores, ' core(s)...')
+  mplan <- future::plan('multicore', workers = cores) # it is recommended not to call plan() in a function... leave it up to the user?..
+  on.exit(future::plan(mplan), add = TRUE)
   options(future.globals.maxSize = 3145728000)
 
   results <- purrr::map(1:length(orgs$col), ~ { #added scan here...changed 'predictions' to 'results'..

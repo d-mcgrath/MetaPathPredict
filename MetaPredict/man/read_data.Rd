@@ -8,8 +8,9 @@ and a column with their associated HMM or Blast E-values titled 'E-value'.}
 \usage{
 read_data(
   Data = NULL,
+  File = NULL,
   filePath = NULL,
-  filePattern = "*-ko.tsv",
+  filePattern = "-ko.tsv",
   kofamscan = TRUE,
   evalue = 0.001,
   delim = "\\t"
@@ -17,6 +18,8 @@ read_data(
 }
 \arguments{
 \item{Data}{A dataframe or list of dataframes of HMM/Blast results which include KEGG Orthology terms and E-values in two of the columns of each dataframe}
+
+\item{File}{The full or relative path to a single input flatfile}
 
 \item{filePath}{The full path to the input file or files}
 

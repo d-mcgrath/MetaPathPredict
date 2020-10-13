@@ -11,6 +11,7 @@ LogL.betabinomial <- function(v, y_k = 5, n_k = 15) {
 
 calculate_p <- function(reactions, rxn_matrix, taxonomic_lvl, organism, scan_list, res_list) {
   rlang::enquo(taxonomic_lvl)
+  options(dplyr.summarise.inform = FALSE)
 
   collection.k <- rxn_matrix %>%
     group_by(.data[[!!taxonomic_lvl]]) %>%
@@ -28,25 +29,33 @@ calculate_p <- function(reactions, rxn_matrix, taxonomic_lvl, organism, scan_lis
   n_j <- (collection.j %>%
             summarize(n_j = length(.data[[!!taxonomic_lvl]])))$n_j
 
-  predictions <- furrr::future_map(reactions, .progress = T, ~ {
+  y_k <- collection.k %>%
+    summarize(across(all_of(reactions), sum)) %>%
+    select(-Genus)
+
+  y_j <- collection.j %>%
+    summarize(across(all_of(reactions), sum)) %>%
+    select(-.data[[!!taxonomic_lvl]])
+
+
+  predictions <- furrr::future_map2(1:length(y_k), 1:length(y_j), .progress = T, ~ {
     if (length(n_k) >= 2) {
       opt <- optim(par = c(0.01, 0.01), LogL.betabinomial,
-                   y_k = (collection.k %>% summarize(y_k = sum(.data[[.x]])))$y_k,
+                   y_k = y_k[[.x]],
                    n_k = n_k,
                    method = 'L-BFGS-B', lower = 1e-10, upper = 1e6)
-      res <- (opt$par[1] + (collection.j %>% summarize(y_j = sum(.data[[.x]])))$y_j) /
-        (opt$par[1] + opt$par[2] + n_j)
+      res <- (opt$par[1] + y_j[[.y]]) / (opt$par[1] + opt$par[2] + n_j)
 
     } else {
       res <- NA }
 
-    names(res) <- .x
+    names(res) <- colnames(y_k)[.x] #y_k and y_j have same colnames
     return(res)
-    })
+  })
 
   scan_list <- scan_list %>%
-    mutate(probability = purrr::as_vector(predictions)) %>%
-    group_by(pathway)
+    left_join(tibble(reaction = map_chr(predictions, names),
+                     probability = as_vector(predictions)), by = 'reaction')
 
   res_list <- res_list %>%
     full_join(scan_list, by = c('ko_description', 'reaction', 'reaction_description',
@@ -60,27 +69,35 @@ calculate_p <- function(reactions, rxn_matrix, taxonomic_lvl, organism, scan_lis
     select(organism, pathway, reaction, ko_term, probability,
            pathway_name, reaction_description, ko_description, pathway_class)
 
-  message('Done with ', unique(na.omit(res_list$organism)), '\n')
+  message('Done with ', unique(na.omit(res_list$organism)))
   return(res_list)
 }
 
 
 
 no_optim <- function(reactions, rxn_matrix) {
-  predictions <- furrr::future_map(reactions, .progress = T, ~ {
+  options(dplyr.summarise.inform = FALSE)
 
-    collection.j <- rxn_matrix %>%
-      group_by(Genus) %>%
-      summarize(y_j = sum(.data[[.x]]), n_k = length(Genus))
+  collection.j <- rxn_matrix %>%
+    group_by(Genus)
 
-    res <- (1 + collection.j$y_j) / (1 + 1 + collection.j$n_j)
-    names(res) <- .x
+  n_j <- (collection.j %>%
+            summarize(n_j = length(Genus)))$n_j
+
+  y_j <- collection.j %>%
+    summarize(across(all_of(reactions), sum)) %>%
+    select(-Genus)
+
+  predictions <- furrr::future_map(1:length(y_j), .progress = T, ~ {
+    res <- (1 + y_j[[.x]]) / (1 + 1 + n_j)
+
+    names(res) <- colnames(y_j)[.x]
     return(res)
     })
 
   scan_list <- scan_list %>%
-    mutate(probability = purrr::as_vector(predictions)) %>%
-    group_by(pathway)
+    left_join(tibble(reaction = map_chr(predictions, names),
+                     probability = as_vector(predictions)), by = 'reaction')
 
   res_list <- res_list %>%
     full_join(scan_list, by = c('ko_description', 'reaction', 'reaction_description',
