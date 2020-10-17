@@ -7,7 +7,7 @@ incomplete pathways with missing reactions, it will then calculate the probabili
 is present in the input genome but was missed in the sampling process. It takes in user input in the form of
 an object created with a read_data function call.}
 \usage{
-MetaPredict(userData, taxonList, cores = 1)
+MetaPredict(userData, taxonList = NULL, cores = 1)
 }
 \arguments{
 \item{userData}{Created with the read_data function - KEGG Orthology data for one or more bacteria/archaea}

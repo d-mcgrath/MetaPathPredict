@@ -10,7 +10,7 @@
 #' @param delim The delimiter of the input files. Default is tab
 #' @importFrom magrittr "%>%"
 #' @export
-read_data <- function(Data = NULL, File = NULL, filePath = NULL, filePattern = '-ko.tsv', #still needs to accept single input files more easily...
+read_genome_data <- function(Data = NULL, File = NULL, filePath = NULL, filePattern = '-ko.tsv', #still needs to accept single input files more easily...
                       kofamscan = TRUE, evalue = 1e-3, delim = '\t') {
 
   message('Parsing HMM/Blast hits and E-values into MetaPredict. Using E-value cutoff: ', evalue)
@@ -30,7 +30,7 @@ read_data <- function(Data = NULL, File = NULL, filePath = NULL, filePattern = '
     index <- length(Data)
     orgName <- substitute(Data)
   }
-  res <- furrr::future_map(1:index, .progress = T, ~ {
+  res <- purrr::map(1:index, .progress = T, ~ {
     if (is.null(Data) & is.null(File)) {
       col <- sub(paste('.*\\/(.*)', filePattern, sep = ''), '\\1', files[.x], perl = T)
       res[[.x]] <- readr::read_delim(files[.x], col_types = readr::cols(), delim = delim)
@@ -53,7 +53,7 @@ read_data <- function(Data = NULL, File = NULL, filePath = NULL, filePattern = '
       res[[.x]] <- res[[.x]] %>% dplyr::slice(-1)
     }
     res[[.x]] <- res[[.x]] %>%
-      dplyr::select(KO, `E-value`) %>%
+      dplyr::select(KO, `E-value`) %>% #add in gene_name info, and keep E-values, don't filter them!
       dplyr::mutate(`E-value` = as.numeric(`E-value`)) %>%
       dplyr::filter(`E-value` <= evalue) %>%
       dplyr::select(KO)
