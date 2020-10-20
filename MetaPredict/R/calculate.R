@@ -13,70 +13,107 @@ calculate_p <- function(reactions, rxn_matrix, taxonomic_lvl, organism, scan_lis
   rlang::enquo(taxonomic_lvl)
   options(dplyr.summarise.inform = FALSE)
 
-  collection.k <- rxn_matrix %>%
+  #collection.k <- rxn_matrix %>%
+  #  group_by(.data[[!!taxonomic_lvl]]) %>%
+  #  filter(.data[[!!taxonomic_lvl]] != organism) %>%
+  #  ungroup() %>%
+  #  group_by(Genus)
+
+  #collection.j <- rxn_matrix %>%
+  #  group_by(.data[[!!taxonomic_lvl]]) %>%
+  #  filter(.data[[!!taxonomic_lvl]] == organism)
+
+#  n_k <- (collection.k %>%
+#            summarize(n_k = length(Genus)))$n_k
+
+#  n_j <- (collection.j %>%
+#            summarize(n_j = length(.data[[!!taxonomic_lvl]])))$n_j
+
+#  y_k <- collection.k %>%
+#    summarize(across(all_of(reactions), sum)) %>%
+#    select(-Genus)
+
+#  y_j <- collection.j %>%
+#    summarize(across(all_of(reactions), sum)) %>%
+#    select(-.data[[!!taxonomic_lvl]])
+
+  n_k <- (rxn_matrix %>%
+            group_by(.data[[!!taxonomic_lvl]]) %>%
+            filter(.data[[!!taxonomic_lvl]] != organism) %>%
+            ungroup() %>%
+            group_by(Genus) %>%
+            summarize(n_k = length(Genus)))$n_k
+
+  n_j <- (rxn_matrix %>%
+            group_by(.data[[!!taxonomic_lvl]]) %>%
+            filter(.data[[!!taxonomic_lvl]] == organism) %>%
+            summarize(n_j = length(.data[[!!taxonomic_lvl]])))$n_j
+
+  y_k <- rxn_matrix %>%
     group_by(.data[[!!taxonomic_lvl]]) %>%
     filter(.data[[!!taxonomic_lvl]] != organism) %>%
     ungroup() %>%
-    group_by(Genus)
-
-  collection.j <- rxn_matrix %>%
-    group_by(.data[[!!taxonomic_lvl]]) %>%
-    filter(.data[[!!taxonomic_lvl]] == organism)
-
-  n_k <- (collection.k %>%
-            summarize(n_k = length(Genus)))$n_k
-
-  n_j <- (collection.j %>%
-            summarize(n_j = length(.data[[!!taxonomic_lvl]])))$n_j
-
-  y_k <- collection.k %>%
+    group_by(Genus) %>%
     summarize(across(all_of(reactions), sum)) %>%
     select(-Genus)
 
-  y_j <- collection.j %>%
+  y_j <- rxn_matrix %>%
+    group_by(.data[[!!taxonomic_lvl]]) %>%
+    filter(.data[[!!taxonomic_lvl]] == organism) %>%
     summarize(across(all_of(reactions), sum)) %>%
     select(-.data[[!!taxonomic_lvl]])
 
-  if (length(n_k) >= 2) {
-    predictions <- furrr::future_map2(1:length(y_k), 1:length(y_j), .progress = TRUE, ~ {
-      opt <- optim(par = c(0.01, 0.01), LogL.betabinomial, #calculate maximum likelihood estimates of alpha and beta
-                   y_k = y_k[[.x]],
-                   n_k = n_k,
-                   method = 'L-BFGS-B', lower = 1e-10, upper = 1e6)
-      res <- (opt$par[1] + y_j[[.y]]) / (opt$par[1] + opt$par[2] + n_j)
-
-      names(res) <- colnames(y_k)[.x] #y_k and y_j have same colnames
-      return(res)
-      })
-
-  } else {
-    predictions <- furrr::future_map(1:length(y_j), .progress = TRUE, ~ {
-      res <- (1 + y_j[[.x]]) / (1 + 1 + n_j) #if >= 2 collections cannot be used to estimate alpha & beta,
-
-      names(res) <- colnames(y_j)[.x]
-      return(res)
-      })
-  }
-
-  #predictions <- furrr::future_map2(1:length(y_k), 1:length(y_j), .progress = T, ~ {
-  #  if (length(n_k) >= 2) {
+  #if (length(n_k) >= 2) { #MLE using parallelize-able furrr loops
+  #  predictions <- furrr::future_map2(1:length(y_k), 1:length(y_j), .progress = TRUE, ~ {
   #    opt <- optim(par = c(0.01, 0.01), LogL.betabinomial, #calculate maximum likelihood estimates of alpha and beta
   #                 y_k = y_k[[.x]],
   #                 n_k = n_k,
   #                 method = 'L-BFGS-B', lower = 1e-10, upper = 1e6)
   #    res <- (opt$par[1] + y_j[[.y]]) / (opt$par[1] + opt$par[2] + n_j)
 
-  #  } else {
-  #    res <- (1 + y_j[[.y]]) / (1 + 1 + n_j) #if >= 2 collections cannot be used to estimate alpha & beta,
-  #    }                                      #use non-informative uniform prior alpha = beta = 1
+  #    names(res) <- colnames(y_k)[.x] #y_k and y_j have same colnames
+  #    return(res)
+  #    })
 
-  #  names(res) <- colnames(y_k)[.x] #y_k and y_j have same colnames
-  #  return(res)
-  #})
+  #} else {
+  #  predictions <- furrr::future_map(1:length(y_j), .progress = TRUE, ~ {
+  #    res <- (1 + y_j[[.x]]) / (1 + 1 + n_j) #if >= 2 collections cannot be used to estimate alpha & beta,
+
+  #    names(res) <- colnames(y_j)[.x]
+  #    return(res)
+  #    })
+  #}
+
+  #scan_list <- scan_list %>%
+  #  left_join(tibble(reaction = map_chr(predictions, names),
+  #                   probability = as_vector(predictions)), by = 'reaction') ###  end of furr loop style
+
+
+
+
+
+
+
+  if (length(n_k) >= 2) { ###MLE estimation using vectorized functions
+    estimates <- y_k %>%
+      summarize(across(everything(), ~ optim(par = c(0.01, 0.01), LogL.betabinomial, #calculate maximum likelihood estimates of alpha and beta
+                                             y_k = .x, n_k = n_k,
+                                             method = 'L-BFGS-B', lower = 1e-10, upper = 1e6)))
+    estimates <- estimates %>%
+      summarize(across(everything(), ~ (.x[[1]][1] + y_j[[cur_column()]]) / (.x[[1]][1] + .x[[1]][2] + n_j) ))
+
+  } else {
+    estimates <- y_j %>%
+      summarize(across(everything(), ~ (1 + .x) / (1 + 1 + n_j) ))
+  }
 
   scan_list <- scan_list %>%
-    left_join(tibble(reaction = map_chr(predictions, names),
-                     probability = as_vector(predictions)), by = 'reaction')
+    left_join(estimates %>% tidyr::pivot_longer(everything(), names_to = 'reaction',
+                             values_to = 'probability'), by = 'reaction') #### end of vectorized approach
+
+
+
+
 
   res_list <- res_list %>%
     full_join(scan_list, by = c('ko_description', 'reaction', 'reaction_description',
@@ -99,26 +136,47 @@ calculate_p <- function(reactions, rxn_matrix, taxonomic_lvl, organism, scan_lis
 no_optim <- function(reactions, rxn_matrix, organism, scan_list, res_list) {
   options(dplyr.summarise.inform = FALSE)
 
-  collection.j <- rxn_matrix %>%
-    group_by(Domain)
+  #collection.j <- rxn_matrix %>%
+  #  group_by(Domain)
 
-  n_j <- (collection.j %>%
+  n_j <- (rxn_matrix %>%
+            group_by(Domain) %>%
             summarize(n_j = length(Domain)))$n_j
 
-  y_j <- collection.j %>%
+  y_j <- rxn_matrix %>%
+    group_by(Domain) %>%
     summarize(across(all_of(reactions), sum)) %>%
     select(-Domain)
 
-  predictions <- furrr::future_map(1:length(y_j), .progress = T, ~ {
-    res <- (1 + y_j[[.x]]) / (1 + 1 + n_j)
 
-    names(res) <- colnames(y_j)[.x]
-    return(res)
-    })
+
+
+  #predictions <- furrr::future_map(1:length(y_j), .progress = T, ~ { ### MLE estimation with furrr loop style
+  #  res <- (1 + y_j[[.x]]) / (1 + 1 + n_j)
+
+  #  names(res) <- colnames(y_j)[.x]
+  #  return(res)
+  #  })
+
+  #scan_list <- scan_list %>%
+  #  left_join(tibble(reaction = map_chr(predictions, names),
+  #                   probability = as_vector(predictions)), by = 'reaction') ###end of furrr loop style
+
+
+
+
+
+  estimates <- y_j %>% ### MLE with vectorized summarize
+    summarize(across(everything(), ~ (1 + .x) / (1 + 1 + n_j) ))
+
 
   scan_list <- scan_list %>%
-    left_join(tibble(reaction = map_chr(predictions, names),
-                     probability = as_vector(predictions)), by = 'reaction')
+    left_join(estimates %>% tidyr::pivot_longer(everything(), names_to = 'reaction',
+                                                values_to = 'probability'), by = 'reaction') ###end of vectorized approach
+
+
+
+
 
   res_list <- res_list %>%
     full_join(scan_list, by = c('ko_description', 'reaction', 'reaction_description',
@@ -196,7 +254,6 @@ pull_data <- function(reactions, organism, scan_list, res_list)  {
 #    res <- no_optim(reactions, imgm.archaea.rxn.matrix, scan_list, res_list)
 #
   } else {
-    #res <- 'No'
     res <- taxonomy_not_found(organism, scan_list, res_list)
     }
   return(res)

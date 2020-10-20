@@ -81,13 +81,13 @@ MetaPredict <- function(userData, taxonList = NULL, cores = 1) {
     tally(probability == 'Present') %>%
     full_join(results %>%
                 group_by(pathway, reaction) %>%
-                filter(!any(probability == 'Present')) %>%
+                dplyr::filter(!any(probability == 'Present')) %>%
                 mutate(probability = as.numeric(probability)) %>%
-                filter(!is.na(probability)) %>%
+                dplyr::filter(!is.na(probability)) %>%
                 ungroup() %>%
                 group_by(pathway) %>%
                 dplyr::filter(!(duplicated(reaction))) %>%
-                tally(length(pathway), by = 'pathway')) %>%
+                tally(length(pathway)), by = 'pathway') %>%
     full_join(results %>%
                 dplyr::filter(!(duplicated(reaction))) %>%
                 tally(length(pathway)), by = 'pathway') %>%
@@ -101,4 +101,4 @@ MetaPredict <- function(userData, taxonList = NULL, cores = 1) {
            pathway_steps_predicted, total_pathways_steps)
 
   return(list(summary_information, results))
-}
+  }

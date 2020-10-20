@@ -12,26 +12,43 @@
 #' @import dplyr
 #' @export
 read_metagenome_data <- function(gene_input, ko_input, evalue = 1e-3, gene_delim = '\t', ko_delim = '\t',
-                            kofamscan = TRUE) {
+                                 kofamscan = TRUE) {
 
   #add something like if (gene_input %>% contains(any_of(taxonomic levels))) {}...
   message('Parsing predicted genes and gene taxonomic annotations into MetaPredict')
+
+  taxonomic_lvls <- c('Species', 'Genus', 'Family', 'Order', 'Class', 'Phylum', 'Domain')
+  tax_cols <- c('Species' = NA, 'Genus' = NA, 'Family' = NA, 'Order' = NA, 'Class' = NA,
+                'Phylum' = NA, 'Domain' = NA)
+
   gene_table <- suppressWarnings(readr::read_delim(gene_input, col_types = readr::cols(),
-                                  delim = gene_delim)) %>%
-    dplyr::filter(!(is.na(superkingdom) | superkingdom == 'not classified'),
-           !(stringr::str_detect(lineage, 'no taxid found'))) %>%
-    rename(Gene = `# ORF`, Phylum = phylum, Class = class, Order = order, Family = family,
-           Genus = genus, Species = species, Domain = superkingdom) %>% #this renaming will need to be made conditional to accept input from other tools besides CAT
-    mutate(across(.cols = c(Genus, Family, Order, Class, Phylum, Species), ~ sub('not classified', NA, .x)),
+                                                   delim = gene_delim))
+
+  for (level in taxonomic_lvls) {
+    gene_table <- gene_table %>%
+      rename_at(vars(contains(level)), ~ paste0(level))
+  }
+
+  gene_table <- gene_table %>%
+    #rename_at(vars(matches(key)), ~ paste0(key)) %>%
+    rename_at(vars(contains('Superkingdom')), ~ paste0('Domain')) %>%
+    rename_at(vars(contains('ORF')), ~ paste0('ORF')) %>%
+    add_column(!!!tax_cols[!names(tax_cols) %in% names(.)]) %>%
+    dplyr::filter(!(Domain == 'not classified'), !(stringr::str_detect(lineage, 'no hit to database')),
+                  !(stringr::str_detect(lineage, 'no taxid found')),
+                  !(rowSums(across(all_of(taxonomic_lvls), ~ is.na(.))) == 7)) %>%
+    mutate(across(all_of(taxonomic_lvls), ~ sub('not classified', NA, .x)),
            organism = coalesce(Genus, Family, Order, Class, Phylum, Domain),
-           organism =
-             stringr::str_replace_all(organism,
-                                      stringr::regex(c('Candidatus ' = '', '\\*+' = '',
-                                                       'candidate division ' = ''),
-                                                     ignore_case = TRUE))) %>%
+           organism = stringr::str_replace_all(organism,
+                                               stringr::regex(c('Candidatus ' = '', '\\*+' = '',
+                                                                'candidate division ' = ''),
+                                                              ignore_case = TRUE))) %>%
+    rename(Gene = ORF) %>%
     select(Gene, organism)
 
+
   message('Parsing HMM/Blast hits and E-values into MetaPredict. Using E-value cutoff: ', evalue)
+
   col <- sub('.*\\/(.*)\\..*', '\\1', ko_input, perl = T)
   ko_table <- suppressWarnings(readr::read_delim(ko_input, col_types = readr::cols(), delim = ko_delim))
 
