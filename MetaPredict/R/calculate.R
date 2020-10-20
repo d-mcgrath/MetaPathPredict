@@ -258,3 +258,34 @@ pull_data <- function(reactions, organism, scan_list, res_list)  {
     }
   return(res)
 }
+
+
+
+summarize_output <- function(results) {
+  results <- results %>%
+    dplyr::filter(!(duplicated(reaction))) %>%
+    tally(probability == 'Present') %>%
+    full_join(suppressWarnings(
+      results %>%
+        group_by(pathway, reaction) %>%
+        dplyr::filter(!any(probability == 'Present')) %>%
+        mutate(probability = as.numeric(probability)) %>%
+        dplyr::filter(!is.na(probability)) %>%
+        ungroup() %>%
+        group_by(pathway) %>%
+        dplyr::filter(!(duplicated(reaction))) %>%
+        tally(length(pathway))), by = 'pathway') %>%
+    full_join(results %>%
+                dplyr::filter(!(duplicated(reaction))) %>%
+                tally(length(pathway)), by = 'pathway') %>%
+    rename(pathway_steps_present = 2, pathway_steps_predicted = 3,
+           total_pathways_steps = 4) %>%
+    mutate(pathway_steps_predicted = case_when(
+      is.na(pathway_steps_predicted) ~ 0L,
+      TRUE ~ pathway_steps_predicted)) %>%
+    inner_join(distinct(select(results, pathway, pathway_name)), by = 'pathway') %>%
+    select(pathway, pathway_name, pathway_steps_present,
+           pathway_steps_predicted, total_pathways_steps)
+
+  return(results)
+}

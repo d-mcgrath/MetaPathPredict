@@ -11,7 +11,7 @@
 #' @importFrom magrittr "%>%"
 #' @export
 read_genome_data <- function(Data = NULL, File = NULL, filePath = NULL, filePattern = '-ko.tsv', #still needs to accept single input files more easily...
-                      kofamscan = TRUE, evalue = 1e-3, delim = '\t') {
+                             kofamscan = TRUE, evalue = 1e-3, delim = '\t') {
 
   message('Parsing HMM/Blast hits and E-values into MetaPredict. Using E-value cutoff: ', evalue)
   res <- list()
@@ -53,30 +53,37 @@ read_genome_data <- function(Data = NULL, File = NULL, filePath = NULL, filePatt
       res[[.x]] <- res[[.x]] %>% dplyr::slice(-1)
     }
     res[[.x]] <- res[[.x]] %>%
-      dplyr::select(KO, `E-value`) %>% #add in gene_name info, and keep E-values, don't filter them!
+      dplyr::select(`gene name`, KO, `E-value`) %>% #add in gene_name info, and keep E-values, don't filter them!
       dplyr::mutate(`E-value` = as.numeric(`E-value`)) %>%
       dplyr::filter(`E-value` <= evalue) %>%
-      dplyr::select(KO)
+      dplyr::select(KO, `gene name`) %>%
+      dplyr::rename(Gene = `gene name`)
 
     if (is.null(Data)) {
       res[[.x]] <- res[[.x]] %>%
-        dplyr::rename(!!col := KO) %>%
-        dplyr::filter(!(duplicated(.data[[col]])))
+        #dplyr::rename(!!col := KO) %>%
+        dplyr::mutate(organism := !!col) %>%
+        dplyr::filter(!(duplicated(KO)))
     } else if (is.data.frame(Data) & length(list(Data)) == 1) {
       res[[.x]] <- res[[.x]] %>%
-        dplyr::rename(!!deparse(orgName) := KO) %>%
-        dplyr::filter(!(duplicated(.data[[!!deparse(orgName)]])))
+        #dplyr::rename(!!deparse(orgName) := KO) %>%
+        dplyr::mutate(organism := !!deparse(orgName)) %>%
+        #dplyr::filter(!(duplicated(.data[[!!deparse(orgName)]])))
+        dplyr::filter(!(duplicated(KO)))
     } else {
       res[[.x]] <- res[[.x]] %>%
-        dplyr::rename(!!deparse(paste(orgName, .x, sep = '_')) := KO) %>%
-        dplyr::filter(!(duplicated(.data[[deparse(paste(orgName, .x, sep = '_'))]])))
+        dplyr::mutate(organism := !!deparse(paste(orgName, .x, sep = '_'))) %>%
+        dplyr::filter(!(duplicated(KO)))
+      #dplyr::rename(!!deparse(paste(orgName, .x, sep = '_')) := KO) %>%
+      #dplyr::filter(!(duplicated(.data[[deparse(paste(orgName, .x, sep = '_'))]])))
     }
   })
   res <- res %>%
     dplyr::tibble() %>%
     tidyr::unnest(cols = dplyr::everything()) %>%
-    tidyr::pivot_longer(cols = dplyr::everything(), names_to = 'organism',
-                        values_to = 'ko_term', values_drop_na = T) %>%
+    dplyr::rename(ko_term = KO) %>%
+    #  tidyr::pivot_longer(cols = dplyr::everything(), names_to = 'organism',
+    #                      values_to = 'ko_term', values_drop_na = T) %>%
     dplyr::group_by(organism)
 
   return(res)
