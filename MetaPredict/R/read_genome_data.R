@@ -46,7 +46,7 @@ read_genome_data <- function(Data = NULL, File = NULL, filePath = NULL, filePatt
       res[[.x]] <- Data[[.x]]
 
     } else {
-      stop('Data must be of class dataframe, list of dataframes, or input flatfile/flatfile(s).')
+      stop('Data must be of class dataframe, list of dataframes, or an input flatfile/flatfile(s).')
     }
 
     if (kofamscan == TRUE) {
