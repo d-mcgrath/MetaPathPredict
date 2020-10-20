@@ -46,29 +46,40 @@ MetaPredict <- function(userData, taxonList = NULL, cores = 1) {
   options(future.globals.maxSize = 3145728000)
 
   if (!is.null(taxonList)) {
-    results <- purrr::map(1:length(taxa$col), ~ { #added scan here...changed 'predictions' to 'results'..
+    results <- purrr::map(1:length(taxa$col), ~ {
       message('Processing ', unique(userData$organism)[.x], '...')
-      pull_data(scan_missing[[.x]]$reaction, taxa$col[[.x]], scan_missing[[.x]], # NEED to ADJUST THIS to allow for input from metagenome function
-                res[[.x]]) }) # added .y (scan) here...
+      pull_data(scan_missing[[.x]]$reaction, taxa$col[[.x]], scan_missing[[.x]],
+                res[[.x]])
+        }) %>%
+      purrr::map(~ {
+        .x <- .x %>%
+          mutate(probability = case_when(
+            !is.na(reaction) & is.na(probability) ~ 'Not present; reaction has no associated KEGG Orthology term(s); no calculation done',
+            TRUE ~ probability)) %>%
+          arrange(pathway, pathway_step)
+      })
+
 
   } else {
     results <- purrr::map(1:length(scan_missing), ~ { #may want to use furrr::future_map() here for optional parallel processing
       message('Processing ', unique(na.omit(res[[.x]]$organism)), ' gene annotations...')
+
       if (length(scan_missing[[.x]]$reaction) > 0) {
         pull_data(scan_missing[[.x]]$reaction, unique(na.omit(res[[.x]]$organism)),
-                  scan_missing[[.x]], # NEED to ADJUST THIS to allow for input from metagenome function
+                  scan_missing[[.x]],
                   res[[.x]])
-      } else {
-        message('Skipping ', unique(res[[.x]]$organism), '. Nothing to scan...')
-        return(res[[.x]]) #return just res[[.x]] since there is nothing to scan...
-        }
+
+        } else {
+          message('Skipping ', unique(res[[.x]]$organism), '. Nothing to scan...')
+          return(res[[.x]]) #return just res[[.x]] since there is nothing to scan...
+          }
       })
   }
   if (is.null(taxonList)) {
     results <- results %>%
       bind_rows() %>%
       mutate(probability = case_when(
-        !is.na(reaction) & is.na(probability) ~ 'reaction has no associated KEGG Orthology term(s); no calculation done',
+        !is.na(reaction) & is.na(probability) ~ 'Not present; reaction has no associated KEGG Orthology term(s); no calculation done',
         TRUE ~ probability)) %>%
       bind_rows(na_add) %>%
       arrange(pathway, pathway_step)
@@ -76,30 +87,12 @@ MetaPredict <- function(userData, taxonList = NULL, cores = 1) {
   message('Finished KEGG metabolic pathway reconstruction and reaction probability calculations.')
   message('Writing results and summary file. Output is in a list. See [[1]] for the summary, [[2]] for the full results.')
 
-  summary_information <- results %>%
-    dplyr::filter(!(duplicated(reaction))) %>%
-    tally(probability == 'Present') %>%
-    full_join(suppressWarnings(
-      results %>%
-        group_by(pathway, reaction) %>%
-        dplyr::filter(!any(probability == 'Present')) %>%
-        mutate(probability = as.numeric(probability)) %>%
-        dplyr::filter(!is.na(probability)) %>%
-        ungroup() %>%
-        group_by(pathway) %>%
-        dplyr::filter(!(duplicated(reaction))) %>%
-        tally(length(pathway))), by = 'pathway') %>%
-    full_join(results %>%
-                dplyr::filter(!(duplicated(reaction))) %>%
-                tally(length(pathway)), by = 'pathway') %>%
-    rename(pathway_steps_present = 2, pathway_steps_predicted = 3,
-           total_pathways_steps = 4) %>%
-    mutate(pathway_steps_predicted = case_when(
-      is.na(pathway_steps_predicted) ~ 0L,
-      TRUE ~ pathway_steps_predicted)) %>%
-    inner_join(distinct(select(results, pathway, pathway_name)), by = 'pathway') %>%
-    select(pathway, pathway_name, pathway_steps_present,
-           pathway_steps_predicted, total_pathways_steps)
+  if (is.null(taxonList)) {
+    summary_information <- summarize_output(results)
+    return(list(summary_information, results))
 
-  return(list(summary_information, results))
+  } else {
+      summary_information <- purrr::map(results, summarize_output)
+      return(purrr::transpose(list(summary_information, results)))
+    }
   }
