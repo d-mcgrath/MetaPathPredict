@@ -33,7 +33,7 @@ read_metagenome_data <- function(gene_input, ko_input, evalue = 1e-3, gene_delim
     #rename_at(vars(matches(key)), ~ paste0(key)) %>%
     rename_at(vars(contains('Superkingdom')), ~ paste0('Domain')) %>%
     rename_at(vars(contains('ORF')), ~ paste0('ORF')) %>%
-    add_column(!!!tax_cols[!names(tax_cols) %in% names(.)]) %>%
+    tibble::add_column(!!!tax_cols[!names(tax_cols) %in% names(.)]) %>%
     dplyr::filter(!(Domain == 'not classified'), !(stringr::str_detect(lineage, 'no hit to database')),
                   !(stringr::str_detect(lineage, 'no taxid found')),
                   !(rowSums(across(all_of(taxonomic_lvls), ~ is.na(.))) == 7)) %>%
