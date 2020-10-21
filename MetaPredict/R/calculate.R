@@ -235,24 +235,24 @@ pull_data <- function(reactions, organism, scan_list, res_list)  {
     res <- no_optim(reactions, bacteria.rxn.matrix, organism, scan_list, res_list)
 
 
-#  } else if (organism %in% imgm.archaea.rxn.matrix$Genus) {
-#    res <- calculate_p(reactions, imgm.archaea.rxn.matrix, 'Genus', organism, scan_list, res_list)
-#
-#  } else if (organism %in% imgm.archaea.rxn.matrix$Family) {
-#    res <- calculate_p(reactions, imgm.archaea.rxn.matrix, 'Family', organism, scan_list, res_list)
-#
-#  } else if (organism %in% imgm.archaea.rxn.matrix$Order) {
-#    res <- calculate_p(reactions, imgm.archaea.rxn.matrix, 'Order', organism, scan_list, res_list)
-#
-#  } else if (organism %in% imgm.archaea.rxn.matrix$Class) {
-#    res <- calculate_p(reactions, imgm.archaea.rxn.matrix, 'Class', organism, scan_list, res_list)
-#
-#  } else if (organism %in% imgm.archaea.rxn.matrix$Phylum) {
-#    res <- calculate_p(reactions, imgm.archaea.rxn.matrix, 'Phylum', organism, scan_list, res_list)
-#
-#  } else if (organism %in% imgm.archaea.rxn.matrix$Domain) {
-#    res <- no_optim(reactions, imgm.archaea.rxn.matrix, scan_list, res_list)
-#
+  } else if (organism %in% archaea.rxn.matrix$Genus) {
+    res <- calculate_p(reactions, archaea.rxn.matrix, 'Genus', organism, scan_list, res_list)
+
+  } else if (organism %in% archaea.rxn.matrix$Family) {
+    res <- calculate_p(reactions, archaea.rxn.matrix, 'Family', organism, scan_list, res_list)
+
+  } else if (organism %in% archaea.rxn.matrix$Order) {
+    res <- calculate_p(reactions, archaea.rxn.matrix, 'Order', organism, scan_list, res_list)
+
+  } else if (organism %in% archaea.rxn.matrix$Class) {
+    res <- calculate_p(reactions, archaea.rxn.matrix, 'Class', organism, scan_list, res_list)
+
+  } else if (organism %in% archaea.rxn.matrix$Phylum) {
+    res <- calculate_p(reactions, archaea.rxn.matrix, 'Phylum', organism, scan_list, res_list)
+
+  } else if (organism %in% archaea.rxn.matrix$Domain) {
+    res <- no_optim(reactions, archaea.rxn.matrix, scan_list, res_list)
+
   } else {
     res <- taxonomy_not_found(organism, scan_list, res_list)
     }
