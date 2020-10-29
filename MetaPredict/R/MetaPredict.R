@@ -5,10 +5,11 @@
 #' @param userData Created with the read_data function - KEGG Orthology data for one or more bacteria/archaea
 #' @param taxonList A CSV flatfile with lowest taxonomic level of each input organism. Same order as in userData, one per line
 #' @param cores Number of cores to use for computation. Default is 1
+#' @param output_dir The full or relative path to an output directory where result and summary output will be saved as TSV flatfiles
 #' @importFrom magrittr "%>%"
 #' @import dplyr
 #' @export
-MetaPredict <- function(userData, taxonList = NULL, cores = 1) {
+MetaPredict <- function(userData, taxonList = NULL, cores = 1, output_dir = NULL) {
   if (!is.null(taxonList)) {
     suppressWarnings(taxa <- readr::read_csv(taxonList,
                                              col_names = 'col', col_types = readr::cols()))
@@ -94,5 +95,32 @@ MetaPredict <- function(userData, taxonList = NULL, cores = 1) {
   } else {
       summary_information <- purrr::map(results, summarize_output)
       return(purrr::transpose(list(summary_information, results)))
-    }
   }
+
+  if (!is.null(output_dir) & is.null(taxonList)) {
+    purrr::map(list(summary_information, results), ~ {
+      readr::write_tsv(.x, file = )
+    })
+  }
+
+  if (!is.null(output_dir) & !is.null(taxonList)) {
+    purrr::map(purrr::transpose(list(summary_information, results)), ~ {
+      readr::write_tsv(.x[[1]][[1]], file = )
+    })
+  }
+}
+
+#purrr::map2(1:length(results[[1]]), c('summary', 'results'), ~ {
+#  readr::write_tsv(results[[1]][[.x]], paste0('~/Downloads/metapredict-', .y, '.tsv'))
+#})
+
+#readr::writt
+
+#purrr::map(results, ~{print(.x)})
+
+
+
+
+
+
+
