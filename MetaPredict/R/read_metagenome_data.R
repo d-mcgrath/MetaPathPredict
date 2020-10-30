@@ -66,15 +66,31 @@ read_metagenome_data <- function(gene_input, ko_input, evalue = 1e-3, gene_delim
   gene_table <- gene_table %>%
     full_join(ko_table, by = 'Gene') %>%
     dplyr::filter(!(is.na(ko_term))) %>%
-    arrange(organism)
+    mutate(organism = case_when(
+      is.na(organism) ~ 'unidentified taxonomy',
+      TRUE ~ organism)) %>%
+    arrange(organism) %>%
+    group_by(organism) %>%
+    summarize(ko_term = paste0(ko_term, collapse = ' '),
+              Gene = paste0(Gene, collapse = ' '),
+              organism = unique(organism),
+              .groups = 'keep')
 
-  present_na <- gene_table %>% dplyr::filter(is.na(organism))
+  #present_na <- gene_table %>%
+  #  dplyr::filter(is.na(organism)) %>%
+  #  summarize(ko_term = paste0(ko_term, collapse = ' '),
+  #            Gene = paste0(Gene, collapse = ' '),
+  #            organism = NA)
 
-  gene_table <- gene_table %>%
-    dplyr::filter(!is.na(organism)) %>%
-    group_by(organism)
+  #gene_table <- gene_table %>%
+  #  dplyr::filter(!is.na(organism)) %>%
+  #  group_by(organism) %>%
+  #  summarize(ko_term = paste0(ko_term, collapse = ' '),
+  #            Gene = paste0(Gene, collapse = ' '),
+  #            organism = unique(organism))
 
-  res <- list('gene_table' = gene_table, 'present_na' = present_na)
-  return(res)
+  #res <- list('gene_table' = gene_table, 'present_na' = present_na)
+  #return(res)
+  return(gene_table)
 }
 

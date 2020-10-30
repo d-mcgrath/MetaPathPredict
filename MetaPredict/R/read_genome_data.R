@@ -61,29 +61,29 @@ read_genome_data <- function(Data = NULL, File = NULL, filePath = NULL, filePatt
 
     if (is.null(Data)) {
       res[[.x]] <- res[[.x]] %>%
-        #dplyr::rename(!!col := KO) %>%
-        dplyr::mutate(organism := !!col) %>%
-        dplyr::filter(!(duplicated(KO)))
+        dplyr::filter(!(duplicated(KO))) %>%
+        dplyr::summarize(ko_term = paste0(KO, collapse = ' '),
+                         Gene = paste0(Gene, collapse = ' ')) %>%
+        dplyr::mutate(organism := !!col)
+
     } else if (is.data.frame(Data) & length(list(Data)) == 1) {
       res[[.x]] <- res[[.x]] %>%
-        #dplyr::rename(!!deparse(orgName) := KO) %>%
-        dplyr::mutate(organism := !!deparse(orgName)) %>%
-        #dplyr::filter(!(duplicated(.data[[!!deparse(orgName)]])))
-        dplyr::filter(!(duplicated(KO)))
+        dplyr::filter(!(duplicated(KO))) %>%
+        dplyr::summarize(ko_term = paste0(KO, collapse = ' '),
+                         Gene = paste0(Gene, collapse = ' ')) %>%
+        dplyr::mutate(organism := !!deparse(orgName))
+
     } else {
       res[[.x]] <- res[[.x]] %>%
-        dplyr::mutate(organism := !!deparse(paste(orgName, .x, sep = '_'))) %>%
-        dplyr::filter(!(duplicated(KO)))
-      #dplyr::rename(!!deparse(paste(orgName, .x, sep = '_')) := KO) %>%
-      #dplyr::filter(!(duplicated(.data[[deparse(paste(orgName, .x, sep = '_'))]])))
+        dplyr::filter(!(duplicated(KO))) %>%
+        dplyr::summarize(ko_term = paste0(KO, collapse = ' '),
+                         Gene = paste0(Gene, collapse = ' ')) %>%
+        dplyr::mutate(organism := !!deparse(paste(orgName, .x, sep = '_')))
     }
   })
   res <- res %>%
     dplyr::tibble() %>%
     tidyr::unnest(cols = dplyr::everything()) %>%
-    dplyr::rename(ko_term = KO) %>%
-    #  tidyr::pivot_longer(cols = dplyr::everything(), names_to = 'organism',
-    #                      values_to = 'ko_term', values_drop_na = T) %>%
     dplyr::group_by(organism)
 
   return(res)
