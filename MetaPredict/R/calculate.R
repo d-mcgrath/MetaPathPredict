@@ -4,12 +4,12 @@ LogL.betabinomial <- function(v, y_k = 5, n_k = 15) {
   alpha <- v[1]
   beta <- v[2]
   sum(-lgamma(alpha + y_k) - lgamma(beta + n_k - y_k) + lgamma(alpha + beta + n_k)
-    + lgamma(alpha) + lgamma(beta) - lgamma(alpha + beta))
+      + lgamma(alpha) + lgamma(beta) - lgamma(alpha + beta))
 }
 
 
 
-calculate_p <- function(reactions, rxn_matrix, taxonomic_lvl, organism, scan_list, res_list) {
+calculate_p <- function(steps, rxn_matrix, taxonomic_lvl, organism, scan_list, res_list) {
   rlang::enquo(taxonomic_lvl)
   options(dplyr.summarise.inform = FALSE)
 
@@ -23,19 +23,19 @@ calculate_p <- function(reactions, rxn_matrix, taxonomic_lvl, organism, scan_lis
   #  group_by(.data[[!!taxonomic_lvl]]) %>%
   #  filter(.data[[!!taxonomic_lvl]] == organism)
 
-#  n_k <- (collection.k %>%
-#            summarize(n_k = length(Genus)))$n_k
+  #  n_k <- (collection.k %>%
+  #            summarize(n_k = length(Genus)))$n_k
 
-#  n_j <- (collection.j %>%
-#            summarize(n_j = length(.data[[!!taxonomic_lvl]])))$n_j
+  #  n_j <- (collection.j %>%
+  #            summarize(n_j = length(.data[[!!taxonomic_lvl]])))$n_j
 
-#  y_k <- collection.k %>%
-#    summarize(across(all_of(reactions), sum)) %>%
-#    select(-Genus)
+  #  y_k <- collection.k %>%
+  #    summarize(across(all_of(reactions), sum)) %>%
+  #    select(-Genus)
 
-#  y_j <- collection.j %>%
-#    summarize(across(all_of(reactions), sum)) %>%
-#    select(-.data[[!!taxonomic_lvl]])
+  #  y_j <- collection.j %>%
+  #    summarize(across(all_of(reactions), sum)) %>%
+  #    select(-.data[[!!taxonomic_lvl]])
 
   n_k <- (rxn_matrix %>%
             group_by(.data[[!!taxonomic_lvl]]) %>%
@@ -54,13 +54,13 @@ calculate_p <- function(reactions, rxn_matrix, taxonomic_lvl, organism, scan_lis
     filter(.data[[!!taxonomic_lvl]] != organism) %>%
     ungroup() %>%
     group_by(Genus) %>%
-    summarize(across(all_of(reactions), sum)) %>%
+    summarize(across(all_of(steps), sum)) %>%
     select(-Genus)
 
   y_j <- rxn_matrix %>%
     group_by(.data[[!!taxonomic_lvl]]) %>%
     filter(.data[[!!taxonomic_lvl]] == organism) %>%
-    summarize(across(all_of(reactions), sum)) %>%
+    summarize(across(all_of(steps), sum)) %>%
     select(-.data[[!!taxonomic_lvl]])
 
   #if (length(n_k) >= 2) { #MLE using parallelize-able furrr loops
@@ -108,24 +108,24 @@ calculate_p <- function(reactions, rxn_matrix, taxonomic_lvl, organism, scan_lis
   }
 
   scan_list <- scan_list %>%
-    left_join(estimates %>% tidyr::pivot_longer(everything(), names_to = 'reaction',
-                             values_to = 'probability'), by = 'reaction') #### end of vectorized approach
-
-
-
+    select(-probability) %>%
+    left_join(estimates %>%
+                tidyr::pivot_longer(everything(), names_to = 'step',
+                                                values_to = 'probability') %>%
+                dplyr::mutate(probability = as.character(probability)),
+              by = 'step') #### end of vectorized approach
 
 
   res_list <- res_list %>%
-    full_join(scan_list, by = c('ko_description', 'reaction', 'reaction_description',
-                                'pathway', 'pathway_name',
-                                'pathway_class', 'organism', 'pathway_step', 'Gene')) %>%
-    mutate(probability = as.character(probability), probability = case_when(
-      !(is.na(ko_term)) & is.na(probability) ~ 'Present',
-      TRUE ~ probability), organism = case_when(
-        is.na(organism) ~ unique(na.omit(organism)),
-        TRUE ~ organism)) %>%
-    select(Gene, organism, pathway, pathway_step, reaction, ko_term, probability,
-           pathway_name, reaction_description, ko_description, pathway_class)
+    filter(!is.na(probability)) %>%
+    full_join(scan_list, by = c('organism', 'name', 'module', 'full', 'step', 'probability')) %>%
+    #mutate(probability = as.character(probability), probability = case_when(
+    #  !(is.na(ko_term)) & is.na(probability) ~ 'Present',
+    #  TRUE ~ probability), organism = case_when(
+    #    is.na(organism) ~ unique(na.omit(organism)),
+    #    TRUE ~ organism)) %>%
+    select(organism, name, module, full, step, probability) %>%
+    arrange(module, step)
 
   #message('Done with ', unique(na.omit(res_list$organism)))
   return(res_list)
@@ -133,7 +133,7 @@ calculate_p <- function(reactions, rxn_matrix, taxonomic_lvl, organism, scan_lis
 
 
 
-no_optim <- function(reactions, rxn_matrix, organism, scan_list, res_list) {
+no_optim <- function(steps, rxn_matrix, organism, scan_list, res_list) {
   options(dplyr.summarise.inform = FALSE)
 
   #collection.j <- rxn_matrix %>%
@@ -145,7 +145,7 @@ no_optim <- function(reactions, rxn_matrix, organism, scan_list, res_list) {
 
   y_j <- rxn_matrix %>%
     group_by(Domain) %>%
-    summarize(across(all_of(reactions), sum)) %>%
+    summarize(across(all_of(steps), sum)) %>%
     select(-Domain)
 
 
@@ -171,24 +171,24 @@ no_optim <- function(reactions, rxn_matrix, organism, scan_list, res_list) {
 
 
   scan_list <- scan_list %>%
-    left_join(estimates %>% tidyr::pivot_longer(everything(), names_to = 'reaction',
-                                                values_to = 'probability'), by = 'reaction') ###end of vectorized approach
-
-
-
+    select(-probability) %>%
+    left_join(estimates %>%
+                tidyr::pivot_longer(everything(), names_to = 'step',
+                                    values_to = 'probability') %>%
+                dplyr::mutate(probability = as.character(probability)),
+              by = 'step') #### end of vectorized approach
 
 
   res_list <- res_list %>%
-    full_join(scan_list, by = c('ko_description', 'reaction', 'reaction_description',
-                                'pathway', 'pathway_name',
-                                'pathway_class', 'organism', 'pathway_step', 'Gene')) %>%
-    mutate(probability = as.character(probability), probability = case_when(
-      !(is.na(ko_term)) & is.na(probability) ~ 'Present',
-      TRUE ~ probability), organism = case_when(
-        is.na(organism) ~ unique(na.omit(organism)),
-        TRUE ~ organism)) %>%
-    select(Gene, organism, pathway, pathway_step, reaction, ko_term, probability,
-           pathway_name, reaction_description, ko_description, pathway_class)
+    filter(!is.na(probability)) %>%
+    full_join(scan_list, by = c('organism', 'name', 'module', 'full', 'step', 'probability')) %>%
+    #mutate(probability = as.character(probability), probability = case_when(
+    #  !(is.na(ko_term)) & is.na(probability) ~ 'Present',
+    #  TRUE ~ probability), organism = case_when(
+    #    is.na(organism) ~ unique(na.omit(organism)),
+    #    TRUE ~ organism)) %>%
+    select(organism, name, module, full, step, probability) %>%
+    arrange(module, step)
 
   #message('Done with ', unique(na.omit(res_list$organism)), '\n')
   return(res_list)
@@ -201,61 +201,60 @@ taxonomy_not_found <- function(organism, scan_list, res_list) {
     mutate(probability = 'taxonomy not found; no calculation done')
 
   res_list <- res_list %>%
-    full_join(scan_list, by = c('ko_description', 'reaction', 'reaction_description',
-                                'pathway', 'pathway_name',
-                                'pathway_class', 'organism', 'pathway_step', 'Gene')) %>%
-    mutate(probability = as.character(probability), probability = case_when(
-      !(is.na(ko_term)) & is.na(probability) ~ 'Present',
-      TRUE ~ probability), organism = case_when(
-        is.na(organism) ~ unique(na.omit(organism)),
-        TRUE ~ organism)) %>%
-    select(Gene, organism, pathway, pathway_step, reaction, ko_term, probability,
-           pathway_name, reaction_description, ko_description, pathway_class)
+    filter(!is.na(probability)) %>%
+    full_join(scan_list, by = c('organism', 'name', 'module', 'full', 'step', 'probability')) %>%
+    #mutate(probability = as.character(probability), probability = case_when(
+    #  !(is.na(ko_term)) & is.na(probability) ~ 'Present',
+    #  TRUE ~ probability), organism = case_when(
+    #    is.na(organism) ~ unique(na.omit(organism)),
+    #    TRUE ~ organism)) %>%
+    select(organism, name, module, full, step, probability) %>%
+    arrange(module, step)
 }
 
 
 
-pull_data <- function(reactions, organism, scan_list, res_list)  {
+pull_data <- function(steps, organism, scan_list, res_list)  {
   if (organism %in% bacteria.rxn.matrix$Genus) {
-    res <- calculate_p(reactions, bacteria.rxn.matrix, 'Genus', organism, scan_list, res_list)
+    res <- calculate_p(steps, bacteria.rxn.matrix, 'Genus', organism, scan_list, res_list)
 
   } else if (organism %in% bacteria.rxn.matrix$Family) {
-    res <- calculate_p(reactions, bacteria.rxn.matrix, 'Family', organism, scan_list, res_list)
+    res <- calculate_p(steps, bacteria.rxn.matrix, 'Family', organism, scan_list, res_list)
 
   } else if (organism %in% bacteria.rxn.matrix$Order) {
-    res <- calculate_p(reactions, bacteria.rxn.matrix, 'Order', organism, scan_list, res_list)
+    res <- calculate_p(steps, bacteria.rxn.matrix, 'Order', organism, scan_list, res_list)
 
   } else if (organism %in% bacteria.rxn.matrix$Class) {
-    res <- calculate_p(reactions, bacteria.rxn.matrix, 'Class', organism, scan_list, res_list)
+    res <- calculate_p(steps, bacteria.rxn.matrix, 'Class', organism, scan_list, res_list)
 
   } else if (organism %in% bacteria.rxn.matrix$Phylum) {
-    res <- calculate_p(reactions, bacteria.rxn.matrix, 'Phylum', organism, scan_list, res_list)
+    res <- calculate_p(steps, bacteria.rxn.matrix, 'Phylum', organism, scan_list, res_list)
 
   } else if (organism %in% bacteria.rxn.matrix$Domain) {
-    res <- no_optim(reactions, bacteria.rxn.matrix, organism, scan_list, res_list)
+    res <- no_optim(steps, bacteria.rxn.matrix, organism, scan_list, res_list)
 
 
-  } else if (organism %in% archaea.rxn.matrix$Genus) {
-    res <- calculate_p(reactions, archaea.rxn.matrix, 'Genus', organism, scan_list, res_list)
+  #} else if (organism %in% archaea.rxn.matrix$Genus) {
+  #  res <- calculate_p(steps, archaea.rxn.matrix, 'Genus', organism, scan_list, res_list)
 
-  } else if (organism %in% archaea.rxn.matrix$Family) {
-    res <- calculate_p(reactions, archaea.rxn.matrix, 'Family', organism, scan_list, res_list)
+  #} else if (organism %in% archaea.rxn.matrix$Family) {
+  #  res <- calculate_p(steps, archaea.rxn.matrix, 'Family', organism, scan_list, res_list)
 
-  } else if (organism %in% archaea.rxn.matrix$Order) {
-    res <- calculate_p(reactions, archaea.rxn.matrix, 'Order', organism, scan_list, res_list)
+  #} else if (organism %in% archaea.rxn.matrix$Order) {
+  #  res <- calculate_p(steps, archaea.rxn.matrix, 'Order', organism, scan_list, res_list)
 
-  } else if (organism %in% archaea.rxn.matrix$Class) {
-    res <- calculate_p(reactions, archaea.rxn.matrix, 'Class', organism, scan_list, res_list)
+  #} else if (organism %in% archaea.rxn.matrix$Class) {
+  #  res <- calculate_p(steps, archaea.rxn.matrix, 'Class', organism, scan_list, res_list)
 
-  } else if (organism %in% archaea.rxn.matrix$Phylum) {
-    res <- calculate_p(reactions, archaea.rxn.matrix, 'Phylum', organism, scan_list, res_list)
+  #} else if (organism %in% archaea.rxn.matrix$Phylum) {
+  #  res <- calculate_p(steps, archaea.rxn.matrix, 'Phylum', organism, scan_list, res_list)
 
-  } else if (organism %in% archaea.rxn.matrix$Domain) {
-    res <- no_optim(reactions, archaea.rxn.matrix, scan_list, res_list)
+  #} else if (organism %in% archaea.rxn.matrix$Domain) {
+  #  res <- no_optim(steps, archaea.rxn.matrix, scan_list, res_list)
 
   } else {
     res <- taxonomy_not_found(organism, scan_list, res_list)
-    }
+  }
   return(res)
 }
 
@@ -263,29 +262,52 @@ pull_data <- function(reactions, organism, scan_list, res_list)  {
 
 summarize_output <- function(results) {
   results <- results %>%
-    dplyr::filter(!(duplicated(reaction))) %>%
+    dplyr::filter(!(duplicated(step))) %>%
     tally(probability == 'Present') %>%
     full_join(suppressWarnings(
       results %>%
-        group_by(pathway, reaction) %>%
+        group_by(module, step) %>%
         dplyr::filter(!any(probability == 'Present')) %>%
         mutate(probability = as.numeric(probability)) %>%
         dplyr::filter(!is.na(probability)) %>%
         ungroup() %>%
-        group_by(pathway) %>%
-        dplyr::filter(!(duplicated(reaction))) %>%
-        tally(length(pathway))), by = 'pathway') %>%
+        group_by(module) %>%
+        dplyr::filter(!(duplicated(step))) %>%
+        tally(length(module))), by = 'module') %>%
     full_join(results %>%
-                dplyr::filter(!(duplicated(reaction))) %>%
-                tally(length(pathway)), by = 'pathway') %>%
-    rename(pathway_steps_present = 2, pathway_steps_predicted = 3,
-           total_pathways_steps = 4) %>%
-    mutate(pathway_steps_predicted = case_when(
-      is.na(pathway_steps_predicted) ~ 0L,
-      TRUE ~ pathway_steps_predicted)) %>%
-    inner_join(distinct(select(results, pathway, pathway_name)), by = 'pathway') %>%
-    select(pathway, pathway_name, pathway_steps_present,
-           pathway_steps_predicted, total_pathways_steps)
-
+                group_by(module, step) %>%
+                dplyr::filter(!any(probability == 'Present')) %>%
+                suppressWarnings(mutate(probability = as.numeric(probability))) %>%
+                dplyr::filter(!is.na(probability)) %>%
+                ungroup() %>%
+                group_by(module) %>%
+                dplyr::filter(!(duplicated(step))) %>%
+                tally(probability >= 0.75), by = 'module') %>%
+    full_join(results %>%
+                dplyr::filter(!(duplicated(step))) %>%
+                tally(length(module)), by = 'module') %>%
+    rename(module_steps_present = 2, module_steps_predicted = 3,
+           `probability > 75%` = 4, total_module_steps = 5) %>%
+    mutate(module_steps_predicted = case_when(
+      is.na(module_steps_predicted) ~ 0L,
+      TRUE ~ module_steps_predicted),
+      `probability > 75%` = case_when(
+        is.na(`probability > 75%`) ~ 0L,
+        TRUE ~ `probability > 75%`)) %>%
+    inner_join(distinct(select(results, module, name)), by = 'module') %>%
+    select(module, name, module_steps_present,
+           module_steps_predicted, `probability > 75%`, total_module_steps) %>%
+    mutate(percent_present =
+             paste0(signif(module_steps_present/total_module_steps, digits = 3) * 100, '%'),
+           `predicted_completeness (probability>75%)` =
+             paste0(signif((`probability > 75%` +
+                              module_steps_present) /
+                             total_module_steps, digits = 3) * 100, '%'),
+           module_steps_present =
+             paste0(module_steps_present, '/', total_module_steps),
+           module_steps_predicted =
+             paste0(module_steps_predicted, '/', total_module_steps),
+           `probability > 75%` =
+             paste0(`probability > 75%`, '/', total_module_steps))
   return(results)
 }
