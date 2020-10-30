@@ -15,19 +15,19 @@ calculate_p <- function(steps, rxn_matrix, taxonomic_lvl, organism, scan_list, r
 
   n_k <- (rxn_matrix %>%
             group_by(.data[[!!taxonomic_lvl]]) %>%
-            filter(.data[[!!taxonomic_lvl]] != organism) %>%
+            dplyr::filter(.data[[!!taxonomic_lvl]] != organism) %>%
             ungroup() %>%
             group_by(Genus) %>%
             summarize(n_k = length(Genus)))$n_k
 
   n_j <- (rxn_matrix %>%
             group_by(.data[[!!taxonomic_lvl]]) %>%
-            filter(.data[[!!taxonomic_lvl]] == organism) %>%
+            dplyr::filter(.data[[!!taxonomic_lvl]] == organism) %>%
             summarize(n_j = length(.data[[!!taxonomic_lvl]])))$n_j
 
   y_k <- rxn_matrix %>%
     group_by(.data[[!!taxonomic_lvl]]) %>%
-    filter(.data[[!!taxonomic_lvl]] != organism) %>%
+    dplyr::filter(.data[[!!taxonomic_lvl]] != organism) %>%
     ungroup() %>%
     group_by(Genus) %>%
     summarize(across(all_of(steps), sum)) %>%
@@ -35,7 +35,7 @@ calculate_p <- function(steps, rxn_matrix, taxonomic_lvl, organism, scan_list, r
 
   y_j <- rxn_matrix %>%
     group_by(.data[[!!taxonomic_lvl]]) %>%
-    filter(.data[[!!taxonomic_lvl]] == organism) %>%
+    dplyr::filter(.data[[!!taxonomic_lvl]] == organism) %>%
     summarize(across(all_of(steps), sum)) %>%
     select(-.data[[!!taxonomic_lvl]])
 
@@ -93,7 +93,7 @@ calculate_p <- function(steps, rxn_matrix, taxonomic_lvl, organism, scan_list, r
 
 
   res_list <- res_list %>%
-    filter(!is.na(probability)) %>%
+    dplyr::filter(!is.na(probability)) %>%
     full_join(scan_list, by = c('organism', 'name', 'module', 'full', 'step', 'probability')) %>%
     select(organism, name, module, full, step, probability) %>%
     arrange(module, step)
@@ -147,7 +147,7 @@ no_optim <- function(steps, rxn_matrix, organism, scan_list, res_list) {
 
 
   res_list <- res_list %>%
-    filter(!is.na(probability)) %>%
+    dplyr::filter(!is.na(probability)) %>%
     full_join(scan_list, by = c('organism', 'name', 'module', 'full', 'step', 'probability')) %>%
     select(organism, name, module, full, step, probability) %>%
     arrange(module, step)
@@ -162,7 +162,7 @@ taxonomy_not_found <- function(organism, scan_list, res_list) {
     mutate(probability = 'taxonomy not found; no calculation done')
 
   res_list <- res_list %>%
-    filter(!is.na(probability)) %>%
+    dplyr::filter(!is.na(probability)) %>%
     full_join(scan_list, by = c('organism', 'name', 'module', 'full', 'step', 'probability')) %>%
     select(organism, name, module, full, step, probability) %>%
     arrange(module, step)
