@@ -13,30 +13,6 @@ calculate_p <- function(steps, rxn_matrix, taxonomic_lvl, organism, scan_list, r
   rlang::enquo(taxonomic_lvl)
   options(dplyr.summarise.inform = FALSE)
 
-  #collection.k <- rxn_matrix %>%
-  #  group_by(.data[[!!taxonomic_lvl]]) %>%
-  #  filter(.data[[!!taxonomic_lvl]] != organism) %>%
-  #  ungroup() %>%
-  #  group_by(Genus)
-
-  #collection.j <- rxn_matrix %>%
-  #  group_by(.data[[!!taxonomic_lvl]]) %>%
-  #  filter(.data[[!!taxonomic_lvl]] == organism)
-
-  #  n_k <- (collection.k %>%
-  #            summarize(n_k = length(Genus)))$n_k
-
-  #  n_j <- (collection.j %>%
-  #            summarize(n_j = length(.data[[!!taxonomic_lvl]])))$n_j
-
-  #  y_k <- collection.k %>%
-  #    summarize(across(all_of(reactions), sum)) %>%
-  #    select(-Genus)
-
-  #  y_j <- collection.j %>%
-  #    summarize(across(all_of(reactions), sum)) %>%
-  #    select(-.data[[!!taxonomic_lvl]])
-
   n_k <- (rxn_matrix %>%
             group_by(.data[[!!taxonomic_lvl]]) %>%
             filter(.data[[!!taxonomic_lvl]] != organism) %>%
@@ -119,15 +95,9 @@ calculate_p <- function(steps, rxn_matrix, taxonomic_lvl, organism, scan_list, r
   res_list <- res_list %>%
     filter(!is.na(probability)) %>%
     full_join(scan_list, by = c('organism', 'name', 'module', 'full', 'step', 'probability')) %>%
-    #mutate(probability = as.character(probability), probability = case_when(
-    #  !(is.na(ko_term)) & is.na(probability) ~ 'Present',
-    #  TRUE ~ probability), organism = case_when(
-    #    is.na(organism) ~ unique(na.omit(organism)),
-    #    TRUE ~ organism)) %>%
     select(organism, name, module, full, step, probability) %>%
     arrange(module, step)
 
-  #message('Done with ', unique(na.omit(res_list$organism)))
   return(res_list)
 }
 
@@ -135,9 +105,6 @@ calculate_p <- function(steps, rxn_matrix, taxonomic_lvl, organism, scan_list, r
 
 no_optim <- function(steps, rxn_matrix, organism, scan_list, res_list) {
   options(dplyr.summarise.inform = FALSE)
-
-  #collection.j <- rxn_matrix %>%
-  #  group_by(Domain)
 
   n_j <- (rxn_matrix %>%
             group_by(Domain) %>%
@@ -182,15 +149,9 @@ no_optim <- function(steps, rxn_matrix, organism, scan_list, res_list) {
   res_list <- res_list %>%
     filter(!is.na(probability)) %>%
     full_join(scan_list, by = c('organism', 'name', 'module', 'full', 'step', 'probability')) %>%
-    #mutate(probability = as.character(probability), probability = case_when(
-    #  !(is.na(ko_term)) & is.na(probability) ~ 'Present',
-    #  TRUE ~ probability), organism = case_when(
-    #    is.na(organism) ~ unique(na.omit(organism)),
-    #    TRUE ~ organism)) %>%
     select(organism, name, module, full, step, probability) %>%
     arrange(module, step)
 
-  #message('Done with ', unique(na.omit(res_list$organism)), '\n')
   return(res_list)
 }
 
@@ -203,11 +164,6 @@ taxonomy_not_found <- function(organism, scan_list, res_list) {
   res_list <- res_list %>%
     filter(!is.na(probability)) %>%
     full_join(scan_list, by = c('organism', 'name', 'module', 'full', 'step', 'probability')) %>%
-    #mutate(probability = as.character(probability), probability = case_when(
-    #  !(is.na(ko_term)) & is.na(probability) ~ 'Present',
-    #  TRUE ~ probability), organism = case_when(
-    #    is.na(organism) ~ unique(na.omit(organism)),
-    #    TRUE ~ organism)) %>%
     select(organism, name, module, full, step, probability) %>%
     arrange(module, step)
 }
