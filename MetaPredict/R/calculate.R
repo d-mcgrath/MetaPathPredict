@@ -118,7 +118,7 @@ no_optim <- function(steps, rxn_matrix, organism, scan_list, res_list) {
 
 
 
-  #predictions <- furrr::future_map(1:length(y_j), .progress = T, ~ { ### MLE estimation with furrr loop style
+  #predictions <- furrr::future_map(1:length(y_j), .progress = T, ~ { ### MLE estimation with parallelizable-processing
   #  res <- (1 + y_j[[.x]]) / (1 + 1 + n_j)
 
   #  names(res) <- colnames(y_j)[.x]
