@@ -15,7 +15,22 @@ MetaPredict <- function(userData, taxonList = NULL, cores = 1, output_dir = NULL
                                              col_names = 'col', col_types = readr::cols()))
   }
 
-  message('Formatting input data...')
+  cli::cli_h1('Starting MetaPredict')
+  cli::cli_alert_info('Formatting input data...')
+
+  if (missing(userData)) {
+    cli::cli_alert_danger('Input object not detected in global environment. Make sure you have run read_genome_data() or read_metagenome_data() on your data.')
+    stop()
+  }
+  if (unique(userData$data_type) == 'metagenome' & !is.null(taxonList)) {
+    cli::cli_alert_danger('Input is from a metagenome. A taxon list is not required for this data type. Try running MetaPredict() without the taxonList argument.')
+    stop()
+  }
+  if (unique(userData$data_type) == 'genome' & is.null(taxonList)) {
+    cli::cli_alert_danger('Input is from one or more genomes. A taxon list is required for this data type. Try running MetaPredict() with the taxonList argument.')
+    stop()
+  }
+
   tidy_input <- format_input(userData)
   present_modules <- pull_present_modules_from(tidy_input, userData)
 
@@ -33,26 +48,25 @@ MetaPredict <- function(userData, taxonList = NULL, cores = 1, output_dir = NULL
   #change the code below this line to make the updated function work properly
   if (!is.null(taxonList)) {
     results <- purrr::map(1:length(taxa$col), ~ {
-      message('Processing ', unique(userData$organism)[.x], '...')
+      #cli::cli_alert_info('Processing {unique(userData$organism)[.x]} ...')
       pull_data(scan_missing[[.x]]$step, taxa$col[[.x]], scan_missing[[.x]],
                 present_modules[[.x]])
     })
 
   } else {
     results <- purrr::map(1:length(scan_missing), ~ { #may want to use furrr::future_map() here for optional parallel processing
-      message('Processing ', unique(present_modules[[.x]]$organism), ' gene annotations...')
-
       if (length(scan_missing[[.x]]$step) > 0 & userData$organism[.x] != 'unidentified taxonomy') {
         pull_data(scan_missing[[.x]]$step, unique(present_modules[[.x]]$organism),
                   scan_missing[[.x]],
                   present_modules[[.x]])
+        #cli::cli_alert_success('Processed {unique(present_modules[[.x]]$organism)} gene annotations')
 
       } else if (length(scan_missing[[.x]]$step) == 0 & userData$organism[.x] != 'unidentified taxonomy') {
-        message('Skipping ', userData$organism[.x], '. Nothing to scan...')
+        #cli::cli_alert_info('Skipping {userData$organism[.x]}. Nothing to scan')
         return(present_modules[[.x]]) #return just present_modules[[.x]] since there is nothing to scan...
 
       } else {
-        message('Skipping ', userData$organism[.x], '. Calculations for unidentified taxonomies currently not supported...')
+        #cli::cli_alert_warning('Skipping {userData$organism[.x]}. Calculations for unidentified taxonomies currently not supported')
         }
     })
   }
@@ -61,8 +75,10 @@ MetaPredict <- function(userData, taxonList = NULL, cores = 1, output_dir = NULL
       bind_rows() %>%
       arrange(module, step)
   }
-  message('Finished KEGG metabolic pathway reconstruction and reaction probability calculations.')
-  message('Writing results and summary file. Output is in a list. Enter "View(results[[{x}]][[1]]) to look at summary information, View(results[[{x}]][[2]] for the full results, and View(results[[{x}]][[3]][[{y}]]) for a heatmaps; change {x} to a number of one or more single genomes to view results for a particular genome. Change {y} to view heatmaps; e.g., enter 1 to view the first heatmap. For single genome(s), pathways are sorted by their size from the smallest in the first heatmap to the largest in the final heatmap.')
+  cli::cli_alert_success('Finished KEGG metabolic pathway reconstruction and reaction probability calculations.')
+  cli::cli_alert_info('Writing results and summary file. Output is in a list. change (x) to a number of one or more single genomes to view results for a particular genome')
+  cli::cli_alert_info('Enter View(results[[1]][[1]]) to look at summary information, View(results[[(x)]][[2]] for the full results, and View(results[[(x)]][[3]][[(y)]]) for pathway completion heatmaps')
+  cli::cli_alert_info('Change (y) to view heatmaps; e.g., enter 1 to view the first heatmap. For single genome(s), pathways are sorted by their size from the smallest in the first heatmap to the largest in the final heatmap')
 
   if (is.null(taxonList)) {
     summary_information <- summarize_output(results)
@@ -80,7 +96,7 @@ MetaPredict <- function(userData, taxonList = NULL, cores = 1, output_dir = NULL
 
 format_input <- function(userData) {
   input_data <- userData %>%
-    select(-Gene) %>%
+    select(-c(Gene, data_type)) %>%
     tibble::column_to_rownames(var = 'organism') %>%
     t() %>%
     as_tibble()

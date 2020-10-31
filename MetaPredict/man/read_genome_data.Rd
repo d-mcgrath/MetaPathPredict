@@ -8,7 +8,6 @@ and a column with their associated HMM or Blast E-values titled 'E-value'.}
 \usage{
 read_genome_data(
   Data = NULL,
-  File = NULL,
   filePath = NULL,
   filePattern = "-ko.tsv",
   kofamscan = TRUE,
@@ -17,9 +16,7 @@ read_genome_data(
 )
 }
 \arguments{
-\item{Data}{A dataframe or list of dataframes of HMM/Blast results which include KEGG Orthology terms and E-values in two of the columns of each dataframe}
-
-\item{File}{The full or relative path to a single input flatfile}
+\item{Data}{A dataframe or list of dataframes of HMM/Blast results which include KEGG Orthology terms and E-values in two of the columns of each dataframe, or the full or relative path to a single or multiple input flatfiles containing this information}
 
 \item{filePath}{The full path to the input file or files}
 
