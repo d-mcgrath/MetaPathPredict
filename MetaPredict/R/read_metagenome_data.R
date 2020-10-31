@@ -14,13 +14,11 @@
 read_metagenome_data <- function(gene_input, ko_input, evalue = 1e-3, gene_delim = '\t', ko_delim = '\t',
                                  kofamscan = TRUE) {
 
-  #add something like if (gene_input %>% contains(any_of(taxonomic levels))) {}...
-  message('Parsing predicted genes and gene taxonomic annotations into MetaPredict')
-
   taxonomic_lvls <- c('Species', 'Genus', 'Family', 'Order', 'Class', 'Phylum', 'Domain')
   tax_cols <- c('Species' = NA, 'Genus' = NA, 'Family' = NA, 'Order' = NA, 'Class' = NA,
                 'Phylum' = NA, 'Domain' = NA)
 
+  cli::cli_h1('Reading metagenomic data into MetaPredict')
   gene_table <- suppressWarnings(readr::read_delim(gene_input, col_types = readr::cols(),
                                                    delim = gene_delim))
 
@@ -45,9 +43,6 @@ read_metagenome_data <- function(gene_input, ko_input, evalue = 1e-3, gene_delim
                                                               ignore_case = TRUE))) %>%
     rename(Gene = ORF) %>%
     select(Gene, organism)
-
-
-  message('Parsing HMM/Blast hits and E-values into MetaPredict. Using E-value cutoff: ', evalue)
 
   col <- sub('.*\\/(.*)\\..*', '\\1', ko_input, perl = T)
   ko_table <- suppressWarnings(readr::read_delim(ko_input, col_types = readr::cols(), delim = ko_delim))
@@ -74,23 +69,13 @@ read_metagenome_data <- function(gene_input, ko_input, evalue = 1e-3, gene_delim
     summarize(ko_term = paste0(ko_term, collapse = ' '),
               Gene = paste0(Gene, collapse = ' '),
               organism = unique(organism),
-              .groups = 'keep')
+              .groups = 'keep') %>%
+    mutate(data_type = 'metagenome')
 
-  #present_na <- gene_table %>%
-  #  dplyr::filter(is.na(organism)) %>%
-  #  summarize(ko_term = paste0(ko_term, collapse = ' '),
-  #            Gene = paste0(Gene, collapse = ' '),
-  #            organism = NA)
+  cli::cli_alert_success('Parsed predicted genes and gene taxonomic annotations')
+  cli::cli_alert_success('Parsed HMM/Blast hits and E-values')
+  cli::cli_alert_info('Used E-value cutoff: {evalue}')
 
-  #gene_table <- gene_table %>%
-  #  dplyr::filter(!is.na(organism)) %>%
-  #  group_by(organism) %>%
-  #  summarize(ko_term = paste0(ko_term, collapse = ' '),
-  #            Gene = paste0(Gene, collapse = ' '),
-  #            organism = unique(organism))
-
-  #res <- list('gene_table' = gene_table, 'present_na' = present_na)
-  #return(res)
   return(gene_table)
 }
 
