@@ -3,5 +3,6 @@
 export(MetaPredict)
 export(read_genome_data)
 export(read_metagenome_data)
+export(save_results)
 import(dplyr)
 importFrom(magrittr,"%>%")
