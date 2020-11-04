@@ -23,7 +23,7 @@ Imports:
       rlang (>= 0.4.8),
       magrittr (>= 1.5),
       tibble (>= 3.0.4),
-      pheatmap (>= 1.0.12),
+      ggplot2 (>= 3.3.2),
       cli (>= 2.1.0)
 Depends: 
     R (>= 2.10)

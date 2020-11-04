@@ -70,7 +70,8 @@ read_metagenome_data <- function(gene_input, ko_input, evalue = 1e-3, gene_delim
               Gene = paste0(Gene, collapse = ' '),
               organism = unique(organism),
               .groups = 'keep') %>%
-    mutate(data_type = 'metagenome')
+    mutate(data_type = 'metagenome',
+           metagenome_name := !!col)
 
   cli::cli_alert_success('Parsed predicted genes and gene taxonomic annotations')
   cli::cli_alert_success('Parsed HMM/Blast hits and E-values')
