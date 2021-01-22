@@ -8,15 +8,19 @@ and a column with their associated HMM or Blast E-values titled 'E-value'.}
 \usage{
 read_genome_data(
   Data = NULL,
+  taxonCols = NULL,
   filePath = NULL,
   filePattern = "-ko.tsv",
   kofamscan = TRUE,
-  evalue = 0.001,
+  dram = FALSE,
+  cutoff = 0.001,
   delim = "\\t"
 )
 }
 \arguments{
 \item{Data}{A dataframe or list of dataframes of HMM/Blast results which include KEGG Orthology terms and E-values in two of the columns of each dataframe, or the full or relative path to a single or multiple input flatfiles containing this information}
+
+\item{taxonCols}{A dataframe with one column that lists the taxonomy of each input genome, and a second column that lists the estimated genome completeness of each input genome. Optionally, can be three columns where column 1 is the genome name, column two is the genome taxonomy, and column 3 is the estimated genome completeness of each input genome. Order of the columns should match the order of the input genomes.}
 
 \item{filePath}{The full path to the input file or files}
 
@@ -24,9 +28,9 @@ read_genome_data(
 
 \item{kofamscan}{If the input file or files are output from Kofamscan, set this argument to TRUE, otherwise FALSE. Default is TRUE}
 
-\item{evalue}{The desired E-value cutoff. Default is 0.001}
-
 \item{delim}{The delimiter of the input files. Default is tab}
+
+\item{evalue}{The desired E-value cutoff. Default is 0.001}
 }
 \description{
 This function is used to read in user data in the form of a one or more flatfiles, default is TSV format.

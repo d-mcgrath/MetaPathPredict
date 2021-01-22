@@ -7,16 +7,14 @@ incomplete pathways with missing reactions, it will then calculate the probabili
 is present in the input genome but was missed in the sampling process. It takes in user input in the form of
 an object created with a read_data function call.}
 \usage{
-MetaPredict(userData, taxonList = NULL, cores = 1, output_dir = NULL)
+MetaPredict(userData, output_dir = NULL, moduleVector = NULL, strict = FALSE)
 }
 \arguments{
 \item{userData}{Created with the read_data function - KEGG Orthology data for one or more bacteria/archaea}
 
-\item{taxonList}{A CSV flatfile with lowest taxonomic level of each input organism. Same order as in userData, one per line}
-
-\item{cores}{Number of cores to use for computation. Default is 1}
-
 \item{output_dir}{The full or relative path to an output directory where result and summary output will be saved as TSV flatfiles}
+
+\item{moduleVector}{An optional vector of specific KEGG Modules to scan user annotations and calculate probabilities for}
 }
 \description{
 This function is used to reconstruct metabolic pathways based on present KEGG Orthology terms. For any
