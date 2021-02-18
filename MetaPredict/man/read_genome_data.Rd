@@ -22,15 +22,15 @@ read_genome_data(
 
 \item{taxonCols}{A dataframe with one column that lists the taxonomy of each input genome, and a second column that lists the estimated genome completeness of each input genome. Optionally, can be three columns where column 1 is the genome name, column two is the genome taxonomy, and column 3 is the estimated genome completeness of each input genome. Order of the columns should match the order of the input genomes.}
 
-\item{filePath}{The full path to the input file or files}
+\item{filePath}{The full path to the input file or files.}
 
-\item{filePattern}{The file extension pattern. If using multiple files, this will read in all files in the listed directory}
+\item{filePattern}{The file extension pattern. If using multiple files, this will read in all files in the listed directory.}
 
-\item{kofamscan}{If the input file or files are output from Kofamscan, set this argument to TRUE, otherwise FALSE. Default is TRUE}
+\item{kofamscan}{If the input file or files are output from Kofamscan, set this argument to TRUE, otherwise FALSE. Default is TRUE.}
 
-\item{delim}{The delimiter of the input files. Default is tab}
+\item{delim}{The delimiter of the input files. Default is tab.}
 
-\item{evalue}{The desired E-value cutoff. Default is 0.001}
+\item{evalue}{The desired E-value cutoff. Default is 0.001.}
 }
 \description{
 This function is used to read in user data in the form of a one or more flatfiles, default is TSV format.

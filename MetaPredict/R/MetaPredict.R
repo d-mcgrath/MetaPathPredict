@@ -6,6 +6,7 @@
 #' @param output_dir The full or relative path to an output directory where result and summary output will be saved as TSV flatfiles
 #' @param moduleVector An optional vector of specific KEGG Modules to scan user annotations and calculate probabilities for
 #' @importFrom magrittr "%>%"
+
 #' @export
 MetaPredict <- function(userData, output_dir = NULL, moduleVector = NULL, strict = FALSE) {
   cli::cli_h1('Starting MetaPredict')
@@ -112,7 +113,7 @@ summarize_metagenome_output <- function(.data) {
 
 
 
-#' export
+#' @export
 save_results <- function(output, output_dir) {
   if (!dir.exists(output_dir)) {
     cli::cli_alert_warning('Creating output directory {output_dir}')

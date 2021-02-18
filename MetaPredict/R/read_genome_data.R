@@ -3,12 +3,13 @@
 #' and a column with their associated HMM or Blast E-values titled 'E-value'.
 #' @param Data A dataframe or list of dataframes of HMM/Blast results which include KEGG Orthology terms and E-values in two of the columns of each dataframe, or the full or relative path to a single or multiple input flatfiles containing this information
 #' @param taxonCols A dataframe with one column that lists the taxonomy of each input genome, and a second column that lists the estimated genome completeness of each input genome. Optionally, can be three columns where column 1 is the genome name, column two is the genome taxonomy, and column 3 is the estimated genome completeness of each input genome. Order of the columns should match the order of the input genomes.
-#' @param filePath The full path to the input file or files
-#' @param filePattern The file extension pattern. If using multiple files, this will read in all files in the listed directory
-#' @param kofamscan If the input file or files are output from Kofamscan, set this argument to TRUE, otherwise FALSE. Default is TRUE
-#' @param evalue The desired E-value cutoff. Default is 0.001
-#' @param delim The delimiter of the input files. Default is tab
+#' @param filePath The full path to the input file or files.
+#' @param filePattern The file extension pattern. If using multiple files, this will read in all files in the listed directory.
+#' @param kofamscan If the input file or files are output from Kofamscan, set this argument to TRUE, otherwise FALSE. Default is TRUE.
+#' @param evalue The desired E-value cutoff. Default is 0.001.
+#' @param delim The delimiter of the input files. Default is tab.
 #' @importFrom magrittr "%>%"
+
 #' @export
 read_genome_data <- function(Data = NULL, taxonCols = NULL, filePath = NULL, filePattern = '-ko.tsv',
                              kofamscan = TRUE, dram = FALSE, cutoff = 1e-3, delim = '\t') {
@@ -16,11 +17,11 @@ read_genome_data <- function(Data = NULL, taxonCols = NULL, filePath = NULL, fil
   cli::cli_h1('Reading genomic data into MetaPredict')
 
   if (!is.null(taxonCols)) {
-    suppressWarnings(taxon_tibble <- readr::read_csv(taxonCols,
-                                                     col_names = c('taxonomy', 'est_comp'),
-                                                     col_types = readr::cols())) # NEEDS UPDATE; col length can vary between 2 and 3...
+    suppressWarnings(taxon_tibble <- readr::read_delim(taxonCols,
+                                                       col_names = c('taxonomy', 'est_comp'), delim = delim,
+                                                       col_types = readr::cols())) # NEEDS UPDATE; col length can vary between 2 and 3...
   } else {
-    stop(cli::cli_alert_danger('Taxon and estimated genome completness information required. Please provide a CSV flatfile consisting of a column of taxon names of each input genome, and a column of the estimated completeness of each genome, in the same order as the genomes input into MetaPredict.'))
+    stop(cli::cli_alert_danger('Taxon and estimated genome completness information required. Please provide a flatfile consisting of a column of taxon names of each input genome, and a column of the estimated completeness of each genome, in the same order as the genomes input into MetaPredict.'))
   }
   index <- get_index(.data = Data, filePath = filePath, filePattern = filePattern)
 
@@ -61,7 +62,7 @@ read_genome_data <- function(Data = NULL, taxonCols = NULL, filePath = NULL, fil
 
     if (is.null(Data)) {
       files_x <- files[.x]
-      formatted_genomes[[.x]] <- import_data.g(.data = Data, filePattern = filePattern, files = files_x, delim = delim)
+      formatted_genomes[[.x]] <- import_data.g(.data = Data, files = files_x, delim = delim)
     } else {
       formatted_genomes[[.x]] <- import_data.g(.data = Data, delim = delim)
     }
@@ -76,7 +77,7 @@ read_genome_data <- function(Data = NULL, taxonCols = NULL, filePath = NULL, fil
   }) %>%
     dplyr::tibble() %>%
     tidyr::unnest(cols = dplyr::everything()) %>%
-    dplyr::group_by(taxonomy) %>%
+    dplyr::group_by(genome_name) %>%
     dplyr::mutate(data_type = 'genome')
 
   cli::cli_alert_success('Parsed HMM/Blast hits and E-values')
@@ -121,7 +122,7 @@ import_data.g <- function(.data, files = NULL, delim) {
 
 
 
-get_fileName.g <- function(.data, filePattern = NULL, files = NULL) {
+get_fileName.g <- function(.data = NULL, filePattern = NULL, files = NULL) {
   if (is.null(.data)) {fileName <- sub(paste('.*\\/(.*)', filePattern, sep = ''), '\\1', files, perl = T) # files was 'files[.x]'
   } else if (is.character(.data)) {fileName <- sub('.*\\/(.*)\\..*', '\\1', .data, perl = T) #is.character() may not work as expected here
   #} else if (is.list(.data)) {fileName <- names(.data)
