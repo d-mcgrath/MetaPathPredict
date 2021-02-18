@@ -11,7 +11,7 @@ get.knumber_vectors <- function(userData, posterior_data) { #posterior_data is a
     dplyr::as_tibble(~ vctrs::vec_as_names(repair = "unique", quiet = TRUE))
 
   knumber_data <- patt.kegg_modules %>%
-    dplyr::bind_cols(input_data) %>% # binding COLUMNS, not ROWS of the input data with the patt.kegg_modules tibble
+    dplyr::bind_cols(input_data) %>%
     dplyr::group_by(step, k_numbers) %>%
     dplyr::summarize(dplyr::across(!1:3, ~ stringr::str_extract(
       string = .x, pattern = k_numbers)), .groups = 'drop') %>%
@@ -23,7 +23,7 @@ get.knumber_vectors <- function(userData, posterior_data) { #posterior_data is a
       dplyr::rename(k_number = 1) %>%
       dplyr::mutate(step = patt.kegg_modules$step,
              k_rule = patt.kegg_modules$k_numbers) %>%
-      dplyr::left_join(select(posterior_data[[.x]], step, `Module step present`, probability), by = 'step') %>%
+      dplyr::left_join(dplyr::select(posterior_data[[.x]], step, `Module step present`, probability), by = 'step') %>%
       dplyr::mutate(probability = dplyr::case_when(`Module step present` == TRUE & is.na(probability) ~ -1,
                                      TRUE ~ probability),
              k_number = dplyr::case_when(is.na(k_number) ~ k_rule,
@@ -65,5 +65,6 @@ create_kegg_maps <- function(k_vector.list, pathway_id, output_dir = '.',
                                                     bins = list(genes = 14, cpd = 14))
       })
     })
-  } else stop(cli::cli_alert_danger("Argument 'k_numbers' or 'ec_numbers' must be TRUE. Both cannot be TRUE, and both cannot be FALSE. Please make sure only one of them is TRUE."))
+  } else {cli::cli_alert_danger("Argument 'k_numbers' or 'ec_numbers' must be TRUE. Both cannot be TRUE, and both cannot be FALSE. Please make sure only one of them is TRUE.")
+  stop()}
 }

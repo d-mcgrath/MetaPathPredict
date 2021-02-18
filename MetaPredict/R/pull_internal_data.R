@@ -53,13 +53,12 @@ map_modules_to <- function(x_j.tibble_list, userData, strict = FALSE) {
 
 
 
-#EDIT THIS FUNCTION TO TRY TO RETURN TAXONOMY AS LOW AS POSSIBLE; RETURN DOMAIN IF NOT; UNKNOWN OTHERWISE
 get_domain <- function(taxonomy) { #NOTE: some columns of bact_ & arch_phylo_key contain NA, hence the na.omit()
-  if (purrr::some(1:5, ~ {
-    any(stringr::str_detect(na.omit(bact_phylo_key2[[.x]]), stringr::regex(taxonomy, ignore_case = TRUE)))})) {
+  if (purrr::some(1:6, ~ {
+    any(stringr::str_detect(na.omit(bact_phylo_key2[[.x]]), stringr::regex(paste0('^', taxonomy, '$'), ignore_case = TRUE)))})) {
     domain = 'Bacteria'
-  } else if (purrr::some(1:5, ~ {
-    any(stringr::str_detect(na.omit(arch_phylo_key2[[.x]]), stringr::regex(taxonomy, ignore_case = TRUE)))})) {
+  } else if (purrr::some(1:6, ~ {
+    any(stringr::str_detect(na.omit(arch_phylo_key2[[.x]]), stringr::regex(paste0('^', taxonomy, '$'), ignore_case = TRUE)))})) {
     domain = 'Archaea'
   } else {
     domain = 'Unknown'
@@ -97,7 +96,7 @@ search_tree <- function(.data, taxonomy_key, .list_num, .domain) {
         next
       } else {
         if (any(stringr::str_detect(
-          colnames(priors_list[[.list_num]][[paste0(.domain, names(possible_taxa)[.x])]]),
+          colnames(priors_list2[[.list_num]][[paste0(.domain, names(possible_taxa)[.x])]]),
           possible_taxa[[.x]][1]))) {
           .data <- .data %>%
             dplyr::mutate(lowest = possible_taxa[[.x]][1])
