@@ -145,8 +145,8 @@ get_parameters <- function(data_list, moduleVector = NULL)  {
       lowest_index <- c(purrr::detect_index(full_indices, ~ !purrr::is_empty(.x)), purrr::detect(full_indices, ~ !purrr::is_empty(.x)))
 
       cur_org.list[['absent']] <- cur_org.list[['absent']] %>%
-        dplyr::mutate(y_j = get_yj(modules_contained_y2[[names(full_indices)[lowest_index[1]]]], cur_org$lowest[1], step_col = .$step),
-                      m_j = get_mj(collection_lengths_m2[[names(full_indices)[lowest_index[1]]]], cur_org$lowest[1])) %>%
+        dplyr::mutate(y_j = get_yj(modules_contained_y[[names(full_indices)[lowest_index[1]]]], cur_org$lowest[1], step_col = .$step),
+                      m_j = get_mj(collection_lengths_m[[names(full_indices)[lowest_index[1]]]], cur_org$lowest[1])) %>%
         dplyr::left_join(dplyr::select(priors_list2[[.x]][[names(full_indices)[lowest_index[1]]]], step, lowest_index[2]) %>%
                            tidyr::separate_rows(dplyr::everything(), sep = ' '), by = 'step') %>%
         dplyr::rename(parameters = 16) %>% ### POSITION-BASED STEP- MUST CHANGE IF CODE IS UPDATED
