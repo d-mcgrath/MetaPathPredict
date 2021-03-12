@@ -135,7 +135,7 @@ get_fileName.g <- function(.data = NULL, filePattern = NULL, files = NULL) {
 
 tidy_kofam <- function(.data, cutoff = 1e-3, ...) {
   .data %>%
-    filter(!str_detect(`E-value`, '-----')) %>%
+    dplyr::filter(!stringr::str_detect(`E-value`, '-----')) %>%
     {if (all(c('E-value', 'KO', 'gene name') %in% colnames(.))) dplyr::select_(., .dots = lazyeval::lazy_dots(...))
       else stop(cli::cli_alert_danger(
         "Error: Columns 'E-value', 'KO', and 'gene name' not detected. These columns are required to read in Kofamscan output files."))} %>%
