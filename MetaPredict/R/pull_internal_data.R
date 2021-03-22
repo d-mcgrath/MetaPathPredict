@@ -42,7 +42,7 @@ map_modules_to <- function(x_j.tibble_list, userData, strict = FALSE) {
       tibble::add_column(domain = get_domain(userData$taxonomy[.x]), .after = 1) %>%
       get_lowest_taxonomy() %>%
       dplyr::mutate(`Module step present` = dplyr::case_when(n == x_j ~ TRUE, n != x_j ~ FALSE),
-                    p_j = userData$p_j[.x]) %>%
+                    p_j = userData$completeness[.x]) %>%
       dplyr::arrange(step) %>%
       dplyr::group_by(module) %>%
       {if (strict == TRUE) dplyr::filter(., !all(`Module step present` == FALSE)) else (.)} # filters out pathways for which there is no evidence of their presence in the gene annotations
