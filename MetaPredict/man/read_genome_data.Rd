@@ -8,9 +8,9 @@ and a column with their associated HMM or Blast E-values titled 'E-value'.}
 \usage{
 read_genome_data(
   Data = NULL,
-  taxonCols = NULL,
-  filePath = NULL,
-  filePattern = "-ko.tsv",
+  metadata = NULL,
+  metaColnames = TRUE,
+  metadata_DataFrame = FALSE,
   kofamscan = TRUE,
   dram = FALSE,
   cutoff = 0.001,
@@ -20,11 +20,11 @@ read_genome_data(
 \arguments{
 \item{Data}{A dataframe or list of dataframes of HMM/Blast results which include KEGG Orthology terms and E-values in two of the columns of each dataframe, or the full or relative path to a single or multiple input flatfiles containing this information}
 
-\item{taxonCols}{A dataframe with one column that lists the taxonomy of each input genome, and a second column that lists the estimated genome completeness of each input genome. Optionally, can be three columns where column 1 is the genome name, column two is the genome taxonomy, and column 3 is the estimated genome completeness of each input genome. Order of the columns should match the order of the input genomes.}
+\item{metadata}{A flatfile with one column "taxonomy" that lists the taxonomy of each input genome, and a second column "completeness" that lists the estimated genome completeness of each input genome. The completeness column should be in the format of percent completeness - e.g., a number between 0 and 100 for each genome. Taxonomy should be the NCBI taxonomic name for each genome, from Domain to Species level - it can optionally be "Unknown" if the taxonomic name is not known. The genome_name column should contain the name the user would like to use for each genome. The filename column must contain the full or relative path to each genome annotation file; Note: files can be from different directories.  If metaColnames is TRUE, metadata should have four columns including genome_name, taxonomy, completeness, and filename for each input genome; information for each genome should occupy a single row of the flatfile. Columns can be in any order, and the rows can also be in any order. NOTE: if metaColnames is FALSE - which is not recommended - three unnamed columns will be required that contain the taxonomy, completeness, and filename for each genome.}
 
-\item{filePath}{The full path to the input file or files.}
+\item{metaColnames}{Logcial. If TRUE, the metadata flatfile contains the following columns in any order: genome_name, taxonomy, completeness, filename. If FALSE, the flatfile contains THREE unnamed columns in any order that contain the taxonomy, estimated completeness, and filename for each genome; it is not recommended to use this setting if possible.}
 
-\item{filePattern}{The file extension pattern. If using multiple files, this will read in all files in the listed directory.}
+\item{metadata_DataFrame}{Metadata can optionally be loaded in as a pre-existing dataframe that contains four columns: genome_name, taxonomy, completeness, and filename. Default is FALSE. Can optionally set metadata_DataFrame equal to the object name of a pre-existing metadata dataframe.}
 
 \item{kofamscan}{If the input file or files are output from Kofamscan, set this argument to TRUE, otherwise FALSE. Default is TRUE.}
 
