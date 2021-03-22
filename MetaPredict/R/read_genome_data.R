@@ -61,7 +61,7 @@ read_genome_data <- function(Data = NULL, metadata = NULL, metaColnames = TRUE, 
   }
 
   formatted_genomes <- list()
-  formatted_genomes <- purrr::map(1:index, .progress = T, ~ { #for each element in the index, index is just number vector- # of inputs
+  formatted_genomes <- purrr::map(1:index, ~ { #for each element in the index, index is just number vector- # of inputs
     if (is.list(Data) & length(Data) >= 1) { # MAKE SURE THIS ALWAYS RETURNS 1 FOR DATAFRAMES
       Data <- Data[[.x]]
       orgName <- names(Data[.x]) # this is supposed to give a default name each genome tibble in a list if none are provided
@@ -97,7 +97,7 @@ read_genome_data <- function(Data = NULL, metadata = NULL, metaColnames = TRUE, 
     }
 
     formatted_genomes[[.x]] <- formatted_genomes[[.x]] %>%
-      {if (kofamscan == TRUE) tidy_kofam(., cutoff = cutoff, `E-value`, KO, `gene name`)
+      {if (kofamscan == TRUE) tidy_kofam(., cutoff = cutoff)
         else if (dram == TRUE) tidy_dram(.)
         else if (kofamscan == FALSE & dram == FALSE) tidy_custom_anno(., cutoff = cutoff, input_type = 'genome_name')
         else stop(cli::cli_alert_danger('Error: Issue importing user data. Please see usage() for data import guidelines.'))}
@@ -179,10 +179,10 @@ import_data.g <- function(.data, file = NULL, delim = NULL) {
 
 
 
-tidy_kofam <- function(.data, cutoff = 1e-3, ...) {
+tidy_kofam <- function(.data, cutoff = 1e-3) {
   .data %>%
     dplyr::filter(!stringr::str_detect(`E-value`, '-----')) %>%
-    {if (all(c('E-value', 'KO', 'gene name') %in% colnames(.))) dplyr::select_(., .dots = lazyeval::lazy_dots(...))
+    {if (all(c('E-value', 'KO', 'gene name') %in% colnames(.))) dplyr::select(., `E-value`, KO, `gene name`)
       else stop(cli::cli_alert_danger(
         "Error: Columns 'E-value', 'KO', and 'gene name' not detected. These columns are required to read in Kofamscan output files."))} %>%
     dplyr::mutate(`E-value` = as.numeric(`E-value`)) %>%
