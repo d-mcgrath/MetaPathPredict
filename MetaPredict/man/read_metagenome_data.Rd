@@ -6,12 +6,16 @@
 and KEGG Orthology HMM/Blast data. Both inputs must be in the form of flatfiles, default is TSV format.}
 \usage{
 read_metagenome_data(
-  gene_input,
-  ko_input,
-  covColumn = NULL,
+  gene_input = NULL,
+  ko_input = NULL,
+  metadata = NULL,
+  gene_df = FALSE,
+  ko_df = FALSE,
+  metadata_df = FALSE,
   cutoff = 0.001,
   gene_delim = "\\t",
   ko_delim = "\\t",
+  metadata_delim = "\\t",
   kofamscan = TRUE,
   cat = TRUE,
   custom_knumber_ColNames = NULL,
@@ -22,18 +26,27 @@ read_metagenome_data(
 \item{gene_input}{The full or relative path to a single flatfile with gene predictions and their associated taxonomic annotations.
 Columns with taxonomy should include one more of the following: Genus, Family, Order, Class, Phylum, Domain}
 
-\item{ko_input}{The full or relative path to a  single flatfile with HMM/Blast results which include KEGG Orthology terms in a column titled 'KO'
-and E-values in a column titled 'E-value'}
+\item{ko_input}{The full or relative path to a  single flatfile with HMM/Blast/other results which include KEGG Orthology terms/K numbers in a column titled 'KO', E-values in a column titled 'E-value', the resulting score is in a column titled 'score', and the gene name is in a column titled 'gene name'}
 
-\item{covColumn}{A CSV flatfile containing the estimated metagenome coverage of all input metagenomes}
+\item{metadata}{A flatfile containing the estimated metagenome completeness of the metagenome}
+
+\item{gene_df}{If gene annotations are in a dataframe object, set this argument equal to the name of the object. Default is FALSE}
+
+\item{ko_df}{If the KEGG Orthology K number annotations are in a dataframe object, set this argument equal to the name of the object. Default is FALSE}
+
+\item{metadata_df}{If the metadata is in a dataframe object, set this argument equal to the name of the object. Default is FALSE}
+
+\item{cutoff}{The desired E-value cutoff for HMM/Blast/other KEGG Orthology/K number hits. Default is 0.001}
 
 \item{gene_delim}{The delimiter of the input gene prediction with taxonomic annotation flatfile. Default is tab}
 
 \item{ko_delim}{The delimiter of the input KEGG Orthology prediction flatfile. Default is tab}
 
+\item{metadata_delim}{The delimiter of the metadata flatfile. Default is tab}
+
 \item{kofamscan}{If the input KEGG Orthology flatfile is direct output from Kofamscan, set this argument to TRUE, otherwise FALSE. Default is TRUE}
 
-\item{evalue}{The desired E-value cutoff for HMM/Blast KEGG Orthology hits. Default is 0.001}
+\item{cat}{If the input gene taxonomic annotations are from CAT, set this argument to TRUE, otherwise FALSE. Default is TRUE}
 }
 \description{
 This function is used to read in user metagenome data gene prediction data with associated taxonomic annotations,

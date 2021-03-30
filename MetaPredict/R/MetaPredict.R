@@ -13,7 +13,7 @@ MetaPredict <- function(userData, output_dir = NULL, moduleVector = NULL, strict
   cli::cli_alert_info('Formatting input data...')
 
   if (missing(userData)) {
-    cli::cli_alert_danger('Input object not detected in global environment. Make sure you have run read_genome_data() or read_metagenome_data() on your data.')
+    cli::cli_alert_danger('Input userData not detected in global environment. Make sure you have run read_genome_data() or read_metagenome_data() on your data and have listed your input data object for the userData argument.')
     stop()
   }
 
