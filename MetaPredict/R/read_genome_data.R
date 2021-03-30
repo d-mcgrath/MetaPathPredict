@@ -46,6 +46,10 @@ read_genome_data <- function(Data = NULL, metadata = NULL, metaColnames = TRUE, 
 
   metadata_tbl <- metadata_tbl %>%
     dplyr::mutate(completeness = completeness / 100)
+  if (any(metadata_tbl$completeness > 1 | metadata_tbl$completeness < 0)) {
+    cli::cli_alert_danger('Error: Completeness column contains one ore more values with a percentage greater than 100 or less than 0. Please make sure all percentage values are between 0 and 100.')
+    stop()
+  }
 
   index <- get_index(.data = Data, metadata_tbl = metadata_tbl)
 
@@ -80,7 +84,7 @@ read_genome_data <- function(Data = NULL, metadata = NULL, metaColnames = TRUE, 
           orgName <- paste0('genome_', .x)
         }
       } else if (is.list(Data) & is.data.frame(Data) & length(Data) >= 1) {
-        orgName <- as.character(substitute(Data))
+        orgName <- deparse(substitute(Data))
       } else {
         cli::cli_alert_danger('Error: Data must be a dataframe, list of dataframes, a flatfile, or multiple flatfiles. Please see usage() for more information.')
         stop()
