@@ -135,6 +135,8 @@ get_parameters <- function(data_list, moduleVector = NULL)  {
       cur_org.list <- list(present = dplyr::filter(cur_org, `Module step present` == TRUE),
                            absent = dplyr::filter(cur_org, `Module step present` == FALSE)) # split cur_org into a list of 2 tibbles based on module presence/absence
 
+      #message('Working on: ', cur_org$lowest[1])
+
       full_indices <- purrr::map_depth(priors_list2[[.x]], .depth = 1, function(.cur_priors) {
         purrr::map_lgl(colnames(.cur_priors), function(.column_name) {
           stringr::str_detect(.column_name, stringr::regex(paste0('^', cur_org$lowest[1], '$')))

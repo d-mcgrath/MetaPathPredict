@@ -17,6 +17,9 @@
 #' @export
 read_metagenome_data <- function(gene_input = NULL, ko_input = NULL, contig_input = NULL, metadata = NULL, gene_df = FALSE, ko_df = FALSE, contig_df = FALSE, metadata_df = FALSE, cutoff = 1e-3, gene_delim = '\t', ko_delim = '\t', contig_delim = '\t', metadata_delim = '\t', kofamscan = TRUE, cat = TRUE, custom_knumber_ColNames = NULL, custom_anno_ColNames = NULL) {
 
+  cli::cli_h1('Formatting metagenomic data')
+
+
   if (all(!is.null(metadata) & metadata_df == FALSE)) {
     #option must be added to have metagenome_name for each metagenome and its completeness
     suppressWarnings(metadata_tbl <- readr::read_csv(metadata, col_types = readr::cols()))
