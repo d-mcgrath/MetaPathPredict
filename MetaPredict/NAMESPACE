@@ -2,6 +2,10 @@
 
 export(MetaPredict)
 export(create_kegg_maps)
+export(get.x_j)
+export(get_parameters)
+export(get_posteriors)
+export(map_modules_to)
 export(read_genome_data)
 export(read_metagenome_data)
 export(save_results)

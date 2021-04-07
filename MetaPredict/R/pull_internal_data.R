@@ -1,4 +1,5 @@
 #' @importFrom magrittr "%>%"
+#' @export
 get.x_j <- function(userData) {
   input_data <- userData %>%
     dplyr::ungroup() %>%
@@ -29,7 +30,7 @@ get.x_j <- function(userData) {
 }
 
 
-
+#' @export
 map_modules_to <- function(x_j.tibble_list, userData, strict = FALSE) {
   present_and_missing_modules_list <- list()
   present_and_missing_modules_list <- purrr::map(1:length(x_j.tibble_list), ~ {
@@ -117,6 +118,7 @@ search_tree <- function(.data, taxonomy_key, .list_num, .domain) {
 
 
 ## pulls y_j, m_j, alpha, and beta
+#' @export
 get_parameters <- function(data_list, moduleVector = NULL)  {
   input_list <- list(bact_list = data_list %>% purrr::keep(~ .x$domain[1] == 'Bacteria'),
                      arch_list = data_list %>% purrr::keep(~ .x$domain[1] == 'Archaea'),
