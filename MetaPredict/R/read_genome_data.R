@@ -14,7 +14,7 @@
 read_genome_data <- function(Data = NULL, metadata = NULL, metaColnames = TRUE, metadata_DataFrame = FALSE, #filePath = NULL, filePattern = '-ko.tsv',
                              kofamscan = TRUE, dram = FALSE, cutoff = 1e-3, delim = '\t') {
 
-  cli::cli_h1('Reading genomic data into MetaPredict')
+  cli::cli_h1('Formatting genomic data')
 
   if (all(!is.null(metadata) & metaColnames == TRUE & metadata_DataFrame == FALSE)) {
     suppressWarnings(metadata_tbl <- readr::read_delim(metadata, col_names = TRUE, delim = delim, col_types = readr::cols()))
