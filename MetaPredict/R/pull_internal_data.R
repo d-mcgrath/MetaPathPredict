@@ -121,7 +121,7 @@ search_tree <- function(.data, taxonomy_key, .list_num, .domain) {
 #' @export
 get_parameters <- function(data_list, moduleVector = NULL, strict = strict)  {
   if (strict == TRUE) {
-    data_list <- keep(data_list, ~ nrow(.x) > 0)
+    data_list <- purrr::keep(data_list, ~ nrow(.x) > 0)
   }
   input_list <- list(bact_list = data_list %>% purrr::keep(~ .x$domain[1] == 'Bacteria'),
                      arch_list = data_list %>% purrr::keep(~ .x$domain[1] == 'Archaea'),
