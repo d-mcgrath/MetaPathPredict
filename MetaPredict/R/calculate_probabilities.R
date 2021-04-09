@@ -83,7 +83,7 @@ get_posteriors <- function(modules_list, strict = strict) {
   if (strict == TRUE) {
     modules_list <- modules_list %>%
       purrr::keep(~ nrow(.x) > 0) %>%
-      purrr::set_names(nm = purrr::map_chr(modules_list, ~ unique(.x$taxonomy)))
+      purrr::set_names(nm = purrr::map_chr(., ~ unique(.x$taxonomy)))
   }
   posterior_results <- purrr::map(seq_along(modules_list), ~ {
     posterior_results[[.x]] <- modules_list[[.x]] %>%
