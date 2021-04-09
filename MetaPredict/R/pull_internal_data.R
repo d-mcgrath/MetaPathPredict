@@ -173,9 +173,9 @@ get_parameters <- function(data_list, moduleVector = NULL)  {
 
 
 
-get_yj <- function(y_list,  taxonomy, step_col = NULL) {
+get_yj <- function(y_list, taxonomy, step_col = NULL) {
   y_j <- y_list %>%
-    dplyr::select(dplyr::matches(stringr::regex(taxonomy), ignore.case = TRUE), step, module) %>%
+    dplyr::select(dplyr::matches(paste0('^', taxonomy, '$'), ignore.case = TRUE), step, module) %>%
     dplyr::filter(step %in% step_col) %>%
     dplyr::select(-c(module, step))
   return(y_j[[1]])
