@@ -76,16 +76,16 @@ summarize_genome_output <- function(.data) {
       dplyr::add_tally(`Module step present` == TRUE, name = 'steps_present') %>%
       dplyr::add_tally(length(module), name = 'module_length') %>%
       dplyr::add_tally(`Module step present` == FALSE, name = 'predicted') %>%
-      dplyr::add_tally(probability >= 0.75, name = 'p_greater_75') %>%
+      dplyr::add_tally(probability >= 0.90, name = 'p_greater_90') %>%
       dplyr::select(taxonomy, lowest, module_name, module_class, module, steps_present, module_length,
-             predicted, p_greater_75) %>%
+             predicted, p_greater_90) %>%
       dplyr::distinct() %>%
       dplyr::mutate('Module steps present' = paste(steps_present, module_length, sep = '/'),
              'Module steps predicted' = paste(predicted, module_length, sep = '/'),
-             'Predictions (P > 0.75)' = paste(p_greater_75, module_length, sep = '/'),
-             'Predicted completeness (P > 0.75)' = paste(steps_present+p_greater_75, module_length, sep = '/')) %>%
+             'Predictions (P > 0.90)' = paste(p_greater_90, module_length, sep = '/'),
+             'Predicted completeness (P > 0.90)' = paste(steps_present+p_greater_90, module_length, sep = '/')) %>%
       dplyr::rename('Module name' = module_name, 'Module class' = module_class, 'Module' = module, 'Taxonomy' = taxonomy) %>%
-      dplyr::select(-c(steps_present, module_length, p_greater_75, predicted))
+      dplyr::select(-c(steps_present, module_length, p_greater_90, predicted))
   })
   return(.data)
 }
@@ -99,16 +99,16 @@ summarize_metagenome_output <- function(.data) {
     dplyr::add_tally(`Module step present` == TRUE, name = 'steps_present') %>%
     dplyr::add_tally(length(module), name = 'module_length') %>%
     dplyr::add_tally(`Module step present` == FALSE, name = 'predicted') %>%
-    dplyr::add_tally(probability >= 0.75, name = 'p_greater_75') %>%
+    dplyr::add_tally(probability >= 0.90, name = 'p_greater_90') %>%
     dplyr::select(taxonomy, lowest, module_name, module_class, module, steps_present, module_length,
-           predicted, p_greater_75) %>%
+           predicted, p_greater_90) %>%
     dplyr::distinct() %>%
     dplyr::mutate('Module steps present' = paste(steps_present, module_length, sep = '/'),
            'Module steps predicted' = paste(predicted, module_length, sep = '/'),
-           'Predictions (P > 0.75)' = paste(p_greater_75, module_length, sep = '/'),
-           'Predicted completeness (P > 0.75)' = paste(steps_present + p_greater_75, module_length, sep = '/')) %>%
+           'Predictions (P > 0.90)' = paste(p_greater_90, module_length, sep = '/'),
+           'Predicted completeness (P > 0.90)' = paste(steps_present + p_greater_90, module_length, sep = '/')) %>%
     dplyr::rename('Module name' = module_name, 'Module class' = module_class, 'Module' = module, 'Taxonomy' = taxonomy) %>%
-    dplyr::select(-c(steps_present, module_length, p_greater_75, predicted))
+    dplyr::select(-c(steps_present, module_length, p_greater_90, predicted))
 }
 
 
