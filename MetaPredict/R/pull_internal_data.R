@@ -134,8 +134,8 @@ get_parameters <- function(data_list, moduleVector = NULL, strict = strict)  {
     purrr::map(1:length(input_list[[.x]]), function(cur) {
       cur_org <- input_list[[.x]][[cur]]
       cur_org <- cur_org %>% #cur_org is a grouped tibble for the current MAG/metagenome contig cluster
-        dplyr::ungroup() %>%
-        {if (!is.null(moduleVector)) dplyr::filter(., module %in% moduleVector) else (.)}
+        dplyr::ungroup() #%>%
+      #{if (!is.null(moduleVector)) dplyr::filter(., module %in% moduleVector) else (.)}
 
       cur_org.list <- list(present = dplyr::filter(cur_org, `Module step present` == TRUE),
                            absent = dplyr::filter(cur_org, `Module step present` == FALSE)) # split cur_org into a list of 2 tibbles based on module presence/absence
@@ -165,7 +165,9 @@ get_parameters <- function(data_list, moduleVector = NULL, strict = strict)  {
 
       res_list[[.x]][[cur]] <- cur_org.list[['absent']] %>%
         dplyr::bind_rows(cur_org.list[['present']]) %>%
-        dplyr::arrange(module, step)
+        dplyr::arrange(module, step) %>%
+        {if (!is.null(moduleVector)) dplyr::filter(., module %in% moduleVector) else (.)}
+
       #return(res_list)
     })
   }) %>%
@@ -173,7 +175,6 @@ get_parameters <- function(data_list, moduleVector = NULL, strict = strict)  {
     suppressWarnings() %>%
     purrr::keep(~ is_tibble(.x))
 }
-
 
 
 get_yj <- function(y_list, taxonomy, step_col = NULL) {

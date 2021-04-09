@@ -78,8 +78,13 @@ calculate_posterior <- function(p.xj_n, p.xj_nbar, alpha, beta, y_j, n, m_j, x_j
 # Calculate the posterior probability that a module step is present,
 # given the genome completeness estimate p
 #' @export
-get_posteriors <- function(modules_list) {
+get_posteriors <- function(modules_list, strict = strict) {
   posterior_results <- list()
+  if (strict == TRUE) {
+    modules_list <- modules_list %>%
+      purrr::keep(~ nrow(.x) > 0) %>%
+      purrr::set_names(nm = purrr::map_chr(modules_list, ~ unique(.x$taxonomy)))
+  }
   posterior_results <- purrr::map(seq_along(modules_list), ~ {
     posterior_results[[.x]] <- modules_list[[.x]] %>%
       dplyr::rowwise() %>%
