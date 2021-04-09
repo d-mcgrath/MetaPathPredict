@@ -21,7 +21,7 @@ MetaPredict <- function(userData, output_dir = NULL, moduleVector = NULL, strict
 
   x_j.list <- get.x_j(userData)
   results <- map_modules_to(x_j.list, userData, strict = strict)# this function should be split into 2 parts
-  results <- get_parameters(results, moduleVector = moduleVector)
+  results <- get_parameters(results, moduleVector = moduleVector, strict = strict)
   results <- get_posteriors(results)
 
   if (unique(userData$data_type) == 'metagenome') {
