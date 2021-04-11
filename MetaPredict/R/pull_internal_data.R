@@ -4,30 +4,59 @@ get.x_j <- function(userData) {
   input_data <- userData %>%
     dplyr::ungroup() %>%
     {if ('genome_name' %in% colnames(userData))
-      dplyr::select(., k_number, genome_name) %>%
-        tibble::column_to_rownames(var = 'genome_name')
-      else dplyr::select(., k_number, taxonomy) %>%
-        tibble::column_to_rownames(var = 'taxonomy')} %>%
-    t() %>%
-    dplyr::as_tibble(~ vctrs::vec_as_names(repair = "unique", quiet = TRUE))
-
-  x_j.tibble <- patt.kegg_modules %>%
-    dplyr::bind_cols(input_data) %>% # binding COLUMNS, not ROWS of the input data with the patt.kegg_modules tibble
-    dplyr::group_by(step, k_numbers) %>%
-    dplyr::summarize(dplyr::across(!1:3, ~ as.integer(stringr::str_detect(
-      string = .x, pattern = k_numbers))), .groups = 'keep') %>%
-    dplyr::ungroup(k_numbers) %>%
-    dplyr::select(-c(k_numbers)) %>%
-    dplyr::summarize(dplyr::across(dplyr::everything(), ~ sum(.x)), .groups = 'drop') %>%
-    dplyr::select(-step)
-
+      dplyr::select(., k_number, genome_name)
+      else dplyr::select(., k_number, taxonomy)
+    } %>%
+    dplyr::rowwise() %>%
+    dplyr::mutate(x_j = list(as.integer(stringr::str_detect(
+      string = k_number,
+      pattern = patt.kegg_modules$k_numbers)))) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(x_j = purrr::map(x_j, ~
+                                     dplyr::tibble(x_j = .x) %>%
+                                     dplyr::mutate(step = patt.kegg_modules$step) %>%
+                                     dplyr::group_by(step) %>%
+                                     dplyr::summarize(x_j = sum(x_j), .groups = 'drop') %>%
+                                     dplyr::select(-step)))
   x_j.tibble_list <- list()
-  x_j.tibble_list <- purrr::map(1:length(x_j.tibble), ~ {
-    x_j.tibble_list[[.x]] <- x_j.tibble[[.x]]
+  x_j.tibble_list <- purrr::map(1:length(input_data$x_j), ~ {
+    x_j.tibble_list[[.x]] <- input_data$x_j[[.x]][[1]]
   }) %>%
-    purrr::set_names(nm = names(x_j.tibble))
+    purrr::set_names(nm = input_data$taxonomy)
   return(x_j.tibble_list)
 }
+
+
+
+#get.x_j <- function(userData) {
+#  input_data <- userData %>%
+#    dplyr::ungroup() %>%
+#    {if ('genome_name' %in% colnames(userData))
+#      dplyr::select(., k_number, genome_name) %>%
+#        tibble::column_to_rownames(var = 'genome_name')
+#      else dplyr::select(., k_number, taxonomy) %>%
+#        tibble::column_to_rownames(var = 'taxonomy')} %>%
+#    t() %>%
+#    dplyr::as_tibble(~ vctrs::vec_as_names(repair = "unique", quiet = TRUE))
+#
+#  x_j.tibble <- patt.kegg_modules %>%
+#    dplyr::bind_cols(input_data) %>% # binding COLUMNS, not ROWS of the input data with the patt.kegg_modules tibble
+#    dplyr::group_by(step, k_numbers) %>%
+#    dplyr::summarize(dplyr::across(!1:3, ~ as.integer(stringr::str_detect(
+#      string = .x, pattern = k_numbers))), .groups = 'keep') %>%
+#    dplyr::ungroup(k_numbers) %>%
+#    dplyr::select(-c(k_numbers)) %>%
+#    dplyr::summarize(dplyr::across(dplyr::everything(), ~ sum(.x)), .groups = 'drop') %>%
+#    dplyr::select(-step)
+#
+#  x_j.tibble_list <- list()
+#  x_j.tibble_list <- purrr::map(1:length(x_j.tibble), ~ {
+#    x_j.tibble_list[[.x]] <- x_j.tibble[[.x]]
+#  }) %>%
+#    purrr::set_names(nm = names(x_j.tibble))
+#  return(x_j.tibble_list)
+#}
+
 
 
 #' @export
