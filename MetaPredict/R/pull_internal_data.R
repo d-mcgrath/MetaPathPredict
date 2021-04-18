@@ -252,7 +252,8 @@ get_parameters <- function(data_list, moduleVector = NULL, strict = strict)  {
   }) %>%
     rlang::squash() %>%
     suppressWarnings() %>%
-    purrr::keep(~ is_tibble(.x))
+    purrr::keep(~ is_tibble(.x)) %>%
+    purrr::set_names(nm = names(data_list))
 }
 
 
