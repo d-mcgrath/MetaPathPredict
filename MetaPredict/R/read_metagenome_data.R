@@ -15,7 +15,7 @@
 #' @param cat If the input gene taxonomic annotations are from CAT, set this argument to TRUE, otherwise FALSE. Default is TRUE
 #' @importFrom magrittr "%>%"
 #' @export
-read_metagenome_data <- function(gene_input = NULL, ko_input = NULL, contig_input = NULL, metadata = NULL, gene_df = FALSE, ko_df = FALSE, contig_df = FALSE, metadata_df = FALSE, cutoff = 1e-3, gene_delim = '\t', ko_delim = '\t', contig_delim = '\t', metadata_delim = '\t', kofamscan = TRUE, cat = TRUE, custom_knumber_ColNames = NULL, custom_anno_ColNames = NULL) {
+read_metagenome_data <- function(gene_input = NULL, ko_input = NULL, contig_input = NULL, metadata = NULL, gene_df = FALSE, ko_df = FALSE, contig_df = FALSE, metadata_df = FALSE, cutoff = 1e-3, gene_delim = '\t', ko_delim = '\t', contig_delim = '\t', metadata_delim = '\t', kofamscan = TRUE, cat = TRUE, mmseqs2 = FALSE, custom_knumber_ColNames = NULL, custom_anno_ColNames = NULL) {
 
   cli::cli_h1('Formatting metagenomic data')
 
@@ -105,6 +105,7 @@ read_metagenome_data <- function(gene_input = NULL, ko_input = NULL, contig_inpu
     dplyr::rename_with(~ taxonomic_lvls[stringr::str_detect(taxonomic_lvls, stringr::regex(., ignore_case = TRUE))], .cols = dplyr::contains(taxonomic_lvls)) %>%
     {if (cat == TRUE) tidy_cat_taxa(.gene_data = ., .contig_data = contig_tbl, taxonomic_lvls = taxonomic_lvls, tax_cols = tax_cols)
       else if (!is.null(custom_anno_ColNames)) tidy_custom_taxa(., cutoff = cutoff)
+      else if (cat == FALSE & is.null(custom_anno_ColNames)) (.)
       else stop(cli::cli_alert_danger('Error: Input format does not match any of the accepted formats. Please see usage()'))}
 
 
@@ -139,6 +140,9 @@ read_metagenome_data <- function(gene_input = NULL, ko_input = NULL, contig_inpu
     }
     cli::cli_alert_info('Metagenome name(s) not provided/detected. Using default metagenome name: {default_name}')
   } else {default_name <- metadata_tbl$metagenome_name}
+
+  #if (mmseqs2 == TRUE & cat == FALSE) {
+  #}
 
   #need this somewhere .... #dplyr::filter(!(duplicated(k_number)))
   gene_table <- gene_table %>%

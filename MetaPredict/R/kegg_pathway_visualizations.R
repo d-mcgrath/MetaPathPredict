@@ -23,8 +23,8 @@ get.knumber_vectors <- function(userData, posterior_data) { #posterior_data is a
       dplyr::rename(k_number = 1) %>%
       dplyr::mutate(step = patt.kegg_modules$step,
              k_rule = patt.kegg_modules$k_numbers) %>%
-      dplyr::left_join(dplyr::select(posterior_data[[.x]], step, `Module step present`, probability), by = 'step') %>%
-      dplyr::mutate(probability = dplyr::case_when(`Module step present` == TRUE & is.na(probability) ~ -1,
+      dplyr::left_join(dplyr::select(posterior_data[[.x]], step, module_step_present, probability), by = 'step') %>%
+      dplyr::mutate(probability = dplyr::case_when(module_step_present == TRUE & is.na(probability) ~ -1,
                                      TRUE ~ probability),
              k_number = dplyr::case_when(is.na(k_number) ~ k_rule,
                                   TRUE ~ k_number)) %>%
