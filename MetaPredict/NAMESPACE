@@ -2,7 +2,7 @@
 
 export(MetaPredict)
 export(create_kegg_maps)
-export(get.x_j)
+export(get_gene_counts_from)
 export(get_parameters)
 export(get_posteriors)
 export(map_modules_to)

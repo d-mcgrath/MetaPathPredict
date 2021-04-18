@@ -19,8 +19,8 @@ MetaPredict <- function(userData, output_dir = NULL, moduleVector = NULL, strict
 
   cli::cli_alert_info('Reconstructing metabolic pathways and performing prediction calculations...')
 
-  x_j.list <- get.x_j(userData)
-  results <- map_modules_to(x_j.list, userData, strict = strict)# this function should be split into 2 parts
+  gene_counts.list <- get_gene_counts_from(userData)
+  results <- map_modules_to(gene_counts.list, userData, strict = strict)# this function should be split into 2 parts
   results <- get_parameters(results, moduleVector = moduleVector, strict = strict)
   results <- get_posteriors(results, strict = strict)
 
@@ -28,11 +28,11 @@ MetaPredict <- function(userData, output_dir = NULL, moduleVector = NULL, strict
     results <- results %>%
       dplyr::bind_rows() %>%
       dplyr::arrange(module_class, step) %>%
-      dplyr::mutate(metagenome_name = unique(userData$metagenome_name))
+      dplyr::mutate(metagenome_name = unique(userData$metagenome_name)) # needs updating - to allow for multiple metagenomes as input...!
 
     summary_information <- summarize_metagenome_output(results)
     #heatmaps <- create_heatmaps_from(results, userData, metagenome = TRUE)
-    output <- list(list(summary_information, results)) %>% #, heatmaps)) %>%
+    output <- list(list('summary' = summary_information, 'full' = results)) %>% #, heatmaps)) %>%
       purrr::set_names(unique(userData$metagenome_name))
 
     if (is.null(output_dir)) {
@@ -46,7 +46,7 @@ MetaPredict <- function(userData, output_dir = NULL, moduleVector = NULL, strict
   } else {
     summary_information <- summarize_genome_output(results)
     #heatmaps <- purrr::map(results, ~ {create_heatmaps_from(.x, userData)})
-    output <- purrr::transpose(list(summary_information, results)) #, heatmaps))
+    output <- purrr::transpose(list('summary' = summary_information, 'full' = results)) #, heatmaps))
 
     if (is.null(output_dir)) {
       cli::cli_alert_success('Finished KEGG metabolic pathway reconstruction and reaction probability calculations. Output is in a list.')
@@ -73,9 +73,9 @@ summarize_genome_output <- function(.data) {
     .data[[.x]] <- .data[[.x]] %>%
       dplyr::filter(!(duplicated(step))) %>%
       dplyr::group_by(module) %>%
-      dplyr::add_tally(`Module step present` == TRUE, name = 'steps_present') %>%
+      dplyr::add_tally(module_step_present == TRUE, name = 'steps_present') %>%
       dplyr::add_tally(length(module), name = 'module_length') %>%
-      dplyr::add_tally(`Module step present` == FALSE, name = 'predicted') %>%
+      dplyr::add_tally(module_step_present == FALSE, name = 'predicted') %>%
       dplyr::add_tally(probability >= 0.90, name = 'p_greater_90') %>%
       dplyr::select(taxonomy, lowest, module_name, module_class, module, steps_present, module_length,
              predicted, p_greater_90) %>%
@@ -96,9 +96,9 @@ summarize_metagenome_output <- function(.data) {
   .data %>%
     dplyr::filter(!(duplicated(step))) %>%
     dplyr::group_by(module, lowest) %>%
-    dplyr::add_tally(`Module step present` == TRUE, name = 'steps_present') %>%
+    dplyr::add_tally(module_step_present == TRUE, name = 'steps_present') %>%
     dplyr::add_tally(length(module), name = 'module_length') %>%
-    dplyr::add_tally(`Module step present` == FALSE, name = 'predicted') %>%
+    dplyr::add_tally(module_step_present == FALSE, name = 'predicted') %>%
     dplyr::add_tally(probability >= 0.90, name = 'p_greater_90') %>%
     dplyr::select(taxonomy, lowest, module_name, module_class, module, steps_present, module_length,
            predicted, p_greater_90) %>%

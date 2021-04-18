@@ -21,6 +21,7 @@ read_metagenome_data(
   metadata_delim = "\\t",
   kofamscan = TRUE,
   cat = TRUE,
+  mmseqs2 = FALSE,
   custom_knumber_ColNames = NULL,
   custom_anno_ColNames = NULL
 )
