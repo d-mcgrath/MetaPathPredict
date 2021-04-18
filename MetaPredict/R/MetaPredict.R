@@ -32,7 +32,7 @@ MetaPredict <- function(userData, output_dir = NULL, moduleVector = NULL, strict
 
     summary_information <- summarize_metagenome_output(results)
     #heatmaps <- create_heatmaps_from(results, userData, metagenome = TRUE)
-    output <- list(list('summary' = summary_information, 'full' = results)) %>% #, heatmaps)) %>%
+    output <- list(list('summary' = summary_information, 'full_results' = results)) %>% #, heatmaps)) %>%
       purrr::set_names(unique(userData$metagenome_name))
 
     if (is.null(output_dir)) {
@@ -46,7 +46,7 @@ MetaPredict <- function(userData, output_dir = NULL, moduleVector = NULL, strict
   } else {
     summary_information <- summarize_genome_output(results)
     #heatmaps <- purrr::map(results, ~ {create_heatmaps_from(.x, userData)})
-    output <- purrr::transpose(list('summary' = summary_information, 'full' = results)) #, heatmaps))
+    output <- purrr::transpose(list('summary' = summary_information, 'full_results' = results)) #, heatmaps))
 
     if (is.null(output_dir)) {
       cli::cli_alert_success('Finished KEGG metabolic pathway reconstruction and reaction probability calculations. Output is in a list.')
@@ -77,7 +77,7 @@ summarize_genome_output <- function(.data) {
       dplyr::add_tally(length(module), name = 'module_length') %>%
       dplyr::add_tally(module_step_present == FALSE, name = 'predicted') %>%
       dplyr::add_tally(probability >= 0.90, name = 'p_greater_90') %>%
-      dplyr::select(taxonomy, lowest, module_name, module_class, module, steps_present, module_length,
+      dplyr::select(taxonomy, taxonomy_used, module_name, module_class, module, steps_present, module_length,
              predicted, p_greater_90) %>%
       dplyr::distinct() %>%
       dplyr::mutate('Module steps present' = paste(steps_present, module_length, sep = '/'),
@@ -95,12 +95,12 @@ summarize_genome_output <- function(.data) {
 summarize_metagenome_output <- function(.data) {
   .data %>%
     dplyr::filter(!(duplicated(step))) %>%
-    dplyr::group_by(module, lowest) %>%
+    dplyr::group_by(module, taxonomy_used) %>%
     dplyr::add_tally(module_step_present == TRUE, name = 'steps_present') %>%
     dplyr::add_tally(length(module), name = 'module_length') %>%
     dplyr::add_tally(module_step_present == FALSE, name = 'predicted') %>%
     dplyr::add_tally(probability >= 0.90, name = 'p_greater_90') %>%
-    dplyr::select(taxonomy, lowest, module_name, module_class, module, steps_present, module_length,
+    dplyr::select(taxonomy, taxonomy_used, module_name, module_class, module, steps_present, module_length,
            predicted, p_greater_90) %>%
     dplyr::distinct() %>%
     dplyr::mutate('Module steps present' = paste(steps_present, module_length, sep = '/'),
