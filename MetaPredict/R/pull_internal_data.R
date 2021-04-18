@@ -112,7 +112,7 @@ map_modules_to <- function(gene_counts.list, userData, strict = FALSE) {
     modules_list[[.x]] <- all_kegg_modules %>%
       dplyr::ungroup() %>%
       #dplyr::mutate(x_j = gene_counts.list[[.x]]) %>%
-      dplyr::bind_cols(gene_counts.list$x_j.k_numbers[[.x]]) %>%
+      dplyr::bind_cols(gene_counts.list[[.x]]) %>%
       dplyr::relocate(k_numbers, .after = rule) %>%
       dplyr::mutate(taxonomy = userData$taxonomy[.x], .before = 1) %>%
       {if (unique(userData$data_type) == 'genome') dplyr::mutate(., 'genome_name' = userData$genome_name[.x], .after = 1)
