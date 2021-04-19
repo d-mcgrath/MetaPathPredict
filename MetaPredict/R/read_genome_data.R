@@ -191,6 +191,11 @@ tidy_kofam <- function(.data, cutoff = 1e-3) {
         "Error: Columns 'E-value', 'KO', and 'gene name' not detected. These columns are required to read in Kofamscan output files."))} %>%
     dplyr::mutate(`E-value` = as.numeric(`E-value`)) %>%
     dplyr::filter(`E-value` <= cutoff | `E-value` == 0) %>%
+
+    dplyr::group_by(`gene name`) %>% ###
+    dplyr::filter(score == max(score) & `E-value` == min(`E-value`)) %>% ###
+    dplyr::ungroup() %>% ###
+
     dplyr::select(KO, `gene name`) %>%
     dplyr::rename(gene_name = `gene name`, k_number = KO) %>%
     dplyr::filter(!is.na(k_number), !duplicated(k_number))
