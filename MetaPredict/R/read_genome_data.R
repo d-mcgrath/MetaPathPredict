@@ -11,7 +11,7 @@
 #' @importFrom magrittr "%>%"
 
 #' @export
-read_genome_data <- function(Data = NULL, metadata = NULL, metaColnames = TRUE, metadata_DataFrame = FALSE, #filePath = NULL, filePattern = '-ko.tsv',
+read_genome_data <- function(Data = NULL, metadata = NULL, metaColnames = TRUE, metadata_df = FALSE, #filePath = NULL, filePattern = '-ko.tsv',
                              kofamscan = TRUE, dram = FALSE, cutoff = 1e-3, delim = '\t') {
 
   cli::cli_h1('Formatting genomic data')
@@ -186,9 +186,9 @@ import_data.g <- function(.data, file = NULL, delim = NULL) {
 tidy_kofam <- function(.data, cutoff = 1e-3) {
   .data %>%
     dplyr::filter(!stringr::str_detect(`E-value`, '-----')) %>%
-    {if (all(c('E-value', 'KO', 'gene name') %in% colnames(.))) dplyr::select(., `E-value`, KO, `gene name`)
+    {if (all(c('E-value', 'KO', 'gene name', 'score') %in% colnames(.))) dplyr::select(., `E-value`, KO, `gene name`, score) #added score
       else stop(cli::cli_alert_danger(
-        "Error: Columns 'E-value', 'KO', and 'gene name' not detected. These columns are required to read in Kofamscan output files."))} %>%
+        "Error: Columns 'E-value', 'KO', 'gene name', and/or 'score' not detected. These columns are required to read in Kofamscan output files."))} %>%
     dplyr::mutate(`E-value` = as.numeric(`E-value`)) %>%
     dplyr::filter(`E-value` <= cutoff | `E-value` == 0) %>%
 

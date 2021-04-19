@@ -10,7 +10,7 @@ read_genome_data(
   Data = NULL,
   metadata = NULL,
   metaColnames = TRUE,
-  metadata_DataFrame = FALSE,
+  metadata_df = FALSE,
   kofamscan = TRUE,
   dram = FALSE,
   cutoff = 0.001,
@@ -24,11 +24,11 @@ read_genome_data(
 
 \item{metaColnames}{Logcial. If TRUE, the metadata flatfile contains the following columns in any order: genome_name, taxonomy, completeness, filename. If FALSE, the flatfile contains THREE unnamed columns in any order that contain the taxonomy, estimated completeness, and filename for each genome; it is not recommended to use this setting if possible.}
 
-\item{metadata_DataFrame}{Metadata can optionally be loaded in as a pre-existing dataframe that contains four columns: genome_name, taxonomy, completeness, and filename. Default is FALSE. Can optionally set metadata_DataFrame equal to the object name of a pre-existing metadata dataframe.}
-
 \item{kofamscan}{If the input file or files are output from Kofamscan, set this argument to TRUE, otherwise FALSE. Default is TRUE.}
 
 \item{delim}{The delimiter of the input files. Default is tab.}
+
+\item{metadata_DataFrame}{Metadata can optionally be loaded in as a pre-existing dataframe that contains four columns: genome_name, taxonomy, completeness, and filename. Default is FALSE. Can optionally set metadata_DataFrame equal to the object name of a pre-existing metadata dataframe.}
 
 \item{evalue}{The desired E-value cutoff. Default is 0.001.}
 }
