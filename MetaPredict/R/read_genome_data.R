@@ -4,7 +4,7 @@
 #' @param Data A dataframe or list of dataframes of HMM/Blast results which include KEGG Orthology terms and E-values in two of the columns of each dataframe, or the full or relative path to a single or multiple input flatfiles containing this information
 #' @param metadata A flatfile with one column "taxonomy" that lists the taxonomy of each input genome, and a second column "completeness" that lists the estimated genome completeness of each input genome. The completeness column should be in the format of percent completeness - e.g., a number between 0 and 100 for each genome. Taxonomy should be the NCBI taxonomic name for each genome, from Domain to Species level - it can optionally be "Unknown" if the taxonomic name is not known. The genome_name column should contain the name the user would like to use for each genome. The filename column must contain the full or relative path to each genome annotation file; Note: files can be from different directories.  If metaColnames is TRUE, metadata should have four columns including genome_name, taxonomy, completeness, and filename for each input genome; information for each genome should occupy a single row of the flatfile. Columns can be in any order, and the rows can also be in any order. NOTE: if metaColnames is FALSE - which is not recommended - three unnamed columns will be required that contain the taxonomy, completeness, and filename for each genome.
 #' @param metaColnames Logcial. If TRUE, the metadata flatfile contains the following columns in any order: genome_name, taxonomy, completeness, filename. If FALSE, the flatfile contains THREE unnamed columns in any order that contain the taxonomy, estimated completeness, and filename for each genome; it is not recommended to use this setting if possible.
-#' @param metadata_DataFrame Metadata can optionally be loaded in as a pre-existing dataframe that contains four columns: genome_name, taxonomy, completeness, and filename. Default is FALSE. Can optionally set metadata_DataFrame equal to the object name of a pre-existing metadata dataframe.
+#' @param metadata_df Metadata can optionally be loaded in as a pre-existing dataframe that contains four columns: genome_name, taxonomy, completeness, and filename. Default is FALSE. Can optionally set metadata_df equal to the object name of a pre-existing metadata dataframe.
 #' @param kofamscan If the input file or files are output from Kofamscan, set this argument to TRUE, otherwise FALSE. Default is TRUE.
 #' @param evalue The desired E-value cutoff. Default is 0.001.
 #' @param delim The delimiter of the input files. Default is tab.
@@ -16,10 +16,10 @@ read_genome_data <- function(Data = NULL, metadata = NULL, metaColnames = TRUE, 
 
   cli::cli_h1('Formatting genomic data')
 
-  if (all(!is.null(metadata) & metaColnames == TRUE & metadata_DataFrame == FALSE)) {
+  if (all(!is.null(metadata) & metaColnames == TRUE & metadata_df == FALSE)) {
     suppressWarnings(metadata_tbl <- readr::read_delim(metadata, col_names = TRUE, delim = delim, col_types = readr::cols()))
 
-  } else if (all(!is.null(metadata) & metaColnames == FALSE & metadata_DataFrame == FALSE)) {
+  } else if (all(!is.null(metadata) & metaColnames == FALSE & metadata_df == FALSE)) {
     suppressWarnings(metadata_tbl <- readr::read_delim(metadata, col_names = FALSE, delim = delim, col_types = readr::cols()))
 
     if (length(colnames(metadata_tbl)) != 3) {
@@ -31,9 +31,9 @@ read_genome_data <- function(Data = NULL, metadata = NULL, metaColnames = TRUE, 
       dplyr::rename_if(~ is.character(.x) & all(stringr::str_detect(.x, stringr::regex('\\/|\\~|\\.'))), ~ 'filename') %>%
       dplyr::rename_if(is.numeric, ~ 'completeness')
 
-  } else if (is.data.frame(metadata_DataFrame)) {
-    if (all(c('genome_name', 'taxonomy', 'completeness', 'filename') %in% colnames(metadata_DataFrame))) {
-      metadata_tbl <- metadata_DataFrame %>%
+  } else if (is.data.frame(metadata_df)) {
+    if (all(c('genome_name', 'taxonomy', 'completeness', 'filename') %in% colnames(metadata_df))) {
+      metadata_tbl <- metadata_df %>%
         dplyr::select(genome_name, taxonomy, completeness, filename)
     } else {
       cli::cli_alert_danger('Error: Does your metadata dataframe contain the four columns genome_name, taxonomy, completeness, and filename?')
