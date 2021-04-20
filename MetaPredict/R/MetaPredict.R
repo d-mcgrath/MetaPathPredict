@@ -36,9 +36,9 @@ MetaPredict <- function(userData, output_dir = NULL, moduleVector = NULL, strict
       purrr::set_names(unique(userData$metagenome_name))
 
     if (is.null(output_dir)) {
-      cli::cli_alert_success('Finished KEGG metabolic pathway reconstruction and KEGG Module probability calculations. Output is in a list.')
-      cli::cli_alert_info('Enter View(results[[(x)]][[1]]) to look at summary information, View(results[[(x)]][[2]] for the full results.')
-      cli::cli_alert_warning('Make sure to change (x) to a number between 1 and x, with x equal to the total amount of input genome annotations.')
+      cli::cli_alert_success('Finished KEGG metabolic pathway reconstruction and KEGG module probability calculations. Output is in a list.')
+      cli::cli_alert_info('Enter View(results$`name`$summary) to look at summary information, View(results$`name`$full_results for the full results.')
+      cli::cli_alert_warning('Make sure to change `name` to the name associated with the genome/metagenome (from the genome_name/metagenome_name column of the metadata).')
       cli::cli_alert_info("To save results, run the following command: save_results(output_dir = '/path/to/output/directory'). Note: the output directory will be created if it does not exist.")
       cli::cli_h1('All done.')
       return(output)
@@ -50,8 +50,8 @@ MetaPredict <- function(userData, output_dir = NULL, moduleVector = NULL, strict
 
     if (is.null(output_dir)) {
       cli::cli_alert_success('Finished KEGG metabolic pathway reconstruction and reaction probability calculations. Output is in a list.')
-      cli::cli_alert_info('Enter View(results[[(x)]][[1]]) to look at summary information, View(results[[(x)]][[2]] for the full results.')
-      cli::cli_alert_warning('Make sure to change (x) to a number from 1 to x, with x equal to the total amount of input genome/metagenome inputs')
+      cli::cli_alert_info('Enter View(results$`name`$summary) to look at summary information, View(results$`name`$full_results for the full results.')
+      cli::cli_alert_warning('Make sure to change `name` to the name associated with the genome/metagenome (from the genome_name/metagenome_name column of the metadata).')
       cli::cli_alert_info("To save results, run the following command: save_results(output_dir = '/path/to/output/directory/'). Note: the output directory will be created if it does not exist.")
       cli::cli_h1('All done.')
       return(output)

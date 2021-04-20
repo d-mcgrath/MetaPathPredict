@@ -182,7 +182,7 @@ import_data.g <- function(.data, file = NULL, delim = NULL) {
 #}
 
 
-
+#' @export
 tidy_kofam <- function(.data, cutoff = 1e-3) {
   .data %>%
     dplyr::filter(!stringr::str_detect(`E-value`, '-----')) %>%
