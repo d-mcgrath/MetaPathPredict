@@ -245,7 +245,9 @@ get_parameters <- function(data_list, moduleVector = NULL, strict = strict)  {
       res_list[[.x]][[cur]] <- cur_org.list[['absent']] %>%
         dplyr::bind_rows(cur_org.list[['present']]) %>%
         dplyr::arrange(module, step) %>%
-        {if (!is.null(moduleVector)) dplyr::filter(., module %in% moduleVector) else (.)}
+        {if (!is.null(moduleVector)) dplyr::filter(., stringr::str_detect(module, paste0('^', moduleVector, '$', collapse = '|')))
+          else (.)}
+        #{if (!is.null(moduleVector)) dplyr::filter(., module %in% moduleVector) else (.)}
 
       #return(res_list)
     })
