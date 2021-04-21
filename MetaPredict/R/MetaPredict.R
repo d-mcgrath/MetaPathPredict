@@ -36,9 +36,9 @@ MetaPredict <- function(userData, output_dir = NULL, moduleVector = NULL, strict
       purrr::set_names(unique(userData$metagenome_name))
 
     if (is.null(output_dir)) {
-      cli::cli_alert_success('Finished KEGG metabolic pathway reconstruction and KEGG module probability calculations. Output is in a list.')
+      cli::cli_alert_success('Finished KEGG module reconstruction and KEGG module probability calculations. Output is in a list.')
       cli::cli_alert_info('Enter View(results$`name`$summary) to look at summary information, View(results$`name`$full_results for the full results.')
-      cli::cli_alert_warning('Make sure to change `name` to the name associated with the genome/metagenome (from the genome_name/metagenome_name column of the metadata).')
+      cli::cli_alert_warning('Make sure to change `name` to the name associated with the genome/metagenome of interest - from the genome_name/metagenome_name column of the metadata.')
       cli::cli_alert_info("To save results, run the following command: save_results(output_dir = '/path/to/output/directory'). Note: the output directory will be created if it does not exist.")
       cli::cli_h1('All done.')
       return(output)
@@ -49,9 +49,9 @@ MetaPredict <- function(userData, output_dir = NULL, moduleVector = NULL, strict
       purrr::set_names(nm = names(results))
 
     if (is.null(output_dir)) {
-      cli::cli_alert_success('Finished KEGG metabolic pathway reconstruction and reaction probability calculations. Output is in a list.')
+      cli::cli_alert_success('Finished KEGG module reconstruction and KEGG module probability calculations. Output is in a list.')
       cli::cli_alert_info('Enter View(results$`name`$summary) to look at summary information, View(results$`name`$full_results for the full results.')
-      cli::cli_alert_warning('Make sure to change `name` to the name associated with the genome/metagenome (from the genome_name/metagenome_name column of the metadata).')
+      cli::cli_alert_warning('Make sure to change `name` to the name associated with the genome/metagenome of interest - from the genome_name/metagenome_name column of the metadata..')
       cli::cli_alert_info("To save results, run the following command: save_results(output_dir = '/path/to/output/directory/'). Note: the output directory will be created if it does not exist.")
       cli::cli_h1('All done.')
       return(output)
@@ -59,7 +59,7 @@ MetaPredict <- function(userData, output_dir = NULL, moduleVector = NULL, strict
   }
   if (!is.null(output_dir)) {
     save_results(output, output_dir)
-    cli::cli_alert_success('Finished KEGG metabolic pathway reconstruction and reaction probability calculations. Output is in directory: {output_dir}')
+    cli::cli_alert_success('Finished KEGG module reconstruction and KEGG module probability calculations. Output is in a list, and the output files have been saved in directory: {output_dir}')
     cli::cli_h1('All done.')
     return(output)
   }
