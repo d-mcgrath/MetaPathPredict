@@ -12,7 +12,7 @@
 
 #' @export
 read_genome_data <- function(Data = NULL, metadata = NULL, metaColnames = TRUE, metadata_df = FALSE, #filePath = NULL, filePattern = '-ko.tsv',
-                             kofamscan = TRUE, dram = FALSE, cutoff = 1e-3, delim = '\t') {
+                             kofamscan = TRUE, dram = FALSE, cutoff = 1e-5, delim = '\t') {
 
   cli::cli_h1('Formatting genomic data')
 
@@ -191,11 +191,9 @@ tidy_kofam <- function(.data, cutoff = 1e-3) {
         "Error: Columns 'E-value', 'KO', 'gene name', and/or 'score' not detected. These columns are required to read in Kofamscan output files."))} %>%
     dplyr::mutate(`E-value` = as.numeric(`E-value`)) %>%
     dplyr::filter(`E-value` <= cutoff | `E-value` == 0) %>%
-
-    #dplyr::group_by(`gene name`) %>% ###
-    #dplyr::filter(score == max(score) & `E-value` == min(`E-value`)) %>% ###
-    #dplyr::ungroup() %>% ###
-
+    dplyr::group_by(`gene name`) %>% ###
+    dplyr::filter(score == max(score) & `E-value` == min(`E-value`)) %>% ###
+    dplyr::ungroup() %>% ###
     dplyr::select(KO, `gene name`) %>%
     dplyr::rename(gene_name = `gene name`, k_number = KO) %>%
     dplyr::filter(!is.na(k_number), !duplicated(k_number))
