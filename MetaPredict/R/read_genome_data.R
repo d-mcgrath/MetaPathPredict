@@ -12,7 +12,7 @@
 
 #' @export
 read_genome_data <- function(Data = NULL, metadata = NULL, metaColnames = TRUE, metadata_df = FALSE, #filePath = NULL, filePattern = '-ko.tsv',
-                             kofamscan = TRUE, dram = FALSE, cutoff = 1e-5, delim = '\t') {
+                             kofamscan = TRUE, dram = FALSE, cutoff = 1e-3, delim = '\t') {
 
   cli::cli_h1('Formatting genomic data')
 

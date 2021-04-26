@@ -13,7 +13,7 @@ read_genome_data(
   metadata_df = FALSE,
   kofamscan = TRUE,
   dram = FALSE,
-  cutoff = 1e-05,
+  cutoff = 0.001,
   delim = "\\t"
 )
 }

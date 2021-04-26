@@ -14,7 +14,7 @@ read_metagenome_data(
   ko_df = FALSE,
   contig_df = FALSE,
   metadata_df = FALSE,
-  cutoff = 1e-05,
+  cutoff = 0.001,
   gene_delim = "\\t",
   ko_delim = "\\t",
   contig_delim = "\\t",
