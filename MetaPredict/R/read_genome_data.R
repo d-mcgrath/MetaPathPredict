@@ -247,25 +247,18 @@ tidy_custom_anno <- function(.data, cutoff = 1e-3, input_type = NULL) {
 
 concatenate <- function(.data, orgName = NULL, taxon = NA, completeness = NA) {
   .data %>%
-    #{if (is.null(.data) | is.character(.data)) dplyr::filter(., !(duplicated(k_number))) %>%
-    #    dplyr::summarize(., k_number = paste0(k_number, collapse = ' '),
-    #                     gene_name = paste0(gene_name, collapse = ' ')) %>%
-    #    {if (!is.null(orgName)) dplyr::mutate(., genome_name = orgName) #genome_name := !!orgName)
-    #      else (.)} %>%
-    #    dplyr::mutate(., taxonomy = taxon, completeness = completeness)
-
     {if (is.data.frame(.data) & length(list(.data)) == 1 & length(.data) >= 1) {
         dplyr::filter(., !(duplicated(k_number))) %>%
           dplyr::summarize(., k_number = paste0(k_number, collapse = ' '),
                            gene_name = paste0(gene_name, collapse = ' ')) %>%
-          {if (!is.null(orgName)) dplyr::mutate(., genome_name = orgName)  #:= !!deparse(orgName))
+          {if (!is.null(orgName)) dplyr::mutate(., genome_name = orgName)
             else (.)} %>%
           dplyr::mutate(taxonomy = taxon, completeness = completeness)
 
-      } else {dplyr::filter(., !(duplicated(k_number))) %>% #THIS NEEDS REWORK
+      } else {dplyr::filter(., !(duplicated(k_number))) %>%
           dplyr::summarize(., k_number = paste0(k_number, collapse = ' '),
                            gene_name = paste0(gene_name, collapse = ' ')) %>%
-          {if (!is.null(orgName)) dplyr::mutate(., genome_name := !!deparse(paste(orgName, .x, sep = '_'))) # this will fail. needs rework.
+          {if (!is.null(orgName)) dplyr::mutate(., genome_name := !!deparse(paste(orgName, .x, sep = '_')))
             else (.)} %>%
           dplyr::mutate(taxonomy = taxon, completeness = completeness)}
     }
