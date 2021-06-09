@@ -27,17 +27,17 @@ double get_pjn_betabinomial(double pxj_n, double  pxj_nbar, double alpha, double
 
 
 //get_pj.k_betabinomial.cpp
-#include <Rcpp.h>
-using namespace Rcpp;
+//#include <Rcpp.h>
+//using namespace Rcpp;
 
 // [[Rcpp::export]]
-NumericVector get_pjk_betabinomial(double pxj_n, double  pxj_nbar, double alpha, double beta,
-                            double yj, double  n, double mj, double xj) {
-  NumericVector k = seq(xj, (n - 1));
-  double Aj = alpha + yj;
-  double Bj = beta + (n * mj) - yj;
-  return exp(lgamma(Aj + Bj) + lgamma(Aj + k) + lgamma(Bj + n - k) - lgamma(Aj) - lgamma(Bj) - lgamma(Aj + Bj + n));
-}
+//NumericVector get_pjk_betabinomial(double pxj_n, double  pxj_nbar, double alpha, double beta,
+//                            double yj, double  n, double mj, double xj) {
+//  NumericVector k = seq(xj, (n - 1));
+//  double Aj = alpha + yj;
+//  double Bj = beta + (n * mj) - yj;
+//  return exp(lgamma(Aj + Bj) + lgamma(Aj + k) + lgamma(Bj + n - k) - lgamma(Aj) - lgamma(Bj) - lgamma(Aj + Bj + n));
+//}
 
 
 
