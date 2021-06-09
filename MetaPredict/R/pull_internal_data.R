@@ -39,6 +39,47 @@ get_gene_counts_from <- function(userData) {
 }
 
 
+dt.get_gene_counts_from <- function (userData) {
+  userData <- lazy_dt(userData) # this is NOT done yet. want to rewrite this w/ dtplyr or data.table
+
+  input_data <- userData %>%
+    dplyr::ungroup() %>%
+    {if ('genome_name' %in% colnames(.))
+      dplyr::select(., k_number, gene_name, genome_name)
+      else if ('metagenome_name' %in% colnames(.))
+        dplyr::select(., k_number, gene_name, taxonomy)
+      else stop(cli::cli_alert_danger('Error: either "genome_name" or "metagenome_name" column is missing from the input data.'))
+    } %>%
+    dplyr::rowwise() %>%
+    dplyr::mutate(k_numbers = list(stringr::str_extract_all(
+      string = k_number,
+      pattern = patt.kegg_modules$k_numbers)),
+      k_numbers = list(purrr::map(k_numbers, ~
+                                    if (length(.x) == 0) {.x <- NA_character_
+                                    } else {paste0(.x, collapse = ';')})),
+      x_j.k_numbers = list(dplyr::tibble(k_numbers) %>%
+                             dplyr::mutate(step = patt.kegg_modules$step) %>%
+                             dplyr::group_by(step) %>%
+                             dplyr::summarize(k_numbers = paste0(k_numbers[!is.na(k_numbers)], collapse = ' '), .groups = 'drop') %>%
+                             dplyr::select(-step) %>%
+                             dplyr::mutate(k_numbers = stringr::str_replace(k_numbers, stringr::regex('^$'), NA_character_),
+                                           x_j = dplyr::if_else(is.na(k_numbers), 0, (stringr::str_count(k_numbers, pattern = ' ') + 1))))) %>%
+    dplyr::ungroup()
+
+  gene_counts.list <- list()
+  gene_counts.list <- purrr::map(1:length(input_data$x_j.k_numbers), ~ {
+    gene_counts.list[[.x]] <- input_data$x_j.k_numbers[[.x]]
+  }) %>%
+    {if ('genome_name' %in% colnames(userData))
+      purrr::set_names(., nm = userData$genome_name)
+      else if ('metagenome_name' %in% colnames(userData))
+        purrr::set_names(., nm = input_data$taxonomy)
+      else stop(cli::cli_alert_danger("Error: 'genome_name' or 'metagenome_name' column is missing from input data."))
+    }
+  return(gene_counts.list)
+}
+
+
 # previous version, deprecated: 04/17/21
 #get.x_j <- function(userData) {
 #  input_data <- userData %>%

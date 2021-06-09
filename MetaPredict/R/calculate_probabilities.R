@@ -90,7 +90,7 @@ get_posteriors <- function(modules_list, strict = strict) {
       dplyr::rowwise() %>%
       dplyr::mutate(pj.k = list(get_pj.k_betabinomial(alpha, beta, y_j, n, m_j, x_j)),
              p.xj_nbar = get_p.xj_nbar(n, x_j, p_j, pj.k),
-             p.xj_n = list(get_p.xj_n(n, x_j, p_j)), # VERIFY THAT pj.k IS EQUIVALENT TO "p_j" ## UPDATE: THEY ARE NOT EQUIVALENT.
+             p.xj_n = list(get_p.xj_n(n, x_j, p_j)),
              probability = calculate_posterior(p.xj_n, p.xj_nbar, alpha, beta, y_j, n, m_j, x_j)) %>%
       dplyr::select(-c(n, x_j, p_j, y_j, m_j, alpha, beta, pj.k, p.xj_nbar, p.xj_n))
   }) %>%
