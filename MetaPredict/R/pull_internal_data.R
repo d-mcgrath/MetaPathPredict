@@ -177,7 +177,7 @@ get_domain <- function(taxonomy) { #NOTE: some columns of bact_ & arch_phylo_key
   if (purrr::some(1:7, ~ {
     any(stringr::str_detect(na.omit(bact_phylo_key[[.x]]), stringr::regex(paste0('^', taxonomy, '$'), ignore_case = TRUE)))})) {
     domain = 'Bacteria'
-  } else if (purrr::some(1:6, ~ { #change to 1:7 when arch_phylo_key gets species-level support
+  } else if (purrr::some(1:7, ~ { #change to 1:7 when arch_phylo_key gets species-level support
     any(stringr::str_detect(na.omit(arch_phylo_key[[.x]]), stringr::regex(paste0('^', taxonomy, '$'), ignore_case = TRUE)))})) {
     domain = 'Archaea'
   } else {
