@@ -10,7 +10,6 @@
 #' @param delim The delimiter of the input files. Default is tab.
 #' @importFrom magrittr "%>%"
 
-#' @export
 read_genome_data <- function(Data = NULL, metadata = NULL, metaColnames = TRUE, metadata_df = FALSE, #filePath = NULL, filePattern = '-ko.tsv',
                              kofamscan = TRUE, dram = FALSE, cutoff = 1e-3, delim = '\t') {
 
@@ -182,7 +181,6 @@ import_data.g <- function(.data, file = NULL, delim = NULL) {
 #}
 
 
-#' @export
 tidy_kofam <- function(.data, cutoff = 1e-3) {
   .data %>%
     dplyr::filter(!stringr::str_detect(`E-value`, '-----')) %>%

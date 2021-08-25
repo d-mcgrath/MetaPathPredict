@@ -14,7 +14,6 @@
 #' @param kofamscan If the input KEGG Orthology flatfile is direct output from Kofamscan, set this argument to TRUE, otherwise FALSE. Default is TRUE
 #' @param cat If the input gene taxonomic annotations are from CAT, set this argument to TRUE, otherwise FALSE. Default is TRUE
 #' @importFrom magrittr "%>%"
-#' @export
 read_metagenome_data <- function(gene_input = NULL, ko_input = NULL, contig_input = NULL, metadata = NULL, gene_df = FALSE, ko_df = FALSE, contig_df = FALSE, metadata_df = FALSE, cutoff = 1e-3, gene_delim = '\t', ko_delim = '\t', contig_delim = '\t', metadata_delim = '\t', kofamscan = TRUE, cat = TRUE, mmseqs2 = FALSE, custom_knumber_ColNames = NULL, custom_anno_ColNames = NULL) {
 
   cli::cli_h1('Formatting metagenomic data')
