@@ -7,8 +7,7 @@
 #' @param moduleVector An optional vector of specific KEGG Modules to scan user annotations and calculate probabilities for
 #' @importFrom magrittr "%>%"
 
-#' @export
-MetaPredict <- function(userData, output_dir = NULL, moduleVector = NULL, strict = FALSE) {
+MetaPredict_Bayes <- function(userData, output_dir = NULL, moduleVector = NULL, strict = FALSE) {
   cli::cli_h1('Starting MetaPredict')
   cli::cli_alert_info('Formatting input data...')
 
@@ -113,7 +112,6 @@ summarize_metagenome_output <- function(.data) {
 
 
 
-#' @export
 save_results <- function(output, output_dir) {
   if (!dir.exists(output_dir)) {
     cli::cli_alert_warning('Creating output directory {output_dir}')

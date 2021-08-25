@@ -1,5 +1,4 @@
 #' @importFrom magrittr "%>%"
-#' @export
 get_gene_counts_from <- function(userData) {
   input_data <- userData %>%
     dplyr::ungroup() %>%
@@ -146,7 +145,6 @@ dt.get_gene_counts_from <- function (userData) {
 
 
 
-#' @export
 map_modules_to <- function(gene_counts.list, userData, strict = FALSE) {
   modules_list <- list()
   modules_list <- purrr::map(1:length(gene_counts.list), ~ {
@@ -237,7 +235,6 @@ search_tree <- function(.data, taxonomy_key, .list_num, .domain) {
 
 
 ## pulls y_j, m_j, alpha, and beta
-#' @export
 get_parameters <- function(data_list, moduleVector = NULL, strict = strict)  {
   if (strict == TRUE) {
     data_list <- purrr::keep(data_list, ~ nrow(.x) > 0)
