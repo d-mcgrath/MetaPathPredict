@@ -96,12 +96,9 @@ read_kofam <- function(.data, .genome_name, cutoff = 1e-7) {
 
 
 
-# needs to be added to internal data
-#filler <- readRDS('training-data-072821/allTrainingFeatureTblKnumberColnames-080421.rda')
 
 
-
-
+## needs to be updated
 read_custom <- function(.data, cutoff = 1e-7, input_type = NULL) {
   .data %>%
     {if (input_type == 'genome_name') anno_type(., cutoff = cutoff, input_type = 'genome_name')
