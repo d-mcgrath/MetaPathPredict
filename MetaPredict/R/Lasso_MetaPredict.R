@@ -8,7 +8,7 @@
 #' @importFrom magrittr "%>%"
 
 #' @export
-MetaPredict <- function(.data, output_dir = NULL, moduleVector = NULL, strict = FALSE, predict_models = TRUE) {
+MetaPredict <- function(.data, output_dir = NULL, moduleVector = NULL, predict_models = TRUE, predict_type = c('response', 'class')) {
   cli::cli_h1('Starting MetaPredict')
   #cli::cli_alert_info('Formatting input data...')
 
@@ -33,7 +33,7 @@ MetaPredict <- function(.data, output_dir = NULL, moduleVector = NULL, strict = 
   predictions <- purrr::map(all_models, ~ predict(.x$glmnet.fit,
                                  s = .x$lambda.1se,
                                  newx = .data,
-                                 type = 'response')) %>%
+                                 type = predict_type)) %>%
     purrr::map_dfc(~ .x) %>%
     dplyr::mutate(dplyr::across(dplyr::everything(), ~ as.double(.x))) %>%
     dplyr::rename_with(~ names(all_models)) %>%
@@ -67,7 +67,7 @@ MetaPredict <- function(.data, output_dir = NULL, moduleVector = NULL, strict = 
     predictions <- purrr::map(all_models[moduleVector], ~ predict(.x$glmnet.fit,
                                                                   s = .x$lambda.1se,
                                                                   newx = .data,
-                                                                  type = 'response')) %>%
+                                                                  type = predict_type)) %>%
       purrr::map_dfc(~ .x) %>%
       dplyr::mutate(dplyr::across(dplyr::everything(), ~ as.double(.x))) %>%
       dplyr::rename_with(~ names(all_models[moduleVector])) %>%

@@ -11,8 +11,8 @@ MetaPredict(
   .data,
   output_dir = NULL,
   moduleVector = NULL,
-  strict = FALSE,
-  predict_models = TRUE
+  predict_models = TRUE,
+  predict_type = c("response", "class")
 )
 }
 \arguments{
