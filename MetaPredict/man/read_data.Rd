@@ -7,15 +7,19 @@ Each file should end in "-ko.tsv" and contain a column of KEGG Orthology terms w
 and a column with their associated HMM or Blast E-values titled 'E-value'.}
 \usage{
 read_data(
+  input_dir = NULL,
+  pattern = "*.tsv",
+  delim = "\\t",
   metadata_file = NULL,
-  metadata_df = FALSE,
+  metadata_df = NULL,
   kofamscan = TRUE,
   cutoff = 1e-07,
-  delim = "\\t",
   custom = FALSE
 )
 }
 \arguments{
+\item{delim}{The delimiter of the input files. Default is tab.}
+
 \item{metadata_file}{A flatfile with a required column called "filepath". The filepath column must contain the full or relative path to each genome annotation file; Note: files can be from different directories. A second and optional column is genome_name. It should contain the name the user would like to use for each genome. Columns can be in any order, and the rows can also be in any order.}
 
 \item{metadata_df}{Metadata can optionally be loaded in as a pre-existing dataframe that contains four columns: genome_name, taxonomy, completeness, and filename. Default is FALSE. Can optionally set metadata_df equal to the object name of a pre-existing metadata dataframe.}
@@ -23,8 +27,6 @@ read_data(
 \item{kofamscan}{If the input file or files are output from Kofamscan, set this argument to TRUE, otherwise FALSE. Default is TRUE.}
 
 \item{cutoff}{The desired E-value cutoff. Default is 1e-7.}
-
-\item{delim}{The delimiter of the input files. Default is tab.}
 }
 \description{
 This function is used to read in user data in the form of a one or more flatfiles, default is TSV format.

@@ -23,7 +23,16 @@ MetaPredict <- function(.data, output_dir = NULL, moduleVector = NULL, predict_m
     reconstructed <- detect_modules(.data, .modules = names(all_models))
 
   if (predict_models == FALSE) {
-    return(reconstructed)
+    summary <- summarize_recon(.recon = reconstructed, .module_metadata = module_metadata)
+    results <- list(summary = summary, module_reconstructions = reconstructed)
+    if (!is.null(output_dir)) {
+      cli::cli_alert_info('All done. Saving results to directory: {output_dir}')
+      save_recon(results, output_dir)
+    } else {
+      cli::cli_alert_success('All done.')
+      cli::cli_alert_info('To save results, use save_recon().')
+    }
+    return(results)
   }
   cli::cli_alert_info('Performing prediction calculations...')
 
@@ -45,18 +54,34 @@ MetaPredict <- function(.data, output_dir = NULL, moduleVector = NULL, predict_m
   }
 
   summary <- summarize_results(.recon = reconstructed, .pred = predictions, .module_metadata = module_metadata)
+  results <- list(summary = summary, module_reconstructions = reconstructed, module_predictions = predictions)
 
-  cli::cli_alert_success('All done.')
-  return(list(summary = summary, module_reconstructions = reconstructed, module_predictions = predictions))
+  if (!is.null(output_dir)) {
+    cli::cli_alert_info('All done. Saving results to directory: {output_dir}')
+    save_results(results, output_dir)
+  } else {
+    cli::cli_alert_success('All done.')
+    cli::cli_alert_info('To save results, use save_results().')
+  }
+
+  return(results)
 
 
   } else {
-    cli::cli_alert_info('Reconstructing KEGG modules presence/absence...')
 
     reconstructed <- detect_modules(.data, .modules = moduleVector)
 
     if (predict_models == FALSE) {
-      return(reconstructed)
+      summary <- summarize_recon(.recon = reconstructed, .module_metadata = module_metadata)
+      results <- list(summary = summary, module_reconstructions = reconstructed)
+      if (!is.null(output_dir)) {
+        cli::cli_alert_info('All done. Saving results to directory: {output_dir}')
+        save_recon(results, output_dir)
+      } else {
+        cli::cli_alert_success('All done.')
+        cli::cli_alert_info('To save results, use save_recon().')
+      }
+      return(results)
     }
 
     cli::cli_alert_info('Performing prediction calculations...')
@@ -80,9 +105,18 @@ MetaPredict <- function(.data, output_dir = NULL, moduleVector = NULL, predict_m
     }
 
     summary <- summarize_results(.recon = reconstructed, .pred = predictions, .module_metadata = module_metadata)
+    results <- list(summary = summary, module_reconstructions = reconstructed, module_predictions = predictions)
 
-    cli::cli_alert_success('All done.')
-    return(list(summary = summary, module_reconstructions = reconstructed, module_predictions = predictions))
+    if (!is.null(output_dir)) {
+      cli::cli_alert_info('All done. Saving results to directory: {output_dir}')
+      save_results(results, output_dir)
+    } else {
+      cli::cli_alert_success('All done.')
+      cli::cli_alert_info('To save results, use save_results().')
+    }
+
+
+    return(results)
   }
 }
 
@@ -172,37 +206,52 @@ summarize_results <- function(.recon, .pred, .module_metadata) {
 
 
 
+#' @export
+summarize_recon <- function(.recon, .module_metadata) {
+  result <- .recon %>%
+    dplyr::select(-genome_name) %>%
+    dplyr::mutate(dplyr::across(dplyr::everything(), ~ as.character(.x))) %>%
+    dplyr::mutate(dplyr::across(dplyr::everything(), ~ dplyr::case_when(.x == '1' ~ 'Present',
+                                                                        .x == '0' ~ 'Absent')))
 
+  result <- result %>%
+    dplyr::mutate(genome_name = .recon$genome_name, .before = 1) %>%
+    tidyr::pivot_longer(2:dplyr::last_col(), names_to = 'module', values_to = 'values') %>%
+    tidyr::pivot_wider(names_from = genome_name, values_from = values) %>%
+    dplyr::left_join(.module_metadata, by = 'module') %>%
+    dplyr::relocate(c(module, module_name, module_class), .before = 1)
 
-#save_results <- function(output, output_dir) {
-#  if (!dir.exists(output_dir)) {
-#    cli::cli_alert_warning('Creating output directory {output_dir}')
-#    dir.create(output_dir)
-#  }
-#  if (!stringr::str_detect(output_dir, '.*/$')) {
-#    output_dir <- sub('(.*)', '\\1\\/', output_dir, perl = TRUE)
-#  }
-#  purrr::map(1:length(output), ~ {
-#    readr::write_tsv(output[[.x]][[1]], file = paste0(output_dir, names(output)[.x], '_summary-information.tsv'))
-#    readr::write_tsv(output[[.x]][[2]], file = paste0(output_dir, names(output)[.x], '_results.tsv'))
-#  })
-#}
-
-
-
-
-
+  return(result)
+}
 
 
 
+#' @export
+save_results <- function(.results, output_dir) {
+  if (!dir.exists(output_dir)) {
+    cli::cli_alert_warning('Creating output directory {output_dir}')
+    dir.create(output_dir)
+  }
+  if (!stringr::str_detect(output_dir, '.*/$')) {
+    output_dir <- sub('(.*)', '\\1\\/', output_dir, perl = TRUE)
+  }
+  purrr::map2(1:length(.results), c('summary', 'module_reconstructions', 'module_predictions'), ~ {
+    readr::write_tsv(.results[[.x]], file = paste0(output_dir, .y, '.tsv'))
+  })
+}
 
 
 
-
-
-
-
-
-
-
-
+#' @export
+save_recon <- function(.results, output_dir) {
+  if (!dir.exists(output_dir)) {
+    cli::cli_alert_warning('Creating output directory {output_dir}')
+    dir.create(output_dir)
+  }
+  if (!stringr::str_detect(output_dir, '.*/$')) {
+    output_dir <- sub('(.*)', '\\1\\/', output_dir, perl = TRUE)
+  }
+  purrr::map2(1:length(.results), c('summary', 'module_reconstructions'), ~ {
+    readr::write_tsv(.results[[.x]], file = paste0(output_dir, .y, '.tsv'))
+  })
+}
