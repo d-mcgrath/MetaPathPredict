@@ -9,18 +9,20 @@ an object created with a read_data function call.}
 \usage{
 MetaPredict(
   .data,
-  output_dir = NULL,
   moduleVector = NULL,
   predict_models = TRUE,
-  predict_type = c("response", "class")
+  predict_type = c("response", "class"),
+  output_dir = NULL,
+  output_prefix = NULL,
+  overwrite = FALSE
 )
 }
 \arguments{
 \item{.data}{Created with the read_data function - KEGG Orthology data for one or more bacteria/archaea}
 
-\item{output_dir}{The full or relative path to an output directory where result and summary output will be saved as TSV flatfiles}
-
 \item{moduleVector}{An optional vector of specific KEGG Modules to scan user annotations and calculate probabilities for}
+
+\item{output_dir}{The full or relative path to an output directory where result and summary output will be saved as TSV flatfiles}
 }
 \description{
 This function is used to reconstruct metabolic pathways based on present KEGG Orthology terms. For any

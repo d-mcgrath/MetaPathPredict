@@ -8,9 +8,13 @@
 #' @importFrom magrittr "%>%"
 
 #' @export
-MetaPredict <- function(.data, output_dir = NULL, moduleVector = NULL, predict_models = TRUE, predict_type = c('response', 'class')) {
+MetaPredict <- function(.data, moduleVector = NULL,
+                        predict_models = TRUE, predict_type = c('response', 'class'),
+                        output_dir = NULL, output_prefix = NULL, overwrite = FALSE) {
   cli::cli_h1('Starting MetaPredict')
   #cli::cli_alert_info('Formatting input data...')
+
+  predict_type <- match.arg(predict_type)
 
   if (missing(.data)) {
     cli::cli_alert_danger('Input data not detected in global environment. Make sure you have run read_data() on your data and have listed your input data object for the .data argument.')
@@ -27,7 +31,7 @@ MetaPredict <- function(.data, output_dir = NULL, moduleVector = NULL, predict_m
     results <- list(summary = summary, module_reconstructions = reconstructed)
     if (!is.null(output_dir)) {
       cli::cli_alert_info('All done. Saving results to directory: {output_dir}')
-      save_recon(results, output_dir)
+      save_recon(results, output_dir, output_prefix = output_prefix, overwrite = overwrite)
     } else {
       cli::cli_alert_success('All done.')
       cli::cli_alert_info('To save results, use save_recon().')
@@ -58,7 +62,7 @@ MetaPredict <- function(.data, output_dir = NULL, moduleVector = NULL, predict_m
 
   if (!is.null(output_dir)) {
     cli::cli_alert_info('All done. Saving results to directory: {output_dir}')
-    save_results(results, output_dir)
+    save_results(results, output_dir, output_prefix = output_prefix, overwrite = overwrite)
   } else {
     cli::cli_alert_success('All done.')
     cli::cli_alert_info('To save results, use save_results().')
@@ -76,7 +80,7 @@ MetaPredict <- function(.data, output_dir = NULL, moduleVector = NULL, predict_m
       results <- list(summary = summary, module_reconstructions = reconstructed)
       if (!is.null(output_dir)) {
         cli::cli_alert_info('All done. Saving results to directory: {output_dir}')
-        save_recon(results, output_dir)
+        save_recon(results, output_dir, output_prefix = output_prefix, overwrite = overwrite)
       } else {
         cli::cli_alert_success('All done.')
         cli::cli_alert_info('To save results, use save_recon().')
@@ -109,7 +113,7 @@ MetaPredict <- function(.data, output_dir = NULL, moduleVector = NULL, predict_m
 
     if (!is.null(output_dir)) {
       cli::cli_alert_info('All done. Saving results to directory: {output_dir}')
-      save_results(results, output_dir)
+      save_results(results, output_dir, output_prefix = output_prefix, overwrite = overwrite)
     } else {
       cli::cli_alert_success('All done.')
       cli::cli_alert_info('To save results, use save_results().')
@@ -227,7 +231,7 @@ summarize_recon <- function(.recon, .module_metadata) {
 
 
 #' @export
-save_results <- function(.results, output_dir) {
+save_results <- function(.results, output_dir, output_prefix = NULL, overwrite = FALSE) {
   if (!dir.exists(output_dir)) {
     cli::cli_alert_warning('Creating output directory {output_dir}')
     dir.create(output_dir)
@@ -235,15 +239,45 @@ save_results <- function(.results, output_dir) {
   if (!stringr::str_detect(output_dir, '.*/$')) {
     output_dir <- sub('(.*)', '\\1\\/', output_dir, perl = TRUE)
   }
-  purrr::map2(1:length(.results), c('summary', 'module_reconstructions', 'module_predictions'), ~ {
-    readr::write_tsv(.results[[.x]], file = paste0(output_dir, .y, '.tsv'))
-  })
+
+  if (!is.null(output_prefix)) {
+    output_prefix = paste0(output_prefix, '_')
+  }
+
+  if (all(!(paste0(output_prefix, c('summary', 'module_reconstructions'), '.tsv') %in% list.files(path = output_dir)))) {
+    purrr::map2(1:length(.results), c('summary', 'module_reconstructions', 'module_predictions'), ~ {
+      readr::write_tsv(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
+    })
+  } else {
+    if (overwrite == TRUE) {
+      cli::cli_alert_warning('Overwriting existing files with output files.')
+      purrr::map2(1:length(.results), c('summary', 'module_reconstructions', 'module_predictions'), ~ {
+        readr::write_tsv(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
+      })
+    } else {
+      while (TRUE) {
+        ans <- readline(prompt = 'One or more files exist with the same name as the output to be saved. Overwrite these existing files? [y/n] ')
+        if (ans == 'y') {
+          cli::cli_alert_warning('Overwriting existing files with output files.')
+          purrr::map2(1:length(.results), c('summary', 'module_reconstructions', 'module_predictions'), ~ {
+            readr::write_tsv(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
+          })
+          break
+        } else if (ans == 'n') {
+          cli::cli_alert_info('Not saving any output files. To save files, run save_results() and try changing the "output_prefix" argument to a unique identifier.')
+          break
+        } else {
+          cli::cli_alert_danger('Please enter either "y" or "n" and press enter.')
+        }
+      }
+    }
+  }
 }
 
 
 
 #' @export
-save_recon <- function(.results, output_dir) {
+save_recon <- function(.results, output_dir, output_prefix = NULL, overwrite = FALSE) {
   if (!dir.exists(output_dir)) {
     cli::cli_alert_warning('Creating output directory {output_dir}')
     dir.create(output_dir)
@@ -251,7 +285,37 @@ save_recon <- function(.results, output_dir) {
   if (!stringr::str_detect(output_dir, '.*/$')) {
     output_dir <- sub('(.*)', '\\1\\/', output_dir, perl = TRUE)
   }
+
+  if (!is.null(output_prefix)) {
+    output_prefix = paste0(output_prefix, '_')
+  }
+
+  if (all(!(paste0(output_prefix, c('summary', 'module_reconstructions'), '.tsv') %in% list.files(path = output_dir)))) {
   purrr::map2(1:length(.results), c('summary', 'module_reconstructions'), ~ {
-    readr::write_tsv(.results[[.x]], file = paste0(output_dir, .y, '.tsv'))
+    readr::write_tsv(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
   })
+  } else {
+    if (overwrite == TRUE) {
+      cli::cli_alert_warning('Overwriting existing files with output files.')
+      purrr::map2(1:length(.results), c('summary', 'module_reconstructions'), ~ {
+        readr::write_tsv(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
+      })
+    } else {
+      while (TRUE) {
+        ans <- readline(prompt = 'One or more files exist with the same name as the output to be saved. Overwrite these existing files? [y/n] ')
+        if (ans == 'y') {
+          cli::cli_alert_warning('Overwriting existing files with output files.')
+          purrr::map2(1:length(.results), c('summary', 'module_reconstructions'), ~ {
+            readr::write_tsv(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
+          })
+          break
+        } else if (ans == 'n') {
+          cli::cli_alert_info('Not saving any output files. To save files, run save_recon() and try changing the "output_prefix" argument to a unique identifier.')
+          break
+        } else {
+          cli::cli_alert_danger('Please enter either "y" or "n" and press enter.')
+        }
+      }
+    }
+  }
 }
