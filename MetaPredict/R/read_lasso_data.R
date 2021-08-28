@@ -1,24 +1,29 @@
 #' This function is used to read in user data in the form of a one or more flatfiles, default is TSV format.
-#' Each file should end in "-ko.tsv" and contain a column of KEGG Orthology terms with column title 'KO'
-#' and a column with their associated HMM or Blast E-values titled 'E-value'.
-#' @param metadata_file A flatfile with a required column called "filepath". The filepath column must contain the full or relative path to each genome annotation file; Note: files can be from different directories. A second and optional column is genome_name. It should contain the name the user would like to use for each genome. Columns can be in any order, and the rows can also be in any order.
-#' @param metadata_df Metadata can optionally be loaded in as a pre-existing dataframe that contains four columns: genome_name, taxonomy, completeness, and filename. Default is FALSE. Can optionally set metadata_df equal to the object name of a pre-existing metadata dataframe.
-#' @param kofamscan If the input file or files are output from Kofamscan, set this argument to TRUE, otherwise FALSE. Default is TRUE.
-#' @param cutoff The desired E-value cutoff. Default is 1e-7.
+#' @param input_dir The path to the directory containing the input annotation files to use, if a metadata file or dataframe is not supplied. Default is NULL.
+#' @param pattern If an input_dir argument is supplied, this is the regex pattern to use to locate the files within the directory containing the annotation files. Default is '*.tsv'.
 #' @param delim The delimiter of the input files. Default is tab.
+#' @param metadata_file A flatfile with a required column called "filepath". The filepath column must contain the full or relative path to each genome annotation file; Note: files can be from different directories. A second and optional column is genome_name. It should contain the name the user would like to use for each genome. Columns can be in any order, and the rows can also be in any order. Default genome names will be provided if the genome_name column is not present in metadata_file.
+#' @param metadata_df Metadata can optionally be provided as a pre-existing dataframe that contains the column "filepath". A second and optional column is genome_name. It should contain the name the user would like to use for each genome. Columns can be in any order, and the rows can also be in any order. Default genome names will be provided if the genome_name column is not present in metadata_df.
+#' @param kofamscan If the input file or files are output from the Kofamscan command line tool, leave this argument set to TRUE, otherwise set it to FALSE and set the custom argument to TRUE. Default is TRUE.
+#' @param cutoff The desired E-value or score cutoff. Default is 1e-7.
+#' @param custom To be filled in.
+#' @param score_type To be filled in.
 #' @importFrom magrittr "%>%"
 
 #' @export
 read_data <- function(input_dir = NULL, pattern = '*.tsv', delim = '\t', metadata_file = NULL, metadata_df = NULL,
-                      kofamscan = TRUE, cutoff = 1e-7, custom = FALSE) {
+                      kofamscan = TRUE, cutoff = 1e-7, custom = FALSE, score_type = c('evalue', 'score', 'none')) {
 
   cli::cli_h1('Formatting data')
+
+  score_type <- match.arg(score_type)
 
   if (!is.null(input_dir)) {
     if (dir.exists(input_dir)) {
       files <- list.files(path = input_dir, pattern = pattern, full.names = TRUE)
       genome_names <- list.files(path = input_dir, pattern = pattern, full.names = FALSE)
-      annotations <- read_from_dir(files, genome_names, cutoff = cutoff, delim = delim, kofamscan = kofamscan, custom = custom)
+      annotations <- read_from_dir(files, genome_names, cutoff = cutoff, delim = delim,
+                                   kofamscan = kofamscan, custom = custom, score_type = score_type)
     } else {
       cli::cli_alert_danger('Error: Directory given for "input_dir" argument does not exist.')
     }
@@ -69,7 +74,7 @@ read_data <- function(input_dir = NULL, pattern = '*.tsv', delim = '\t', metadat
     if (all(kofamscan == TRUE & custom == FALSE)) {
       annotations <- purrr::map2(metadata_tbl$filepath, metadata_tbl$genome_name, ~ read_kofam(.x, .y, cutoff = cutoff))
     } else if (all(kofamscan == FALSE & custom == TRUE)) {
-      annotations <- purrr::map2(metadata_tbl$filepath, metadata_tbl$genome_name, ~ read_custom(.x, .y, cutoff = cutoff))
+      annotations <- purrr::map2(metadata_tbl$filepath, metadata_tbl$genome_name, ~ read_custom(.x, .y, cutoff = cutoff, score_type = score_type))
     } else if (all(kofamscan == TRUE & custom == TRUE)) {
       cli::cli_alert_danger('Error: Detected multiple TRUE arguments. Please set either the "kofamscan" or "custom" argument equal to TRUE (the other one should be set to FALSE).')
       stop()
@@ -79,18 +84,23 @@ read_data <- function(input_dir = NULL, pattern = '*.tsv', delim = '\t', metadat
     }
   }
   cli::cli_alert_success('All done.')
-  cli::cli_alert_info('Used E-value cutoff: {cutoff}')
+  if (score_type == 'evalue' | score_type == 'score') {
+    cli::cli_alert_info('Used annotation scoring cutoff: {cutoff}')
+  } else {
+    cli::cli_alert_info('Did not filter input annotations by any scoring metric.')
+  }
   return(annotations)
 }
 
 
 
 #' @export
-read_from_dir <- function(.files, .genome_names, cutoff = cutoff, delim = delim, kofamscan = kofamscan, custom = custom) {
+read_from_dir <- function(.files, .genome_names, cutoff = cutoff, delim = delim,
+                          kofamscan = kofamscan, custom = custom, score_type = score_type) {
   if (all(kofamscan == TRUE & custom == FALSE)) {
     annotations <- purrr::map2(.files, .genome_names, ~ read_kofam(.x, .y, cutoff = cutoff))
   } else if (all(kofamscan == FALSE & custom == TRUE)) {
-    annotations <- purrr::map2(.files, .genome_names, ~ read_custom(.x, .y, cutoff = cutoff, delim = delim))
+    annotations <- purrr::map2(.files, .genome_names, ~ read_custom(.x, .y, cutoff = cutoff, delim = delim, score_type = score_type))
   } else if (all(kofamscan == TRUE & custom == TRUE)) {
     cli::cli_alert_danger('Error: Detected multiple TRUE arguments. Please set either the "kofamscan" or "custom" argument equal to TRUE (the other one should be set to FALSE).')
     stop()
@@ -125,9 +135,41 @@ read_kofam <- function(.data, .genome_name, cutoff = 1e-7) {
 
 
 ## needs to be updated
-read_custom <- function(.data, cutoff = 1e-7, delim = delim) {
+read_custom <- function(.data, .genome_name, cutoff = 1e-7, delim = delim, score_type = 'evalue') {
 
+  if (score_type == 'evalue') {
+    result <- readr::read_delim(.data, col_types = readr::cols(), delim = delim) %>%
+      dtplyr::lazy_dt() %>%
+      dplyr::select(gene_name, k_number, dplyr::matches('^e_value$|^evalue$|^e-value$')) %>%
+      dplyr::rename(e_value = 3) %>%
+      dplyr::mutate(e_value = as.numeric(e_value)) %>%
+      dplyr::filter(e_value <= cutoff | e_value == 0) %>%
+      dplyr::group_by(gene_name) %>%
+      dplyr::filter(e_value == min(e_value)) %>%
+      dplyr::ungroup() %>%
+      dplyr::select(k_number) %>%
+      dplyr::as_tibble() %>%
+      dplyr::mutate(genome_name = .genome_name, .before = 1)
+  } else if (score_type == 'score') {
+    result <- readr::read_delim(.data, col_types = readr::cols(), delim = delim) %>%
+      dtplyr::lazy_dt() %>%
+      dplyr::select(gene_name, k_number, score) %>%
+      dplyr::mutate(score = as.numeric(score)) %>%
+      dplyr::filter(score >= cutoff) %>%
+      dplyr::group_by(gene_name) %>%
+      dplyr::filter(score == max(score)) %>%
+      dplyr::ungroup() %>%
+      dplyr::select(k_number) %>%
+      dplyr::as_tibble() %>%
+      dplyr::mutate(genome_name = .genome_name, .before = 1)
+  } else if (score_type == 'none') {
+    result <- readr::read_delim(.data, col_types = readr::cols(), delim = delim) %>%
+      dtplyr::lazy_dt() %>%
+      dplyr::select(k_number) %>%
+      dplyr::as_tibble() %>%
+      dplyr::mutate(genome_name = .genome_name, .before = 1)
+  } else {
+    cli::cli_alert_danger('Error: Issue with score argument Please make sure it is "evalue", "score", or "none". If score argument is "evalue" or "score", please make sure the score column is named "evalue" or "score".')
+  }
+    return(result)
 }
-
-
-

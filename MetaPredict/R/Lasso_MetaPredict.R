@@ -3,8 +3,12 @@
 #' is present in the input genome but was missed in the sampling process. It takes in user input in the form of
 #' an object created with a read_data function call.
 #' @param .data Created with the read_data function - KEGG Orthology data for one or more bacteria/archaea
+#' #' @param moduleVector An optional vector of specific KEGG Modules to scan user annotations and calculate probabilities for
+#' @param predict_models To be filled in.
+#' @param predict_type To be filled in.
 #' @param output_dir The full or relative path to an output directory where result and summary output will be saved as TSV flatfiles
-#' @param moduleVector An optional vector of specific KEGG Modules to scan user annotations and calculate probabilities for
+#' @param output_prefix To be filled in.
+#' @param overwrite To be filled in.
 #' @importFrom magrittr "%>%"
 
 #' @export
@@ -255,8 +259,8 @@ save_results <- function(.results, output_dir, output_prefix = NULL, overwrite =
         readr::write_tsv(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
       })
     } else {
-      while (TRUE) {
-        ans <- readline(prompt = 'One or more files exist with the same name as the output to be saved. Overwrite these existing files? [y/n] ')
+      for (.attempt in 1:3) {
+        ans <- readline(prompt = paste0('One or more files exist with the same name as the output to be saved. Overwrite these existing files? (attempt ', .attempt, ' of 3) [y/n] '))
         if (ans == 'y') {
           cli::cli_alert_warning('Overwriting existing files with output files.')
           purrr::map2(1:length(.results), c('summary', 'module_reconstructions', 'module_predictions'), ~ {
@@ -267,7 +271,11 @@ save_results <- function(.results, output_dir, output_prefix = NULL, overwrite =
           cli::cli_alert_info('Not saving any output files. To save files, run save_results() and try changing the "output_prefix" argument to a unique identifier.')
           break
         } else {
-          cli::cli_alert_danger('Please enter either "y" or "n" and press enter.')
+          if (.attempt < 3) {
+            cli::cli_alert_danger('Please enter either "y" or "n" and press enter.')
+          } else {
+            cli::cli_alert_warning('Did not recognize what was entered. To save files, run save_results() and try changing the "output_prefix" argument to a unique identifier.')
+          }
         }
       }
     }
@@ -301,8 +309,8 @@ save_recon <- function(.results, output_dir, output_prefix = NULL, overwrite = F
         readr::write_tsv(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
       })
     } else {
-      while (TRUE) {
-        ans <- readline(prompt = 'One or more files exist with the same name as the output to be saved. Overwrite these existing files? [y/n] ')
+      for (.attempt in 1:3) {
+        ans <- readline(prompt = paste0('One or more files exist with the same name as the output to be saved. Overwrite these existing files? (attempt ', .attempt, ' of 3) [y/n] '))
         if (ans == 'y') {
           cli::cli_alert_warning('Overwriting existing files with output files.')
           purrr::map2(1:length(.results), c('summary', 'module_reconstructions'), ~ {
@@ -313,7 +321,11 @@ save_recon <- function(.results, output_dir, output_prefix = NULL, overwrite = F
           cli::cli_alert_info('Not saving any output files. To save files, run save_recon() and try changing the "output_prefix" argument to a unique identifier.')
           break
         } else {
-          cli::cli_alert_danger('Please enter either "y" or "n" and press enter.')
+          if (.attempt < 3) {
+            cli::cli_alert_danger('Please enter either "y" or "n" and press enter.')
+          } else {
+            cli::cli_alert_warning('Did not recognize what was entered. To save files, run save_recon() and try changing the "output_prefix" argument to a unique identifier.')
+          }
         }
       }
     }
