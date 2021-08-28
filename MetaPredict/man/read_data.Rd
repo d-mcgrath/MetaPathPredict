@@ -2,9 +2,7 @@
 % Please edit documentation in R/read_lasso_data.R
 \name{read_data}
 \alias{read_data}
-\title{This function is used to read in user data in the form of a one or more flatfiles, default is TSV format.
-Each file should end in "-ko.tsv" and contain a column of KEGG Orthology terms with column title 'KO'
-and a column with their associated HMM or Blast E-values titled 'E-value'.}
+\title{This function is used to read in user data in the form of a one or more flatfiles, default is TSV format.}
 \usage{
 read_data(
   input_dir = NULL,
@@ -14,22 +12,29 @@ read_data(
   metadata_df = NULL,
   kofamscan = TRUE,
   cutoff = 1e-07,
-  custom = FALSE
+  custom = FALSE,
+  score_type = c("evalue", "score", "none")
 )
 }
 \arguments{
+\item{input_dir}{The path to the directory containing the input annotation files to use, if a metadata file or dataframe is not supplied. Default is NULL.}
+
+\item{pattern}{If an input_dir argument is supplied, this is the regex pattern to use to locate the files within the directory containing the annotation files. Default is '*.tsv'.}
+
 \item{delim}{The delimiter of the input files. Default is tab.}
 
-\item{metadata_file}{A flatfile with a required column called "filepath". The filepath column must contain the full or relative path to each genome annotation file; Note: files can be from different directories. A second and optional column is genome_name. It should contain the name the user would like to use for each genome. Columns can be in any order, and the rows can also be in any order.}
+\item{metadata_file}{A flatfile with a required column called "filepath". The filepath column must contain the full or relative path to each genome annotation file; Note: files can be from different directories. A second and optional column is genome_name. It should contain the name the user would like to use for each genome. Columns can be in any order, and the rows can also be in any order. Default genome names will be provided if the genome_name column is not present in metadata_file.}
 
-\item{metadata_df}{Metadata can optionally be loaded in as a pre-existing dataframe that contains four columns: genome_name, taxonomy, completeness, and filename. Default is FALSE. Can optionally set metadata_df equal to the object name of a pre-existing metadata dataframe.}
+\item{metadata_df}{Metadata can optionally be provided as a pre-existing dataframe that contains the column "filepath". A second and optional column is genome_name. It should contain the name the user would like to use for each genome. Columns can be in any order, and the rows can also be in any order. Default genome names will be provided if the genome_name column is not present in metadata_df.}
 
-\item{kofamscan}{If the input file or files are output from Kofamscan, set this argument to TRUE, otherwise FALSE. Default is TRUE.}
+\item{kofamscan}{If the input file or files are output from the Kofamscan command line tool, leave this argument set to TRUE, otherwise set it to FALSE and set the custom argument to TRUE. Default is TRUE.}
 
-\item{cutoff}{The desired E-value cutoff. Default is 1e-7.}
+\item{cutoff}{The desired E-value or score cutoff. Default is 1e-7.}
+
+\item{custom}{To be filled in.}
+
+\item{score_type}{To be filled in.}
 }
 \description{
 This function is used to read in user data in the form of a one or more flatfiles, default is TSV format.
-Each file should end in "-ko.tsv" and contain a column of KEGG Orthology terms with column title 'KO'
-and a column with their associated HMM or Blast E-values titled 'E-value'.
 }

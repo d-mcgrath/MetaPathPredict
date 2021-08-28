@@ -18,11 +18,18 @@ MetaPredict(
 )
 }
 \arguments{
-\item{.data}{Created with the read_data function - KEGG Orthology data for one or more bacteria/archaea}
+\item{.data}{Created with the read_data function - KEGG Orthology data for one or more bacteria/archaea
+#' @param moduleVector An optional vector of specific KEGG Modules to scan user annotations and calculate probabilities for}
 
-\item{moduleVector}{An optional vector of specific KEGG Modules to scan user annotations and calculate probabilities for}
+\item{predict_models}{To be filled in.}
+
+\item{predict_type}{To be filled in.}
 
 \item{output_dir}{The full or relative path to an output directory where result and summary output will be saved as TSV flatfiles}
+
+\item{output_prefix}{To be filled in.}
+
+\item{overwrite}{To be filled in.}
 }
 \description{
 This function is used to reconstruct metabolic pathways based on present KEGG Orthology terms. For any
