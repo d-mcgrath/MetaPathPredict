@@ -57,9 +57,10 @@ MetaPredict <- function(.data, moduleVector = NULL,
     dplyr::mutate(genome_name = reconstructed$genome_name, .before = 1)
 
   #return the results
-  for (.column in colnames(reconstructed)[2:length(reconstructed)]) {
-    predictions[reconstructed[, .column] == 1L, .column] <- NA_real_
-  }
+  predictions <- put_na(reconstructed, predictions)
+  #for (.column in colnames(reconstructed)[2:length(reconstructed)]) {
+  #  predictions[reconstructed[, .column] == 1L, .column] <- NA_real_
+  #}
 
   summary <- summarize_results(.recon = reconstructed, .pred = predictions, .module_metadata = module_metadata)
   results <- list(summary = summary, module_reconstructions = reconstructed, module_predictions = predictions)
@@ -108,9 +109,10 @@ MetaPredict <- function(.data, moduleVector = NULL,
 
 
     #return the results
-    for (.column in colnames(reconstructed)[2:length(reconstructed)]) {
-      predictions[reconstructed[, .column] == 1L, .column] <- NA_real_
-    }
+    predictions <- put_na(reconstructed, predictions)
+    #for (.column in colnames(reconstructed)[2:length(reconstructed)]) {
+    #  predictions[reconstructed[, .column] == 1L, .column] <- NA_real_
+    #}
 
     summary <- summarize_results(.recon = reconstructed, .pred = predictions, .module_metadata = module_metadata)
     results <- list(summary = summary, module_reconstructions = reconstructed, module_predictions = predictions)
@@ -195,19 +197,22 @@ detect_modules <- function(.data, .modules) {
 #' @export
 summarize_results <- function(.recon, .pred, .module_metadata) {
   result <- .recon %>%
-    dplyr::select(-genome_name) %>%
-    dplyr::mutate(dplyr::across(dplyr::everything(), ~ as.character(.x))) %>%
-    dplyr::mutate(dplyr::across(dplyr::everything(), ~ dplyr::case_when(.x == '1' ~ 'Present',
-                                                                        .x == '0' ~ NA_character_)))
+    #dplyr::select(-genome_name) %>%
+    dplyr::mutate(dplyr::across(2:dplyr::last_col(), ~ as.character(.x))) %>%
+    reclassify()
+    #dplyr::mutate(dplyr::across(2:dplyr::last_col(), ~ dplyr::case_when(.x == '1' ~ 'Present',
+    #                                                                    .x == '0' ~ NA_character_)))
 
-  .pred <- dplyr::mutate(.pred, dplyr::across(dplyr::everything(), ~ as.character(.x)))
+  .pred <- dplyr::mutate(.pred, dplyr::across(2:dplyr::last_col(), ~ as.character(.x)))
 
-  for (.column in colnames(result))  {
-    result[is.na(result[, .column]), .column] <- .pred[is.na(result[, .column]), .column]
-    }
+  result <- put_pred(result, .pred)
+
+  #for (.column in colnames(result))  {
+  #  result[is.na(result[, .column]), .column] <- .pred[is.na(result[, .column]), .column]
+  #  }
 
   result <- result %>%
-    dplyr::mutate(genome_name = .recon$genome_name, .before = 1) %>%
+    #dplyr::mutate(genome_name = .recon$genome_name, .before = 1) %>%
     tidyr::pivot_longer(2:dplyr::last_col(), names_to = 'module', values_to = 'values') %>%
     tidyr::pivot_wider(names_from = genome_name, values_from = values) %>%
     dplyr::left_join(.module_metadata, by = 'module') %>%
@@ -221,13 +226,14 @@ summarize_results <- function(.recon, .pred, .module_metadata) {
 #' @export
 summarize_recon <- function(.recon, .module_metadata) {
   result <- .recon %>%
-    dplyr::select(-genome_name) %>%
-    dplyr::mutate(dplyr::across(dplyr::everything(), ~ as.character(.x))) %>%
-    dplyr::mutate(dplyr::across(dplyr::everything(), ~ dplyr::case_when(.x == '1' ~ 'Present',
-                                                                        .x == '0' ~ 'Absent')))
+    #dplyr::select(-genome_name) %>%
+    dplyr::mutate(dplyr::across(2:dplyr::last_col(), ~ as.character(.x))) %>%
+    reclassify()
+    #dplyr::mutate(dplyr::across(dplyr::everything(), ~ dplyr::case_when(.x == '1' ~ 'Present',
+    #                                                                    .x == '0' ~ 'Absent')))
 
   result <- result %>%
-    dplyr::mutate(genome_name = .recon$genome_name, .before = 1) %>%
+    #dplyr::mutate(genome_name = .recon$genome_name, .before = 1) %>%
     tidyr::pivot_longer(2:dplyr::last_col(), names_to = 'module', values_to = 'values') %>%
     tidyr::pivot_wider(names_from = genome_name, values_from = values) %>%
     dplyr::left_join(.module_metadata, by = 'module') %>%
