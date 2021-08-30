@@ -1,5 +1,5 @@
 Package: MetaPredict
-Title: Reconstruct and predict the steps of KEGG Modules (the functional units of KEGG Pathways) for genome and metagenome annotations. 
+Title: Reconstruct and predict the steps of KEGG Modules (the functional units of KEGG Pathways) for prokaryotic genome annotations. 
 Version: 0.0.0.9000
 Authors@R: 
     person(given = "David",
@@ -7,7 +7,7 @@ Authors@R:
            role = c("aut", "cre"),
            email = "mcgrath1@mit.edu",
            comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: MetaPredict uses an Empirical Bayes approach, utilizing metabolic gene annotation data from thousands of high-quality genomes representative of Bacterial and Archaeal lineages. For single genomes, such as metagenome-assembled genomes (MAGs) or single-amplified genomes (SAGs), the user will input KEGG K number gene annotations and the taxonomic classification of their input genome(s). For metagenomic assemblies, the user will input KEGG K number gene annotations for the assembly, and taxonomic classifications of the assembly contigs/scaffolds. For both genome and assembly inputs, taxonomic classifications can be at any level from Genus to Domain for both Archaeal and Bacterial lineages, or the taxonomic classification can be left out if this information is not available for any genome(s) or contig(s)/scaffold(s). The taxonomy will be treated as “unknown” in these instances. Estimated genome completeness for genomes or estimated metagenome coverage for metagenomic assemblies are also required inputs.
+Description: MetaPredict uses a lasso regression approach, utilizing metabolic gene annotation data from thousands of high-quality genomes representative of Bacterial and Archaeal lineages. For single genomes, such as metagenome-assembled genomes (MAGs) or single-amplified genomes (SAGs), the user will input KEGG K number gene annotation flatfiles. The tool will detect KEGG Modules within each set of KEGG Orthology (K number) gene annotations, and then predict the presence/absence of any incomplete KEGG Modules using pre-fitted, built-in models.  
 License: `use_mit_license()`, `use_gpl3_license()` or friends to
     pick a license
 Encoding: UTF-8
@@ -27,7 +27,8 @@ Imports:
       cli (>= 2.2.0),
       lazyeval (>= 0.2.2),
       Matrix,
-      glmnet
+      glmnet,
+      vroom (>= 1.5.4)
 Depends: 
     R (>= 3.3),
     data.table (>= 1.14.0),

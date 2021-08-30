@@ -2,13 +2,13 @@
 #' incomplete pathways with missing reactions, it will then calculate the probability that each missing reaction
 #' is present in the input genome but was missed in the sampling process. It takes in user input in the form of
 #' an object created with a read_data function call.
-#' @param .data Created with the read_data function - KEGG Orthology data for one or more bacteria/archaea
-#' #' @param moduleVector An optional vector of specific KEGG Modules to scan user annotations and calculate probabilities for
-#' @param predict_models To be filled in.
-#' @param predict_type To be filled in.
-#' @param output_dir The full or relative path to an output directory where result and summary output will be saved as TSV flatfiles
-#' @param output_prefix To be filled in.
-#' @param overwrite To be filled in.
+#' @param .data Tibble object created with the read_data function - KEGG orthology annotation data for one or more bacterial genome annotation files.
+#' #' @param moduleVector Character vector. An optional character vector of specific KEGG Modules to scan user annotations for, and optionally to predict for. Default is NULL.
+#' @param predict_models Logical. If TRUE, presence/absence predictions will be run. Default TRUE
+#' @param predict_type Prediction type, character, must be "class" or "response". Currently supported types are "class" - where 1 = present and 0 = absent, or "response" - the probability for the prediction - a value between 0 and 1. Default is "response".
+#' @param output_dir Character. The full or relative path to an output directory where result and summary output will be saved as TSV flatfiles
+#' @param output_prefix Character. Optional string to prefix to MetaPredict output files. Default is NULL, resulting in output files with default names.
+#' @param overwrite Logical. If TRUE, output files from running the MetaPredict function that have the same name as existing files in the output directory will overwrite those existing files. Default is FALSE.
 #' @importFrom magrittr "%>%"
 
 #' @export
@@ -133,15 +133,19 @@ MetaPredict <- function(.data, moduleVector = NULL,
 create_kegg_matrix <- function(.data) {
   purrr::map(.data, ~ {
     .x %>%
+      dtplyr::lazy_dt() %>%
       dplyr::mutate(copy_number = 1) %>%
       dplyr::group_by(k_number) %>%
-      dplyr::summarize(copy_number = sum(copy_number), .groups = 'drop') %>%
-      tidyr::pivot_wider(names_from = k_number, values_from = copy_number)
+      dplyr::summarize(copy_number = sum(copy_number)) %>%
+      tidyr::pivot_wider(names_from = k_number, values_from = copy_number) %>%
+      dplyr::as_tibble()
   }) %>%
     purrr::map_dfr(~ .x) %>%
+    dtplyr::lazy_dt() %>%
     dplyr::mutate(dplyr::across(dplyr::everything(), ~ as.integer(.x))) %>%
-    dplyr::mutate(dplyr::across(dplyr::everything(), ~ dplyr::case_when(is.na(.x) ~ 0L,
-                                                                TRUE ~ .x))) %>%
+    #dplyr::mutate(dplyr::across(dplyr::everything(), ~ dplyr::case_when(is.na(.x) ~ 0L,
+    #                                                            TRUE ~ .x))) %>%
+    dplyr::as_tibble() %>%
     dplyr::bind_cols(dplyr::select(filler, -c(colnames(filler)[colnames(filler) %in% colnames(.)]))) %>%
     dplyr::select(colnames(filler)) %>%
     dplyr::relocate(colnames(filler))
@@ -250,13 +254,13 @@ save_results <- function(.results, output_dir, output_prefix = NULL, overwrite =
 
   if (all(!(paste0(output_prefix, c('summary', 'module_reconstructions'), '.tsv') %in% list.files(path = output_dir)))) {
     purrr::map2(1:length(.results), c('summary', 'module_reconstructions', 'module_predictions'), ~ {
-      readr::write_tsv(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
+      vroom::vroom_write(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
     })
   } else {
     if (overwrite == TRUE) {
       cli::cli_alert_warning('Overwriting existing files with output files.')
       purrr::map2(1:length(.results), c('summary', 'module_reconstructions', 'module_predictions'), ~ {
-        readr::write_tsv(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
+        vroom::vroom_write(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
       })
     } else {
       for (.attempt in 1:3) {
@@ -264,7 +268,7 @@ save_results <- function(.results, output_dir, output_prefix = NULL, overwrite =
         if (ans == 'y') {
           cli::cli_alert_warning('Overwriting existing files with output files.')
           purrr::map2(1:length(.results), c('summary', 'module_reconstructions', 'module_predictions'), ~ {
-            readr::write_tsv(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
+            vroom::vroom_write(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
           })
           break
         } else if (ans == 'n') {
@@ -300,13 +304,13 @@ save_recon <- function(.results, output_dir, output_prefix = NULL, overwrite = F
 
   if (all(!(paste0(output_prefix, c('summary', 'module_reconstructions'), '.tsv') %in% list.files(path = output_dir)))) {
   purrr::map2(1:length(.results), c('summary', 'module_reconstructions'), ~ {
-    readr::write_tsv(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
+    vroom::vroom_write(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
   })
   } else {
     if (overwrite == TRUE) {
       cli::cli_alert_warning('Overwriting existing files with output files.')
       purrr::map2(1:length(.results), c('summary', 'module_reconstructions'), ~ {
-        readr::write_tsv(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
+        vroom::vroom_write(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
       })
     } else {
       for (.attempt in 1:3) {
@@ -314,7 +318,7 @@ save_recon <- function(.results, output_dir, output_prefix = NULL, overwrite = F
         if (ans == 'y') {
           cli::cli_alert_warning('Overwriting existing files with output files.')
           purrr::map2(1:length(.results), c('summary', 'module_reconstructions'), ~ {
-            readr::write_tsv(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
+            vroom::vroom_write(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
           })
           break
         } else if (ans == 'n') {
