@@ -254,13 +254,13 @@ save_results <- function(.results, output_dir, output_prefix = NULL, overwrite =
 
   if (all(!(paste0(output_prefix, c('summary', 'module_reconstructions'), '.tsv') %in% list.files(path = output_dir)))) {
     purrr::map2(1:length(.results), c('summary', 'module_reconstructions', 'module_predictions'), ~ {
-      vroom::vroom_write(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
+      readr::write_tsv(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
     })
   } else {
     if (overwrite == TRUE) {
       cli::cli_alert_warning('Overwriting existing files with output files.')
       purrr::map2(1:length(.results), c('summary', 'module_reconstructions', 'module_predictions'), ~ {
-        vroom::vroom_write(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
+        readr::write_tsv(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
       })
     } else {
       for (.attempt in 1:3) {
@@ -268,7 +268,7 @@ save_results <- function(.results, output_dir, output_prefix = NULL, overwrite =
         if (ans == 'y') {
           cli::cli_alert_warning('Overwriting existing files with output files.')
           purrr::map2(1:length(.results), c('summary', 'module_reconstructions', 'module_predictions'), ~ {
-            vroom::vroom_write(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
+            readr::write_tsv(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
           })
           break
         } else if (ans == 'n') {
@@ -304,13 +304,13 @@ save_recon <- function(.results, output_dir, output_prefix = NULL, overwrite = F
 
   if (all(!(paste0(output_prefix, c('summary', 'module_reconstructions'), '.tsv') %in% list.files(path = output_dir)))) {
   purrr::map2(1:length(.results), c('summary', 'module_reconstructions'), ~ {
-    vroom::vroom_write(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
+    readr::write_tsv(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
   })
   } else {
     if (overwrite == TRUE) {
       cli::cli_alert_warning('Overwriting existing files with output files.')
       purrr::map2(1:length(.results), c('summary', 'module_reconstructions'), ~ {
-        vroom::vroom_write(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
+        readr::write_tsv(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
       })
     } else {
       for (.attempt in 1:3) {
@@ -318,7 +318,7 @@ save_recon <- function(.results, output_dir, output_prefix = NULL, overwrite = F
         if (ans == 'y') {
           cli::cli_alert_warning('Overwriting existing files with output files.')
           purrr::map2(1:length(.results), c('summary', 'module_reconstructions'), ~ {
-            vroom::vroom_write(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
+            readr::write_tsv(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
           })
           break
         } else if (ans == 'n') {
