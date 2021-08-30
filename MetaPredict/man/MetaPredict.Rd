@@ -18,18 +18,18 @@ MetaPredict(
 )
 }
 \arguments{
-\item{.data}{Created with the read_data function - KEGG Orthology data for one or more bacteria/archaea
-#' @param moduleVector An optional vector of specific KEGG Modules to scan user annotations and calculate probabilities for}
+\item{.data}{Tibble object created with the read_data function - KEGG orthology annotation data for one or more bacterial genome annotation files.
+#' @param moduleVector Character vector. An optional character vector of specific KEGG Modules to scan user annotations for, and optionally to predict for. Default is NULL.}
 
-\item{predict_models}{To be filled in.}
+\item{predict_models}{Logical. If TRUE, presence/absence predictions will be run. Default TRUE}
 
-\item{predict_type}{To be filled in.}
+\item{predict_type}{Prediction type, character, must be "class" or "response". Currently supported types are "class" - where 1 = present and 0 = absent, or "response" - the probability for the prediction - a value between 0 and 1. Default is "response".}
 
-\item{output_dir}{The full or relative path to an output directory where result and summary output will be saved as TSV flatfiles}
+\item{output_dir}{Character. The full or relative path to an output directory where result and summary output will be saved as TSV flatfiles}
 
-\item{output_prefix}{To be filled in.}
+\item{output_prefix}{Character. Optional string to prefix to MetaPredict output files. Default is NULL, resulting in output files with default names.}
 
-\item{overwrite}{To be filled in.}
+\item{overwrite}{Logical. If TRUE, output files from running the MetaPredict function that have the same name as existing files in the output directory will overwrite those existing files. Default is FALSE.}
 }
 \description{
 This function is used to reconstruct metabolic pathways based on present KEGG Orthology terms. For any

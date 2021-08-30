@@ -17,23 +17,23 @@ read_data(
 )
 }
 \arguments{
-\item{input_dir}{The path to the directory containing the input annotation files to use, if a metadata file or dataframe is not supplied. Default is NULL.}
+\item{input_dir}{Character. The path to the directory containing the input annotation files to use, if a metadata file or dataframe is not supplied. Default is NULL.}
 
-\item{pattern}{If an input_dir argument is supplied, this is the regex pattern to use to locate the files within the directory containing the annotation files. Default is '*.tsv'.}
+\item{pattern}{Character. If an input_dir argument is supplied, this is the regex pattern to use to locate the files within the directory containing the annotation files. Default is '*.tsv'.}
 
-\item{delim}{The delimiter of the input files. Default is tab.}
+\item{delim}{Character. The delimiter of the input files. Default is tab.}
 
-\item{metadata_file}{A flatfile with a required column called "filepath". The filepath column must contain the full or relative path to each genome annotation file; Note: files can be from different directories. A second and optional column is genome_name. It should contain the name the user would like to use for each genome. Columns can be in any order, and the rows can also be in any order. Default genome names will be provided if the genome_name column is not present in metadata_file.}
+\item{metadata_file}{Character. The path to a flatfile with a required column called "filepath". The filepath column must contain the full or relative path to each genome annotation file; Note: files can be from different directories. A second and optional column is genome_name. It should contain the name the user would like to use for each genome. Columns can be in any order, and the rows can also be in any order. Default genome names will be provided if the genome_name column is not present in metadata_file.}
 
-\item{metadata_df}{Metadata can optionally be provided as a pre-existing dataframe that contains the column "filepath". A second and optional column is genome_name. It should contain the name the user would like to use for each genome. Columns can be in any order, and the rows can also be in any order. Default genome names will be provided if the genome_name column is not present in metadata_df.}
+\item{metadata_df}{Dataframe or Tibble. Metadata can optionally be provided as a pre-existing dataframe that contains the column "filepath". A second and optional column is genome_name. It should contain the name the user would like to use for each genome. Columns can be in any order, and the rows can also be in any order. Default genome names will be provided if the genome_name column is not present in metadata_df.}
 
-\item{kofamscan}{If the input file or files are output from the Kofamscan command line tool, leave this argument set to TRUE, otherwise set it to FALSE and set the custom argument to TRUE. Default is TRUE.}
+\item{kofamscan}{Logical. If the input file or files are output from the Kofamscan command line tool, leave this argument set to TRUE, otherwise set it to FALSE and set the custom argument to TRUE. Default is TRUE.}
 
-\item{cutoff}{The desired E-value or score cutoff. Default is 1e-7.}
+\item{cutoff}{Numeric. The desired E-value or score cutoff. Default is 1e-7.}
 
-\item{custom}{To be filled in.}
+\item{custom}{Logical. If input annotations are not the output of Kofamscan, the column containing KEGG K numbers must be called "k_number". If annotations contain scores - HMM E-values, blast bitscores, etc., then the gene name of each gene must be in a column "gene_name", and the column with the score must be called "evalue" for E-values from HMM hits, or "score" for any other score, e.g., a bitscore.}
 
-\item{score_type}{To be filled in.}
+\item{score_type}{Character: "evalue", "score", or "none". If "evalue", there must be a column in input annotation files called "evalue" for E-values from HMM hits, or "score" for any other score, e.g., a bitscore. If "none", no score column for annotations is required.}
 }
 \description{
 This function is used to read in user data in the form of a one or more flatfiles, default is TSV format.

@@ -1,13 +1,13 @@
 #' This function is used to read in user data in the form of a one or more flatfiles, default is TSV format.
-#' @param input_dir The path to the directory containing the input annotation files to use, if a metadata file or dataframe is not supplied. Default is NULL.
-#' @param pattern If an input_dir argument is supplied, this is the regex pattern to use to locate the files within the directory containing the annotation files. Default is '*.tsv'.
-#' @param delim The delimiter of the input files. Default is tab.
-#' @param metadata_file A flatfile with a required column called "filepath". The filepath column must contain the full or relative path to each genome annotation file; Note: files can be from different directories. A second and optional column is genome_name. It should contain the name the user would like to use for each genome. Columns can be in any order, and the rows can also be in any order. Default genome names will be provided if the genome_name column is not present in metadata_file.
-#' @param metadata_df Metadata can optionally be provided as a pre-existing dataframe that contains the column "filepath". A second and optional column is genome_name. It should contain the name the user would like to use for each genome. Columns can be in any order, and the rows can also be in any order. Default genome names will be provided if the genome_name column is not present in metadata_df.
-#' @param kofamscan If the input file or files are output from the Kofamscan command line tool, leave this argument set to TRUE, otherwise set it to FALSE and set the custom argument to TRUE. Default is TRUE.
-#' @param cutoff The desired E-value or score cutoff. Default is 1e-7.
-#' @param custom To be filled in.
-#' @param score_type To be filled in.
+#' @param input_dir Character. The path to the directory containing the input annotation files to use, if a metadata file or dataframe is not supplied. Default is NULL.
+#' @param pattern Character. If an input_dir argument is supplied, this is the regex pattern to use to locate the files within the directory containing the annotation files. Default is '*.tsv'.
+#' @param delim Character. The delimiter of the input files. Default is tab.
+#' @param metadata_file Character. The path to a flatfile with a required column called "filepath". The filepath column must contain the full or relative path to each genome annotation file; Note: files can be from different directories. A second and optional column is genome_name. It should contain the name the user would like to use for each genome. Columns can be in any order, and the rows can also be in any order. Default genome names will be provided if the genome_name column is not present in metadata_file.
+#' @param metadata_df Dataframe or Tibble. Metadata can optionally be provided as a pre-existing dataframe that contains the column "filepath". A second and optional column is genome_name. It should contain the name the user would like to use for each genome. Columns can be in any order, and the rows can also be in any order. Default genome names will be provided if the genome_name column is not present in metadata_df.
+#' @param kofamscan Logical. If the input file or files are output from the Kofamscan command line tool, leave this argument set to TRUE, otherwise set it to FALSE and set the custom argument to TRUE. Default is TRUE.
+#' @param cutoff Numeric. The desired E-value or score cutoff. Default is 1e-7.
+#' @param custom Logical. If input annotations are not the output of Kofamscan, the column containing KEGG K numbers must be called "k_number". If annotations contain scores - HMM E-values, blast bitscores, etc., then the gene name of each gene must be in a column "gene_name", and the column with the score must be called "evalue" for E-values from HMM hits, or "score" for any other score, e.g., a bitscore.
+#' @param score_type Character: "evalue", "score", or "none". If "evalue", there must be a column in input annotation files called "evalue" for E-values from HMM hits, or "score" for any other score, e.g., a bitscore. If "none", no score column for annotations is required.
 #' @importFrom magrittr "%>%"
 
 #' @export
@@ -30,7 +30,7 @@ read_data <- function(input_dir = NULL, pattern = '*.tsv', delim = '\t', metadat
   } else {
 
     if (all(!is.null(metadata_file) & is.null(metadata_df))) {
-      metadata_tbl <- readr::read_delim(metadata_file, col_names = TRUE, delim = delim, col_types = readr::cols())
+      metadata_tbl <- vroom::vroom(metadata_file, delim = delim, col_types = vroom::cols())
 
     } else if (all(is.null(metadata_file) & is.data.frame(metadata_df))) {
       metadata_tbl <- metadata_df
@@ -115,7 +115,7 @@ read_from_dir <- function(.files, .genome_names, cutoff = cutoff, delim = delim,
 
 #' @export
 read_kofam <- function(.data, .genome_name, cutoff = 1e-7) {
-  readr::read_delim(.data, col_types = readr::cols(), delim = '\t') %>%
+  vroom::vroom(.data, col_types = vroom::cols(), delim = '\t') %>%
     dtplyr::lazy_dt() %>%
     dplyr::filter(!stringr::str_detect(`E-value`, '---')) %>%
     dplyr::select(`gene name`, KO, `E-value`) %>%
@@ -138,7 +138,7 @@ read_kofam <- function(.data, .genome_name, cutoff = 1e-7) {
 read_custom <- function(.data, .genome_name, cutoff = 1e-7, delim = delim, score_type = 'evalue') {
 
   if (score_type == 'evalue') {
-    result <- readr::read_delim(.data, col_types = readr::cols(), delim = delim) %>%
+    result <- vroom::vroom(.data, col_types = vroom::cols(), delim = delim) %>%
       dtplyr::lazy_dt() %>%
       dplyr::select(gene_name, k_number, dplyr::matches('^e_value$|^evalue$|^e-value$')) %>%
       dplyr::rename(e_value = 3) %>%
@@ -151,7 +151,7 @@ read_custom <- function(.data, .genome_name, cutoff = 1e-7, delim = delim, score
       dplyr::as_tibble() %>%
       dplyr::mutate(genome_name = .genome_name, .before = 1)
   } else if (score_type == 'score') {
-    result <- readr::read_delim(.data, col_types = readr::cols(), delim = delim) %>%
+    result <- vroom::vroom(.data, col_types = vroom::cols(), delim = delim) %>%
       dtplyr::lazy_dt() %>%
       dplyr::select(gene_name, k_number, score) %>%
       dplyr::mutate(score = as.numeric(score)) %>%
@@ -163,7 +163,7 @@ read_custom <- function(.data, .genome_name, cutoff = 1e-7, delim = delim, score
       dplyr::as_tibble() %>%
       dplyr::mutate(genome_name = .genome_name, .before = 1)
   } else if (score_type == 'none') {
-    result <- readr::read_delim(.data, col_types = readr::cols(), delim = delim) %>%
+    result <- vroom::vroom(.data, col_types = vroom::cols(), delim = delim) %>%
       dtplyr::lazy_dt() %>%
       dplyr::select(k_number) %>%
       dplyr::as_tibble() %>%

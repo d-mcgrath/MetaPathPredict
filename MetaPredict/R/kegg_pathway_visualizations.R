@@ -39,7 +39,6 @@ get.knumber_vectors <- function(userData, posterior_data) { #posterior_data is a
 
 
 
-#' @export
 create_kegg_maps <- function(k_vector.list, pathway_id, output_dir = '.',
                              k_numbers = TRUE, ec_numbers = FALSE,
                              present_gene_color = 'plum2', probability_gene_color = 'seagreen2') {
