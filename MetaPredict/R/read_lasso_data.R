@@ -30,7 +30,7 @@ read_data <- function(input_dir = NULL, pattern = '*.tsv', delim = '\t', metadat
   } else {
 
     if (all(!is.null(metadata_file) & is.null(metadata_df))) {
-      metadata_tbl <- vroom::vroom(metadata_file, delim = delim, col_types = vroom::cols())
+      metadata_tbl <- readr::read_delim(metadata_file, delim = delim, col_types = readr::cols())
 
     } else if (all(is.null(metadata_file) & is.data.frame(metadata_df))) {
       metadata_tbl <- metadata_df
@@ -115,7 +115,7 @@ read_from_dir <- function(.files, .genome_names, cutoff = cutoff, delim = delim,
 
 #' @export
 read_kofam <- function(.data, .genome_name, cutoff = 1e-7) {
-  vroom::vroom(.data, col_types = vroom::cols(), delim = '\t') %>%
+  readr::read_tsv(.data, col_types = readr::cols()) %>%
     dtplyr::lazy_dt() %>%
     dplyr::filter(!stringr::str_detect(`E-value`, '---')) %>%
     dplyr::select(`gene name`, KO, `E-value`) %>%
@@ -138,7 +138,7 @@ read_kofam <- function(.data, .genome_name, cutoff = 1e-7) {
 read_custom <- function(.data, .genome_name, cutoff = 1e-7, delim = delim, score_type = 'evalue') {
 
   if (score_type == 'evalue') {
-    result <- vroom::vroom(.data, col_types = vroom::cols(), delim = delim) %>%
+    result <- readr::read_delim(.data, col_types = readr::cols(), delim = delim) %>%
       dtplyr::lazy_dt() %>%
       dplyr::select(gene_name, k_number, dplyr::matches('^e_value$|^evalue$|^e-value$')) %>%
       dplyr::rename(e_value = 3) %>%
@@ -151,7 +151,7 @@ read_custom <- function(.data, .genome_name, cutoff = 1e-7, delim = delim, score
       dplyr::as_tibble() %>%
       dplyr::mutate(genome_name = .genome_name, .before = 1)
   } else if (score_type == 'score') {
-    result <- vroom::vroom(.data, col_types = vroom::cols(), delim = delim) %>%
+    result <- readr::read_delim(.data, col_types = readr::cols(), delim = delim) %>%
       dtplyr::lazy_dt() %>%
       dplyr::select(gene_name, k_number, score) %>%
       dplyr::mutate(score = as.numeric(score)) %>%
@@ -163,7 +163,7 @@ read_custom <- function(.data, .genome_name, cutoff = 1e-7, delim = delim, score
       dplyr::as_tibble() %>%
       dplyr::mutate(genome_name = .genome_name, .before = 1)
   } else if (score_type == 'none') {
-    result <- vroom::vroom(.data, col_types = vroom::cols(), delim = delim) %>%
+    result <- readr::read_delim(.data, col_types = readr::cols(), delim = delim) %>%
       dtplyr::lazy_dt() %>%
       dplyr::select(k_number) %>%
       dplyr::as_tibble() %>%
