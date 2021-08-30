@@ -27,8 +27,7 @@ Imports:
       cli (>= 2.2.0),
       lazyeval (>= 0.2.2),
       Matrix,
-      glmnet,
-      vroom (>= 1.5.4)
+      glmnet
 Depends: 
     R (>= 3.3),
     data.table (>= 1.14.0),
