@@ -45,11 +45,35 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// na_to_zero
+DataFrame na_to_zero(DataFrame kegg_df);
+RcppExport SEXP _MetaPredict_na_to_zero(SEXP kegg_dfSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< DataFrame >::type kegg_df(kegg_dfSEXP);
+    rcpp_result_gen = Rcpp::wrap(na_to_zero(kegg_df));
+    return rcpp_result_gen;
+END_RCPP
+}
+// round_predictions
+DataFrame round_predictions(DataFrame pred_df);
+RcppExport SEXP _MetaPredict_round_predictions(SEXP pred_dfSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< DataFrame >::type pred_df(pred_dfSEXP);
+    rcpp_result_gen = Rcpp::wrap(round_predictions(pred_df));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_MetaPredict_put_na", (DL_FUNC) &_MetaPredict_put_na, 2},
     {"_MetaPredict_put_pred", (DL_FUNC) &_MetaPredict_put_pred, 2},
     {"_MetaPredict_reclassify", (DL_FUNC) &_MetaPredict_reclassify, 1},
+    {"_MetaPredict_na_to_zero", (DL_FUNC) &_MetaPredict_na_to_zero, 1},
+    {"_MetaPredict_round_predictions", (DL_FUNC) &_MetaPredict_round_predictions, 1},
     {NULL, NULL, 0}
 };
 
