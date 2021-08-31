@@ -63,3 +63,56 @@ DataFrame reclassify(DataFrame result) {
   }
   return result;
 }
+
+
+
+#include <Rcpp.h>
+using namespace Rcpp;
+
+// If the kegg_df column value is NA, change it to 0, otherwise leave it
+// [[Rcpp::export]]
+DataFrame na_to_zero(DataFrame kegg_df) {
+  for (int column = 0; column < kegg_df.length(); ++column) {
+    IntegerVector keggCol = kegg_df[column];
+
+    for (int x = 0; x < keggCol.length(); ++x) {
+      if (keggCol[x] == NA_INTEGER) {
+        keggCol[x] = 0;
+      } else {
+        keggCol[x] = keggCol[x];
+      }
+    }
+  }
+  return kegg_df;
+}
+
+
+
+#include <Rcpp.h>
+using namespace Rcpp;
+
+// Round values of prediction columns in prediction tibble
+// [[Rcpp::export]]
+DataFrame round_predictions(DataFrame pred_df) {
+  for (int column = 1; column < pred_df.length(); ++column) {
+    NumericVector predCol = pred_df[column];
+    predCol = round(predCol, 4);
+  }
+  return pred_df;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

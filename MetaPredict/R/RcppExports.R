@@ -2,14 +2,22 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 put_na <- function(recon, pred) {
-    .Call('_MetaPredict_put_na', PACKAGE = 'MetaPredict', recon, pred)
+    .Call(`_MetaPredict_put_na`, recon, pred)
 }
 
 put_pred <- function(result, pred) {
-    .Call('_MetaPredict_put_pred', PACKAGE = 'MetaPredict', result, pred)
+    .Call(`_MetaPredict_put_pred`, result, pred)
 }
 
 reclassify <- function(result) {
-    .Call('_MetaPredict_reclassify', PACKAGE = 'MetaPredict', result)
+    .Call(`_MetaPredict_reclassify`, result)
+}
+
+na_to_zero <- function(kegg_df) {
+    .Call(`_MetaPredict_na_to_zero`, kegg_df)
+}
+
+round_predictions <- function(pred_df) {
+    .Call(`_MetaPredict_round_predictions`, pred_df)
 }
 

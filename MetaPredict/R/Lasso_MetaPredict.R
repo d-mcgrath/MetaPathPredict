@@ -58,9 +58,10 @@ MetaPredict <- function(.data, moduleVector = NULL,
 
   #return the results
   predictions <- put_na(reconstructed, predictions)
-  #for (.column in colnames(reconstructed)[2:length(reconstructed)]) {
-  #  predictions[reconstructed[, .column] == 1L, .column] <- NA_real_
-  #}
+
+  if (predict_type == 'response') {
+    predictions <- round_predictions(predictions)
+  }
 
   summary <- summarize_results(.recon = reconstructed, .pred = predictions, .module_metadata = module_metadata)
   results <- list(summary = summary, module_reconstructions = reconstructed, module_predictions = predictions)
@@ -74,7 +75,6 @@ MetaPredict <- function(.data, moduleVector = NULL,
   }
 
   return(results)
-
 
   } else {
 
@@ -110,9 +110,10 @@ MetaPredict <- function(.data, moduleVector = NULL,
 
     #return the results
     predictions <- put_na(reconstructed, predictions)
-    #for (.column in colnames(reconstructed)[2:length(reconstructed)]) {
-    #  predictions[reconstructed[, .column] == 1L, .column] <- NA_real_
-    #}
+
+    if (predict_type == 'response') {
+      predictions <- round_predictions(predictions)
+    }
 
     summary <- summarize_results(.recon = reconstructed, .pred = predictions, .module_metadata = module_metadata)
     results <- list(summary = summary, module_reconstructions = reconstructed, module_predictions = predictions)
@@ -145,10 +146,12 @@ create_kegg_matrix <- function(.data) {
     purrr::map_dfr(~ .x) %>%
     dtplyr::lazy_dt() %>%
     dplyr::mutate(dplyr::across(dplyr::everything(), ~ as.integer(.x))) %>%
+    #na_to_zero() %>%
     #dplyr::mutate(dplyr::across(dplyr::everything(), ~ dplyr::case_when(is.na(.x) ~ 0L,
     #                                                            TRUE ~ .x))) %>%
     dplyr::as_tibble() %>%
     dplyr::bind_cols(dplyr::select(filler, -c(colnames(filler)[colnames(filler) %in% colnames(.)]))) %>%
+    na_to_zero() %>%
     dplyr::select(colnames(filler)) %>%
     dplyr::relocate(colnames(filler))
 }
