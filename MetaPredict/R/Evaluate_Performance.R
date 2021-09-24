@@ -1,5 +1,4 @@
-#' Aim of this function is to take in data, see what modules are present. then randomly sample the data to create incompleteness #'simulations. then predict for all simulations, and make confusion matrices for each one. and store all results in a list.
-
+#' This function is to take in data, see what modules are present - then randomly sample the data to create incompleteness simulations and predict for all simulations, and make confusion matrices for each one. and store all results in a list.
 #' @param .data Tibble object created with the read_data function - KEGG orthology annotation data for one or more bacterial genome annotation files.
 #' #' @param moduleVector Character vector. An optional character vector of specific KEGG Modules to scan user annotations for, and optionally to predict for. Default is NULL.
 #' @importFrom magrittr "%>%"
@@ -91,45 +90,4 @@ evaluate <- function(.data, moduleVector = NULL) {
 
   return(list(performance_metrics = performance_metrics, confusion_tibble = confusion_tibble))
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
