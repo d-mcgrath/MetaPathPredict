@@ -7,7 +7,7 @@ Authors@R:
            role = c("aut", "cre"),
            email = "mcgrath1@mit.edu",
            comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: MetaPredict uses a lasso regression approach, utilizing metabolic gene annotation data from thousands of high-quality genomes representative of Bacterial and Archaeal lineages. For single genomes, such as metagenome-assembled genomes (MAGs) or single-amplified genomes (SAGs), the user will input KEGG K number gene annotation flatfiles. The tool will detect KEGG Modules within each set of KEGG Orthology (K number) gene annotations, and then predict the presence/absence of any incomplete KEGG Modules using pre-fitted, built-in models.  
+Description: MetaPredict uses a lasso regression approach, utilizing metabolic gene annotation data from thousands of high-quality genomes from Bacterial and Archaeal lineages. For single genomes, such as metagenome-assembled genomes (MAGs) or single-amplified genomes (SAGs), the user will input KEGG K number gene annotation flatfiles. The tool will detect KEGG Modules within each set of KEGG Orthology (K number) gene annotations, and then predict the presence/absence of any incomplete KEGG Modules using pre-fitted, built-in models.  
 License: `use_mit_license()`, `use_gpl3_license()` or friends to
     pick a license
 Encoding: UTF-8
@@ -28,6 +28,7 @@ Imports:
     lazyeval (>= 0.2.2),
     Matrix,
     glmnet,
+    caret,
     Rcpp
 Depends: 
     R (>= 3.3),
