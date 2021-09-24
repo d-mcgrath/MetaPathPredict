@@ -67,6 +67,21 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// pivot_longer_c
+DataFrame pivot_longer_c(const DataFrame& in_df, const Rcpp::String& names_to, const Rcpp::String& values_to, const CharacterVector& pivotColNames, const Rcpp::String& keepColName);
+RcppExport SEXP _MetaPredict_pivot_longer_c(SEXP in_dfSEXP, SEXP names_toSEXP, SEXP values_toSEXP, SEXP pivotColNamesSEXP, SEXP keepColNameSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const DataFrame& >::type in_df(in_dfSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::String& >::type names_to(names_toSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::String& >::type values_to(values_toSEXP);
+    Rcpp::traits::input_parameter< const CharacterVector& >::type pivotColNames(pivotColNamesSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::String& >::type keepColName(keepColNameSEXP);
+    rcpp_result_gen = Rcpp::wrap(pivot_longer_c(in_df, names_to, values_to, pivotColNames, keepColName));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_MetaPredict_put_na", (DL_FUNC) &_MetaPredict_put_na, 2},
@@ -74,6 +89,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_MetaPredict_reclassify", (DL_FUNC) &_MetaPredict_reclassify, 1},
     {"_MetaPredict_na_to_zero", (DL_FUNC) &_MetaPredict_na_to_zero, 1},
     {"_MetaPredict_round_predictions", (DL_FUNC) &_MetaPredict_round_predictions, 1},
+    {"_MetaPredict_pivot_longer_c", (DL_FUNC) &_MetaPredict_pivot_longer_c, 5},
     {NULL, NULL, 0}
 };
 

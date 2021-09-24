@@ -21,3 +21,7 @@ round_predictions <- function(pred_df) {
     .Call(`_MetaPredict_round_predictions`, pred_df)
 }
 
+pivot_longer_c <- function(in_df, names_to, values_to, pivotColNames, keepColName) {
+    .Call(`_MetaPredict_pivot_longer_c`, in_df, names_to, values_to, pivotColNames, keepColName)
+}
+
