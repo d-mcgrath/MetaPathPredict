@@ -12,6 +12,7 @@ MetaPredict(
   moduleVector = NULL,
   predict_models = TRUE,
   predict_type = c("response", "class"),
+  module_detect_type = c("extract", "detect"),
   output_dir = NULL,
   output_prefix = NULL,
   overwrite = FALSE

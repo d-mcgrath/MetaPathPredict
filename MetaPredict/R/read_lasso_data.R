@@ -12,7 +12,7 @@
 
 #' @export
 read_data <- function(input_dir = NULL, pattern = '*.tsv', delim = '\t', metadata_file = NULL, metadata_df = NULL,
-                      kofamscan = TRUE, cutoff = 1e-7, custom = FALSE, score_type = c('evalue', 'score', 'none')) {
+                       kofamscan = TRUE, cutoff = 1e-7, custom = FALSE, score_type = c('evalue', 'score', 'none')) {
 
   cli::cli_h1('Formatting data')
 
@@ -30,7 +30,7 @@ read_data <- function(input_dir = NULL, pattern = '*.tsv', delim = '\t', metadat
   } else {
 
     if (all(!is.null(metadata_file) & is.null(metadata_df))) {
-      metadata_tbl <- readr::read_delim(metadata_file, delim = delim, col_types = readr::cols())
+      metadata_tbl <- vroom::vroom(metadata_file, delim = delim, show_col_types = FALSE, progress = FALSE)
 
     } else if (all(is.null(metadata_file) & is.data.frame(metadata_df))) {
       metadata_tbl <- metadata_df
@@ -96,7 +96,7 @@ read_data <- function(input_dir = NULL, pattern = '*.tsv', delim = '\t', metadat
 
 #' @export
 read_from_dir <- function(.files, .genome_names, cutoff = cutoff, delim = delim,
-                          kofamscan = kofamscan, custom = custom, score_type = score_type) {
+                           kofamscan = kofamscan, custom = custom, score_type = score_type) {
   if (all(kofamscan == TRUE & custom == FALSE)) {
     annotations <- purrr::map2(.files, .genome_names, ~ read_kofam(.x, .y, cutoff = cutoff))
   } else if (all(kofamscan == FALSE & custom == TRUE)) {
@@ -115,7 +115,7 @@ read_from_dir <- function(.files, .genome_names, cutoff = cutoff, delim = delim,
 
 #' @export
 read_kofam <- function(.data, .genome_name, cutoff = 1e-7) {
-  readr::read_tsv(.data, col_types = readr::cols()) %>%
+  vroom::vroom(.data, show_col_types = FALSE, delim = '\t', progress = FALSE) %>%
     dtplyr::lazy_dt() %>%
     dplyr::filter(!stringr::str_detect(`E-value`, '---')) %>%
     dplyr::select(`gene name`, KO, `E-value`) %>%
@@ -138,7 +138,7 @@ read_kofam <- function(.data, .genome_name, cutoff = 1e-7) {
 read_custom <- function(.data, .genome_name, cutoff = 1e-7, delim = delim, score_type = 'evalue') {
 
   if (score_type == 'evalue') {
-    result <- readr::read_delim(.data, col_types = readr::cols(), delim = delim) %>%
+    result <- vroom::vroom(.data, show_col_types = FALSE, delim = delim, progress = FALSE) %>%
       dtplyr::lazy_dt() %>%
       dplyr::select(gene_name, k_number, dplyr::matches('^e_value$|^evalue$|^e-value$')) %>%
       dplyr::rename(e_value = 3) %>%
@@ -151,7 +151,7 @@ read_custom <- function(.data, .genome_name, cutoff = 1e-7, delim = delim, score
       dplyr::as_tibble() %>%
       dplyr::mutate(genome_name = .genome_name, .before = 1)
   } else if (score_type == 'score') {
-    result <- readr::read_delim(.data, col_types = readr::cols(), delim = delim) %>%
+    result <- vroom::vroom(.data, show_col_types = FALSE, delim = delim, progress = FALSE) %>%
       dtplyr::lazy_dt() %>%
       dplyr::select(gene_name, k_number, score) %>%
       dplyr::mutate(score = as.numeric(score)) %>%
@@ -163,7 +163,7 @@ read_custom <- function(.data, .genome_name, cutoff = 1e-7, delim = delim, score
       dplyr::as_tibble() %>%
       dplyr::mutate(genome_name = .genome_name, .before = 1)
   } else if (score_type == 'none') {
-    result <- readr::read_delim(.data, col_types = readr::cols(), delim = delim) %>%
+    result <- vroom::vroom(.data, show_col_types = FALSE, delim = delim, progress = FALSE) %>%
       dtplyr::lazy_dt() %>%
       dplyr::select(k_number) %>%
       dplyr::as_tibble() %>%
@@ -171,5 +171,5 @@ read_custom <- function(.data, .genome_name, cutoff = 1e-7, delim = delim, score
   } else {
     cli::cli_alert_danger('Error: Issue with score argument Please make sure it is "evalue", "score", or "none". If score argument is "evalue" or "score", please make sure the score column is named "evalue" or "score".')
   }
-    return(result)
+  return(result)
 }

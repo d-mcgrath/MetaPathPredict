@@ -103,10 +103,36 @@ DataFrame round_predictions(DataFrame pred_df) {
 
 
 
+#include <Rcpp.h>
+using namespace Rcpp;
 
+// [[Rcpp::export]]
+DataFrame pivot_longer_c(const DataFrame& in_df, const Rcpp::String& names_to, const Rcpp::String& values_to,
+                         const CharacterVector& pivotColNames, const Rcpp::String& keepColName) {
 
+  NumericVector longValues = no_init(pivotColNames.length() * in_df.nrows());
+  CharacterVector longNames = no_init(longValues.length());
+  CharacterVector keepCol = no_init(longValues.length());
 
+  CharacterVector keepColValues = in_df[keepColName];
+  int k = 0;
 
+  for (int i = 0; i < pivotColNames.length(); ++i) {
+    Rcpp::String curName = pivotColNames[i];
+    NumericVector curCol = in_df[curName];
+
+    for (int j = 0; j < curCol.length(); ++j) {
+      longValues[k] = curCol[j];
+      longNames[k] = curName;
+      keepCol[k] = keepColValues[j];
+      ++k;
+    }
+  }
+  DataFrame out_df = DataFrame::create(Named(keepColName) = keepCol,
+                                       Named(names_to) = longNames,
+                                       Named(values_to) = longValues);
+  return out_df;
+}
 
 
 
