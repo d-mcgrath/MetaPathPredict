@@ -2,7 +2,7 @@
 % Please edit documentation in R/Evaluate_Performance.R
 \name{evaluate}
 \alias{evaluate}
-\title{Aim of this function is to take in data, see what modules are present. then randomly sample the data to create incompleteness #'simulations. then predict for all simulations, and make confusion matrices for each one. and store all results in a list.}
+\title{This function is to take in data, see what modules are present - then randomly sample the data to create incompleteness simulations and predict for all simulations, and make confusion matrices for each one. and store all results in a list.}
 \usage{
 evaluate(.data, moduleVector = NULL)
 }
@@ -11,5 +11,5 @@ evaluate(.data, moduleVector = NULL)
 #' @param moduleVector Character vector. An optional character vector of specific KEGG Modules to scan user annotations for, and optionally to predict for. Default is NULL.}
 }
 \description{
-Aim of this function is to take in data, see what modules are present. then randomly sample the data to create incompleteness #'simulations. then predict for all simulations, and make confusion matrices for each one. and store all results in a list.
+This function is to take in data, see what modules are present - then randomly sample the data to create incompleteness simulations and predict for all simulations, and make confusion matrices for each one. and store all results in a list.
 }
