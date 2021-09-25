@@ -29,7 +29,8 @@ Imports:
     Matrix,
     glmnet,
     caret,
-    Rcpp
+    Rcpp,
+    carrier
 Depends: 
     R (>= 3.3),
     data.table (>= 1.14.0),
