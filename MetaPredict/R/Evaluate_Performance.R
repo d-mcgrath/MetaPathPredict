@@ -97,7 +97,7 @@ evaluate_dataset <- function(.data, moduleVector = NULL) {
 
 
 
-
+#' @export
 evaluate_model_testdata <- function(responseVars, ko_tibble, moduleVector = NULL) {
 
   if (is.null(moduleVector)) {
