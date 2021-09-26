@@ -335,8 +335,40 @@ evaluate_model_testdata_parallel <- function(responseVars, ko_tibble, moduleVect
 }
 
 
+#' @export
+test_fn <- function(responseVars, ko_tibble, moduleVector = NULL) {
+
+  future::plan(multicore, workers = 69)
+  options(future.globals.maxSize = 32505856000) #31000 * 1024 ^2
 
 
+  if (is.null(moduleVector)) {
+    moduleVector <- names(responseVars)
+  }
+
+  ko_tibble <- furrr::future_map(furrr::furrr_options(seed = TRUE), seq(0.10, 1, by = 0.10), function(.prop) {
+    ko_tibble %>%
+      dplyr::mutate(k_numbers = purrr::map(k_numbers, ~ sample(x = .x)), # randomly shuffle the k_numbers
+                    k_numbers = purrr::map(k_numbers, ~ sample(x = .x, size = .prop * length(.x))) #randomly sample the k_numbers
+      ) %>%
+      tidyr::unnest(cols = k_numbers) %>%
+      dplyr::mutate(k_count = 1) %>%
+      dplyr::group_by(genome_name, k_numbers) %>%
+      dplyr::summarize(k_count = sum(k_count)) %>%
+      tidyr::pivot_wider(names_from = k_numbers, values_from = k_count) %>%
+      dplyr::ungroup() %>%
+      dplyr::mutate(dplyr::across(2:dplyr::last_col(), ~ as.integer(.x))) %>%
+      dplyr::mutate(dplyr::across(2:dplyr::last_col(), ~ dplyr::case_when(is.na(.x) ~ 0L,
+                                                                          TRUE ~ .x))) %>%
+      dplyr::bind_cols(dplyr::select(filler, -c(colnames(filler)[colnames(filler) %in% colnames(.)]))) %>%
+      dplyr::select(colnames(filler)) %>%
+      dplyr::relocate(colnames(filler)) %>%
+      as.matrix()
+  }) %>%
+    purrr::set_names(nm = paste0('prop.', seq(10, 100, by = 10)))
+
+  return(ko_tibble)
+}
 
 
 
