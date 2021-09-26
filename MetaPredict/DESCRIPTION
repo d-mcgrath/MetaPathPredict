@@ -29,9 +29,7 @@ Imports:
     Matrix,
     glmnet,
     caret,
-    Rcpp,
-    future,
-    furrr
+    Rcpp
 Depends: 
     R (>= 3.3),
     data.table (>= 1.14.0),
