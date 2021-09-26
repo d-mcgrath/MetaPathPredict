@@ -188,7 +188,7 @@ evaluate_model_testdata <- function(responseVars, ko_tibble, moduleVector = NULL
 
 
 #' @export
-evaluate_model_testdata.crate <- carrier::crate(function(responseVars, ko_tibble) {
+evaluate_model_testdata.crate <- carrier::crate(function(responseVars, ko_tibble, filler = filler) {
 
   ko_tibble <- purrr::map(seq(0.10, 1, by = 0.10), function(.prop) {
     ko_tibble %>%
@@ -204,9 +204,9 @@ evaluate_model_testdata.crate <- carrier::crate(function(responseVars, ko_tibble
       dplyr::mutate(dplyr::across(2:dplyr::last_col(), ~ as.integer(.x))) %>%
       dplyr::mutate(dplyr::across(2:dplyr::last_col(), ~ dplyr::case_when(is.na(.x) ~ 0L,
                                                                           TRUE ~ .x))) %>%
-      dplyr::bind_cols(dplyr::select(!!filler, -c(colnames(!!filler)[colnames(!!filler) %in% colnames(.)]))) %>%
-      dplyr::select(colnames(!!filler)) %>%
-      dplyr::relocate(colnames(!!filler)) %>%
+      dplyr::bind_cols(dplyr::select(filler, -c(colnames(filler)[colnames(filler) %in% colnames(.)]))) %>%
+      dplyr::select(colnames(filler)) %>%
+      dplyr::relocate(colnames(filler)) %>%
       as.matrix()
   }) %>%
     purrr::set_names(nm = paste0('prop.', seq(10, 100, by = 10)))
