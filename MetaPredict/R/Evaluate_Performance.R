@@ -338,7 +338,7 @@ evaluate_model_testdata_parallel <- function(responseVars, ko_tibble, moduleVect
 #' @export
 test_fn <- function(responseVars, ko_tibble, moduleVector = NULL) {
 
-  future::plan(future::multicore, workers = 69)
+  plan(multicore, workers = 69)
   options(future.globals.maxSize = 32505856000) #31000 * 1024 ^2
 
   if (is.null(moduleVector)) {
