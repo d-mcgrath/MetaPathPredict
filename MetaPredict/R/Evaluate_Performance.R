@@ -188,7 +188,7 @@ evaluate_model_testdata <- function(responseVars, ko_tibble, moduleVector = NULL
 
 
 #' @export
-evaluate_model_testdata.crate <- carrier::crate(function(responseVars, ko_tibble, filler = filler) {
+evaluate_model_testdata.crate <- carrier::crate(function(responseVars, ko_tibble, filler = filler, all_models = all_models) {
 
   ko_tibble <- purrr::map(seq(0.10, 1, by = 0.10), function(.prop) {
     ko_tibble %>%
@@ -214,7 +214,7 @@ evaluate_model_testdata.crate <- carrier::crate(function(responseVars, ko_tibble
   #for the complete data and each set of simulated incomplete data: predict presence/absence of each KEGG module
   predictions <- purrr::map(ko_tibble, function(.sim_data) {
 
-    purrr::map(!!all_models[names(responseVars)], ~
+    purrr::map(all_models[names(responseVars)], ~
                  predict(.x$glmnet.fit,
                          s = .x$lambda.1se,
                          newx = .sim_data,
