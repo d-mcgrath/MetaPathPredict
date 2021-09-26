@@ -30,13 +30,13 @@ Imports:
     glmnet,
     caret,
     Rcpp,
-    future
+    future,
+    furrr
 Depends: 
     R (>= 3.3),
     data.table (>= 1.14.0),
     Matrix,
-    glmnet,
-    furrr
+    glmnet
 Suggests:
       pathview (>= 1.30.1)
 LinkingTo: 
