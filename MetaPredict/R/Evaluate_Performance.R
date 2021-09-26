@@ -364,8 +364,8 @@ test_fn <- function(responseVars, ko_tibble, moduleVector = NULL) {
       dplyr::select(colnames(filler)) %>%
       dplyr::relocate(colnames(filler)) %>%
       as.matrix()
-  }) %>%
-    purrr::set_names(nm = paste0('prop.', seq(10, 100, by = 10)))
+  }) #%>%
+  #  purrr::set_names(nm = paste0('prop.', seq(10, 100, by = 10)))
 
   return(ko_tibble)
 }
