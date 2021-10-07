@@ -11,8 +11,15 @@
 #' @param overwrite Logical. If TRUE, output files from running the MetaPredict function that have the same name as existing files in the output directory will overwrite those existing files. Default is FALSE.
 #' @importFrom magrittr "%>%"
 
-#' @export
-MetaPredict <- function(.data, moduleVector = NULL, predict_models = TRUE,
+
+
+
+### NOTE: need to switch out lasso models with svm models; this is not functional yet
+
+
+
+
+MetaPredict_notYet <- function(.data, moduleVector = NULL, predict_models = TRUE,
                         predict_type = c('response', 'class'), module_detect_type = c('extract', 'detect'),
                         output_dir = NULL, output_prefix = NULL, overwrite = FALSE) {
   cli::cli_h1('Starting MetaPredict')
@@ -54,7 +61,6 @@ MetaPredict <- function(.data, moduleVector = NULL, predict_models = TRUE,
     cli::cli_alert_info('Performing prediction calculations...')
 
     .data <- create_kegg_matrix(.data) %>%
-      predict(caret::preProcess(., method = c('center', 'scale')), .) %>%
       as.matrix()
 
     predictions <- purrr::map(all_models, ~ predict(.x$glmnet.fit,
@@ -122,7 +128,6 @@ MetaPredict <- function(.data, moduleVector = NULL, predict_models = TRUE,
     cli::cli_alert_info('Performing prediction calculations...')
 
     .data <- create_kegg_matrix(.data) %>%
-      predict(caret::preProcess(., method = c('center', 'scale')), .) %>%
       as.matrix()
 
     predictions <- purrr::map(all_models[moduleVector], ~ predict(.x$glmnet.fit,
@@ -165,7 +170,7 @@ MetaPredict <- function(.data, moduleVector = NULL, predict_models = TRUE,
 }
 
 
-#' @export
+
 create_kegg_matrix <- function(.data) {
   purrr::map(.data, ~ {
     .x %>%
@@ -190,7 +195,7 @@ create_kegg_matrix <- function(.data) {
 }
 
 
-#' @export
+
 detect_modules <- function(.data, .modules) {
   patt.kegg_modules <- dplyr::filter(patt.kegg_modules, module %in% .modules)
   all_kegg_modules <- dplyr::filter(all_kegg_modules, module %in% .modules)
@@ -232,16 +237,16 @@ detect_modules <- function(.data, .modules) {
 
 
 
-#' @export
+
 summarize_results <- function(.recon, .pred, .module_metadata) {
   #result <- .recon %>%
-    #dplyr::select(-genome_name) %>%
-#    dplyr::mutate(dplyr::across(2:dplyr::last_col(), ~ as.character(.x))) %>%
-#    reclassify()
+  #dplyr::select(-genome_name) %>%
+  #    dplyr::mutate(dplyr::across(2:dplyr::last_col(), ~ as.character(.x))) %>%
+  #    reclassify()
   #dplyr::mutate(dplyr::across(2:dplyr::last_col(), ~ dplyr::case_when(.x == '1' ~ 'Present',
   #                                                                    .x == '0' ~ NA_character_)))
 
- # .pred <- dplyr::mutate(.pred, dplyr::across(2:dplyr::last_col(), ~ as.character(.x)))
+  # .pred <- dplyr::mutate(.pred, dplyr::across(2:dplyr::last_col(), ~ as.character(.x)))
 
   #result <- put_pred(result, .pred)
 
@@ -249,14 +254,14 @@ summarize_results <- function(.recon, .pred, .module_metadata) {
   #  result[is.na(result[, .column]), .column] <- .pred[is.na(result[, .column]), .column]
   #  }
 
- # result <- result %>%
-    #dplyr::mutate(genome_name = .recon$genome_name, .before = 1) %>%
+  # result <- result %>%
+  #dplyr::mutate(genome_name = .recon$genome_name, .before = 1) %>%
   #  tidyr::pivot_longer(2:dplyr::last_col(), names_to = 'module', values_to = 'values') %>%
-    #pivot_longer_c(keepColName = 'genome_name', pivotColNames = c(colnames(.)[2:length(colnames(.))]),
-    #               names_to = 'module', values_to = 'values') %>%
-   # tidyr::pivot_wider(names_from = genome_name, values_from = values) %>%
-    #dplyr::left_join(.module_metadata, by = 'module') %>%
-    #dplyr::relocate(c(module, module_name, module_class), .before = 1)
+  #pivot_longer_c(keepColName = 'genome_name', pivotColNames = c(colnames(.)[2:length(colnames(.))]),
+  #               names_to = 'module', values_to = 'values') %>%
+  # tidyr::pivot_wider(names_from = genome_name, values_from = values) %>%
+  #dplyr::left_join(.module_metadata, by = 'module') %>%
+  #dplyr::relocate(c(module, module_name, module_class), .before = 1)
 
   result <- .pred %>%
     #dplyr::mutate(genome_name = .recon$genome_name, .before = 1) %>%
@@ -272,20 +277,20 @@ summarize_results <- function(.recon, .pred, .module_metadata) {
 
 
 
-#' @export
+
 summarize_recon <- function(.recon, .module_metadata) {
   #result <- .recon %>%
-    #dplyr::select(-genome_name) %>%
-   # dplyr::mutate(dplyr::across(2:dplyr::last_col(), ~ as.character(.x))) %>%
+  #dplyr::select(-genome_name) %>%
+  # dplyr::mutate(dplyr::across(2:dplyr::last_col(), ~ as.character(.x))) %>%
   #  reclassify()
   #dplyr::mutate(dplyr::across(dplyr::everything(), ~ dplyr::case_when(.x == '1' ~ 'Present',
   #                                                                    .x == '0' ~ 'Absent')))
 
   #result <- result %>%
-    #dplyr::mutate(genome_name = .recon$genome_name, .before = 1) %>%
+  #dplyr::mutate(genome_name = .recon$genome_name, .before = 1) %>%
   #  tidyr::pivot_longer(2:dplyr::last_col(), names_to = 'module', values_to = 'values') %>%
-    #pivot_longer_c(keepColName = 'genome_name', pivotColNames = c(colnames(.)[2:length(colnames(.))]),
-    #               names_to = 'module', values_to = 'values') %>%
+  #pivot_longer_c(keepColName = 'genome_name', pivotColNames = c(colnames(.)[2:length(colnames(.))]),
+  #               names_to = 'module', values_to = 'values') %>%
   #  tidyr::pivot_wider(names_from = genome_name, values_from = values) %>%
   #  dplyr::left_join(.module_metadata, by = 'module') %>%
   #  dplyr::relocate(c(module, module_name, module_class), .before = 1)
@@ -303,7 +308,7 @@ summarize_recon <- function(.recon, .module_metadata) {
 
 
 
-#' @export
+
 save_results <- function(.results, output_dir, output_prefix = NULL, overwrite = FALSE) {
   if (!dir.exists(output_dir)) {
     cli::cli_alert_warning('Creating output directory {output_dir}')
@@ -390,7 +395,7 @@ save_results <- function(.results, output_dir, output_prefix = NULL, overwrite =
 
 
 
-#' @export
+
 save_recon <- function(.results, output_dir, output_prefix = NULL, overwrite = FALSE) {
   if (!dir.exists(output_dir)) {
     cli::cli_alert_warning('Creating output directory {output_dir}')
@@ -440,7 +445,7 @@ save_recon <- function(.results, output_dir, output_prefix = NULL, overwrite = F
 
 
 
-#' @export
+
 extract_modules <- function(.data, .modules) {
   patt.kegg_modules <- dplyr::filter(patt.kegg_modules, module %in% .modules)
   all_kegg_modules <- dplyr::filter(all_kegg_modules, module %in% .modules)
@@ -501,7 +506,7 @@ extract_modules <- function(.data, .modules) {
 
 
 
-#' @export
+
 detect_modules.corrected <- function(.data, .modules) {
   patt.kegg_modules <- dplyr::filter(patt.kegg_modules, module %in% .modules)
   all_kegg_modules <- dplyr::filter(all_kegg_modules, module %in% .modules)
@@ -540,7 +545,7 @@ detect_modules.corrected <- function(.data, .modules) {
         dplyr::mutate(n = module_metadata[['n']]) %>%
         dplyr::relocate(n, .after = 1) %>%
         dplyr::mutate(dplyr::across(3:dplyr::last_col(), ~ dplyr::case_when(.x == n ~ 1L,
-                                                                     .x < n ~ 0L))) %>% # this does not account for multiple ways to perform one step; it requires all alternate step possibilities to be present to count the pathway as complete. need to revise this
+                                                                            .x < n ~ 0L))) %>% # this does not account for multiple ways to perform one step; it requires all alternate step possibilities to be present to count the pathway as complete. need to revise this
         dplyr::select(-n) %>%
         dplyr::as_tibble() %>%
         #pivot_longer_c(pivotColNames = c(colnames(.)[2:length(colnames(.))]),
