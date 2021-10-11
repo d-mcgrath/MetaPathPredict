@@ -3,29 +3,22 @@
 #' is present in the input genome but was missed in the sampling process. It takes in user input in the form of
 #' an object created with a read_data function call.
 #' @param .data Tibble object created with the read_data function - KEGG orthology annotation data for one or more bacterial genome annotation files.
-#' #' @param moduleVector Character vector. An optional character vector of specific KEGG Modules to scan user annotations for, and optionally to predict for. Default is NULL.
+#' @param module_vector Character vector. An optional character vector of specific KEGG Modules to scan user annotations for, and optionally to predict for. Default is NULL.
 #' @param predict_models Logical. If TRUE, presence/absence predictions will be run. Default TRUE
-#' @param predict_type Prediction type, character, must be "class" or "response". Currently supported types are "class" - where 1 = present and 0 = absent, or "response" - the probability for the prediction - a value between 0 and 1. Default is "response".
 #' @param output_dir Character. The full or relative path to an output directory where result and summary output will be saved as TSV flatfiles
 #' @param output_prefix Character. Optional string to prefix to MetaPredict output files. Default is NULL, resulting in output files with default names.
 #' @param overwrite Logical. If TRUE, output files from running the MetaPredict function that have the same name as existing files in the output directory will overwrite those existing files. Default is FALSE.
 #' @importFrom magrittr "%>%"
 
 
-
-
-### NOTE: need to switch out lasso models with svm models; this is not functional yet
-
-
-
-
-MetaPredict_notYet <- function(.data, moduleVector = NULL, predict_models = TRUE,
-                        predict_type = c('response', 'class'), module_detect_type = c('extract', 'detect'),
+#' @export
+metapredict <- function(.data, module_vector = NULL, predict_models = TRUE,
+                        #predict_type = c('response', 'class'),
+                        module_detect_type = c('extract', 'detect'),
                         output_dir = NULL, output_prefix = NULL, overwrite = FALSE) {
   cli::cli_h1('Starting MetaPredict')
-  #cli::cli_alert_info('Formatting input data...')
 
-  predict_type <- match.arg(predict_type)
+  #predict_type <- match.arg(predict_type)
   module_detect_type <- match.arg(module_detect_type)
 
   if (missing(.data)) {
@@ -35,7 +28,7 @@ MetaPredict_notYet <- function(.data, moduleVector = NULL, predict_models = TRUE
 
   cli::cli_alert_info('Reconstructing KEGG modules presence/absence...')
 
-  if (is.null(moduleVector)) {
+  if (is.null(module_vector)) {
     if (module_detect_type == 'extract') {
       reconstructed <- extract_modules(.data, .modules = names(all_models))
     } else {
@@ -61,12 +54,15 @@ MetaPredict_notYet <- function(.data, moduleVector = NULL, predict_models = TRUE
     cli::cli_alert_info('Performing prediction calculations...')
 
     .data <- create_kegg_matrix(.data) %>%
-      as.matrix()
+      predict(preProcess(., method = c('center', 'scale')), .) #%>% verify that this is how this step should be implemented
+      #as.matrix()
 
-    predictions <- purrr::map(all_models, ~ predict(.x$glmnet.fit,
-                                                    s = .x$lambda.1se,
-                                                    newx = .data,
-                                                    type = predict_type)) %>%
+    predictions <- purrr::map(all_models, ~ predict(.x, #$glmnet.fit,
+                                                    #s = .x$lambda.1se,
+                                                    #newx =
+                                                    .data,
+                                                    #type = predict_type
+                                                    )) %>%
       purrr::map_dfc(~ .x) %>%
       dplyr::mutate(dplyr::across(dplyr::everything(), ~ as.double(.x))) %>%
       dplyr::rename_with(~ names(all_models)) %>%
@@ -75,9 +71,9 @@ MetaPredict_notYet <- function(.data, moduleVector = NULL, predict_models = TRUE
     #return the results
     predictions <- put_na(reconstructed$pres_abs_tbl, predictions)
 
-    if (predict_type == 'response') {
-      predictions <- round_predictions(predictions)
-    }
+    #if (predict_type == 'response') {
+    #  predictions <- round_predictions(predictions)
+    #}
 
     summary <- summarize_results(.recon = reconstructed$pres_abs_tbl, .pred = predictions, .module_metadata = module_metadata)
 
@@ -101,9 +97,9 @@ MetaPredict_notYet <- function(.data, moduleVector = NULL, predict_models = TRUE
   } else {
 
     if (module_detect_type == 'extract') {
-      reconstructed <- extract_modules(.data, .modules = moduleVector)
+      reconstructed <- extract_modules(.data, .modules = module_vector)
     } else {
-      reconstructed <- detect_modules(.data, .modules = moduleVector)
+      reconstructed <- detect_modules(.data, .modules = module_vector)
     }
 
     if (predict_models == FALSE) {
@@ -128,24 +124,27 @@ MetaPredict_notYet <- function(.data, moduleVector = NULL, predict_models = TRUE
     cli::cli_alert_info('Performing prediction calculations...')
 
     .data <- create_kegg_matrix(.data) %>%
-      as.matrix()
+      predict(preProcess(., method = c('center', 'scale')), .) #%>% verify that this is how this step should be implemented
+    #as.matrix()
 
-    predictions <- purrr::map(all_models[moduleVector], ~ predict(.x$glmnet.fit,
-                                                                  s = .x$lambda.1se,
-                                                                  newx = .data,
-                                                                  type = predict_type)) %>%
+    predictions <- purrr::map(all_models[module_vector], ~ predict(.x, #$glmnet.fit,
+                                                                  #s = .x$lambda.1se,
+                                                                  #newx =
+                                                                  .data,
+                                                                  #type = predict_type
+                                                                  )) %>%
       purrr::map_dfc(~ .x) %>%
       dplyr::mutate(dplyr::across(dplyr::everything(), ~ as.double(.x))) %>%
-      dplyr::rename_with(~ names(all_models[moduleVector])) %>%
+      dplyr::rename_with(~ names(all_models[module_vector])) %>%
       dplyr::mutate(genome_name = reconstructed$pres_abs_tbl$genome_name, .before = 1)
 
 
     #return the results
     predictions <- put_na(reconstructed$pres_abs_tbl, predictions)
 
-    if (predict_type == 'response') {
-      predictions <- round_predictions(predictions)
-    }
+    #if (predict_type == 'response') {
+    #  predictions <- round_predictions(predictions)
+    #}
 
     summary <- summarize_results(.recon = reconstructed$pres_abs_tbl, .pred = predictions, .module_metadata = module_metadata)
 
@@ -239,35 +238,8 @@ detect_modules <- function(.data, .modules) {
 
 
 summarize_results <- function(.recon, .pred, .module_metadata) {
-  #result <- .recon %>%
-  #dplyr::select(-genome_name) %>%
-  #    dplyr::mutate(dplyr::across(2:dplyr::last_col(), ~ as.character(.x))) %>%
-  #    reclassify()
-  #dplyr::mutate(dplyr::across(2:dplyr::last_col(), ~ dplyr::case_when(.x == '1' ~ 'Present',
-  #                                                                    .x == '0' ~ NA_character_)))
-
-  # .pred <- dplyr::mutate(.pred, dplyr::across(2:dplyr::last_col(), ~ as.character(.x)))
-
-  #result <- put_pred(result, .pred)
-
-  #for (.column in colnames(result))  {
-  #  result[is.na(result[, .column]), .column] <- .pred[is.na(result[, .column]), .column]
-  #  }
-
-  # result <- result %>%
-  #dplyr::mutate(genome_name = .recon$genome_name, .before = 1) %>%
-  #  tidyr::pivot_longer(2:dplyr::last_col(), names_to = 'module', values_to = 'values') %>%
-  #pivot_longer_c(keepColName = 'genome_name', pivotColNames = c(colnames(.)[2:length(colnames(.))]),
-  #               names_to = 'module', values_to = 'values') %>%
-  # tidyr::pivot_wider(names_from = genome_name, values_from = values) %>%
-  #dplyr::left_join(.module_metadata, by = 'module') %>%
-  #dplyr::relocate(c(module, module_name, module_class), .before = 1)
-
   result <- .pred %>%
-    #dplyr::mutate(genome_name = .recon$genome_name, .before = 1) %>%
     tidyr::pivot_longer(2:dplyr::last_col(), names_to = 'module', values_to = 'values') %>%
-    #pivot_longer_c(keepColName = 'genome_name', pivotColNames = c(colnames(.)[2:length(colnames(.))]),
-    #               names_to = 'module', values_to = 'values') %>%
     tidyr::pivot_wider(names_from = genome_name, values_from = values) %>%
     dplyr::left_join(.module_metadata, by = 'module') %>%
     dplyr::relocate(c(module, module_name, module_class, n), .before = 1)
@@ -279,27 +251,8 @@ summarize_results <- function(.recon, .pred, .module_metadata) {
 
 
 summarize_recon <- function(.recon, .module_metadata) {
-  #result <- .recon %>%
-  #dplyr::select(-genome_name) %>%
-  # dplyr::mutate(dplyr::across(2:dplyr::last_col(), ~ as.character(.x))) %>%
-  #  reclassify()
-  #dplyr::mutate(dplyr::across(dplyr::everything(), ~ dplyr::case_when(.x == '1' ~ 'Present',
-  #                                                                    .x == '0' ~ 'Absent')))
-
-  #result <- result %>%
-  #dplyr::mutate(genome_name = .recon$genome_name, .before = 1) %>%
-  #  tidyr::pivot_longer(2:dplyr::last_col(), names_to = 'module', values_to = 'values') %>%
-  #pivot_longer_c(keepColName = 'genome_name', pivotColNames = c(colnames(.)[2:length(colnames(.))]),
-  #               names_to = 'module', values_to = 'values') %>%
-  #  tidyr::pivot_wider(names_from = genome_name, values_from = values) %>%
-  #  dplyr::left_join(.module_metadata, by = 'module') %>%
-  #  dplyr::relocate(c(module, module_name, module_class), .before = 1)
-
   result <- .recon %>%
-    #dplyr::mutate(genome_name = .recon$genome_name, .before = 1) %>%
     tidyr::pivot_longer(2:dplyr::last_col(), names_to = 'module', values_to = 'values') %>%
-    #pivot_longer_c(keepColName = 'genome_name', pivotColNames = c(colnames(.)[2:length(colnames(.))]),
-    #               names_to = 'module', values_to = 'values') %>%
     tidyr::pivot_wider(names_from = genome_name, values_from = values) %>%
     dplyr::left_join(.module_metadata, by = 'module') %>%
     dplyr::relocate(c(module, module_name, module_class, n), .before = 1)
