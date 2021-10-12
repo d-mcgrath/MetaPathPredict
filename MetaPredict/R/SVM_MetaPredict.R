@@ -510,3 +510,46 @@ detect_modules.corrected <- function(.data, .modules) {
   return(list(pres_abs_tbl = detected.modules))
 }
 
+
+
+
+detect_modules_svm <- function(.data, .modules) {
+  patt.kegg_modules <- dplyr::filter(patt.kegg_modules, module %in% .modules)
+  all_kegg_modules <- dplyr::filter(all_kegg_modules, module %in% .modules)
+
+  detected.modules <- purrr::map(.data, ~ {
+    .x %>%
+      dtplyr::lazy_dt() %>%
+      dplyr::group_by(genome_name) %>%
+      dplyr::summarize(k_number = paste0(k_number, collapse = ' ')) %>%
+      dplyr::as_tibble()
+  }) %>%
+    purrr::map_dfr(~ .x) %>%
+    dplyr::bind_cols(
+      purrr::set_names(.$k_number, nm = .$genome_name) %>%
+        purrr::map_dfc(~ stringr::str_detect(string = .x, pattern = patt.kegg_modules$k_numbers)) %>%
+        dplyr::mutate(module_step = patt.kegg_modules$step, .before = 1) %>%
+        dtplyr::lazy_dt() %>%
+        dplyr::mutate(dplyr::across(2:dplyr::last_col(), ~ as.integer(.x))) %>%
+        dplyr::group_by(module_step) %>%
+        dplyr::summarize(dplyr::across(dplyr::everything(), ~ sum(.x))) %>% # aggregate sums of multi-step steps
+        dplyr::mutate(module_name = stringr::str_replace(module_step, '(M\\d{5}).*', '\\1'),
+                      n = all_kegg_modules[['n']]) %>%
+        dplyr::relocate(c(module_name, n), .before = module_step) %>%
+        dplyr::select(-module_step) %>%
+        dplyr::group_by(module_name) %>%
+        dplyr::summarize(dplyr::across(dplyr::everything(), ~ sum(.x))) %>%
+        dplyr::mutate(across(3:dplyr::last_col(), ~ dplyr::case_when(.x == n ~ 'yes',
+                                                                     .x < n ~ 'no'))) %>% # this does not account for multiple ways to perform one step; it requires all alternate step possibilities to be present to count the pathway as complete. need to revise this
+        dplyr::select(-n) %>%
+        dplyr::as_tibble() %>%
+        #pivot_longer_c(pivotColNames = c(colnames(.)[2:length(colnames(.))]),
+        #               keepColName = 'module_name', names_to = 'temp', values_to = 'temp_values') %>%
+        tidyr::pivot_longer(cols = 2:dplyr::last_col(), names_to = 'temp', values_to = 'temp_values') %>%
+        tidyr::pivot_wider(names_from = 'module_name', values_from = 'temp_values')
+    ) %>%
+    dplyr::select(-c(temp, k_number))
+  return(list(pres_abs_tbl = detected.modules))
+}
+
+
