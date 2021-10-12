@@ -38,7 +38,8 @@ evaluate_svm <- function(.data, module_vector = NULL) {
                                                                           TRUE ~ .x))) %>%
       dplyr::bind_cols(dplyr::select(filler, -c(colnames(filler)[colnames(filler) %in% colnames(.)]))) %>%
       dplyr::select(colnames(filler)) %>%
-      dplyr::relocate(colnames(filler))# %>%
+      dplyr::relocate(colnames(filler)) %>%
+      predict(caret::preProcess(., method = c('center', 'scale')), .)
     #as.matrix()
   }) %>%
     purrr::set_names(nm = paste0('prop.', seq(10, 100, by = 10)))
@@ -112,8 +113,6 @@ named_predict <- function(name, model, data) {
   names(z) <- name
   return(z)
 }
-
-
 
 
 

@@ -54,7 +54,7 @@ metapredict <- function(.data, module_vector = NULL, predict_models = TRUE,
     cli::cli_alert_info('Performing prediction calculations...')
 
     .data <- create_kegg_matrix(.data) %>%
-      predict(preProcess(., method = c('center', 'scale')), .) #%>% verify that this is how this step should be implemented
+      predict(caret::preProcess(., method = c('center', 'scale')), .) #%>% verify that this is how this step should be implemented
       #as.matrix()
 
     predictions <- purrr::map(all_models, ~ predict(.x, #$glmnet.fit,
@@ -124,7 +124,7 @@ metapredict <- function(.data, module_vector = NULL, predict_models = TRUE,
     cli::cli_alert_info('Performing prediction calculations...')
 
     .data <- create_kegg_matrix(.data) %>%
-      predict(preProcess(., method = c('center', 'scale')), .) #%>% verify that this is how this step should be implemented
+      predict(caret::preProcess(., method = c('center', 'scale')), .) #%>% verify that this is how this step should be implemented
     #as.matrix()
 
     predictions <- purrr::map(all_models[module_vector], ~ predict(.x, #$glmnet.fit,
