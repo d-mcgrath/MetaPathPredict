@@ -4,7 +4,7 @@
 #' @importFrom magrittr "%>%"
 
 #' @export
-evaluate_dataset <- function(.data, moduleVector = NULL) {
+evaluate_lasso <- function(.data, moduleVector = NULL) {
 
   if (is.null(moduleVector)) {
     moduleVector = names(all_models)
