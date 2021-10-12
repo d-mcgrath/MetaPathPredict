@@ -10,7 +10,7 @@ evaluate_svm <- function(.data, module_vector = NULL) {
     module_vector = names(all_models)
   }
 
-  responseVars <- detect_modules(.data, module_vector)
+  responseVars <- detect_modules_svm(.data, module_vector)
 
   # create list of simulated increments
   ko_tibble <- purrr::map_dfr(.data, ~ {
@@ -38,28 +38,43 @@ evaluate_svm <- function(.data, module_vector = NULL) {
                                                                           TRUE ~ .x))) %>%
       dplyr::bind_cols(dplyr::select(filler, -c(colnames(filler)[colnames(filler) %in% colnames(.)]))) %>%
       dplyr::select(colnames(filler)) %>%
-      dplyr::relocate(colnames(filler)) %>%
-      as.matrix()
+      dplyr::relocate(colnames(filler))# %>%
+    #as.matrix()
   }) %>%
     purrr::set_names(nm = paste0('prop.', seq(10, 100, by = 10)))
 
-  #for the complete data and each set of simulated incomplete data: predict presence/absence of each KEGG module
+  #return(list(response = responseVars, ko_tibble = ko_tibble))
+  #}
+
+  #change model classes back to 'yes'/'no'
+  #y <- ...
   predictions <- purrr::map(ko_tibble, function(.sim_data) {
 
-    purrr::map(all_models[module_vector], ~
-                 predict(.x, .sim_data)
-               ) %>%
-      purrr::map_dfc(~ .x) %>%
-      dplyr::mutate(dplyr::across(dplyr::everything(), ~ as.double(.x))) %>%
-      dplyr::rename_with(~ module_vector)
-  })
+    purrr::imap(all_models[module_vector], ~
+                  named_predict(.y, .x, .sim_data)
+    ) %>%
+      purrr::map_dfc(~ .x)
+  }) #%>% View()
+
+  #temp <- function(predictions, responseVars) {
+
+  #for the complete data and each set of simulated incomplete data: predict presence/absence of each KEGG module
+  #predictions <- purrr::map(ko_tibble, function(.sim_data) {
+
+  #  purrr::map(all_models[module_vector], ~
+  #               predict(.x, .sim_data)
+  #             ) %>%
+  #    purrr::map_dfc(~ .x) %>%
+  #    dplyr::mutate(dplyr::across(dplyr::everything(), ~ as.double(.x))) %>%
+  #    dplyr::rename_with(~ module_vector)
+  #})
 
   confusion_matrices <- purrr::map(predictions, function(.iter) {
     purrr::map2(.iter, dplyr::select(responseVars$pres_abs_tbl, -genome_name), ~
                   if (all(colnames(.x) == colnames(.y))) {
-                    caret::confusionMatrix(factor(.y, levels = c('0', '1')),
-                                           factor(.x, levels = c('0', '1')),
-                                           positive = '1')
+                    caret::confusionMatrix(factor(.y, levels = c('no', 'yes')),
+                                           factor(.x, levels = c('no', 'yes')),
+                                           positive = 'yes')
                   } else {
                     cli::cli_alert_danger('Error: column names of predictions do not match column names of response variables.')
                     return(NULL)
@@ -73,7 +88,8 @@ evaluate_svm <- function(.data, module_vector = NULL) {
                       purrr::keep(~ 'Kappa' %in% names(.x) | 'F1' %in% names(.x)) %>%
                       purrr::flatten() %>%
                       dplyr::as_tibble() %>%
-                      dplyr::mutate(model_name = .y, .before = 1)
+                      dplyr::mutate(model_name = .y, .before = 1) %>%
+                      relocate(c(F1, Precision, Recall, Specificity, `Balanced Accuracy`), .after = 1)
     )
   })
 
@@ -90,6 +106,12 @@ evaluate_svm <- function(.data, module_vector = NULL) {
 }
 
 
+
+named_predict <- function(name, model, data) {
+  z <- predict(model, data)
+  names(z) <- name
+  return(z)
+}
 
 
 
