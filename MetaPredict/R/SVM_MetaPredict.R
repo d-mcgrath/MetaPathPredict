@@ -512,7 +512,7 @@ detect_modules.corrected <- function(.data, .modules) {
 
 
 
-
+#' @export
 detect_modules_svm <- function(.data, .modules) {
   patt.kegg_modules <- dplyr::filter(patt.kegg_modules, module %in% .modules)
   all_kegg_modules <- dplyr::filter(all_kegg_modules, module %in% .modules)

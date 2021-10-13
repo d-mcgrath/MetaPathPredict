@@ -40,35 +40,15 @@ evaluate_svm <- function(.data, module_vector = NULL) {
       dplyr::select(colnames(filler)) %>%
       dplyr::relocate(colnames(filler)) %>%
       predict(caret::preProcess(., method = c('center', 'scale')), .)
-    #as.matrix()
   }) %>%
     purrr::set_names(nm = paste0('prop.', seq(10, 100, by = 10)))
 
-  #return(list(response = responseVars, ko_tibble = ko_tibble))
-  #}
 
-  #change model classes back to 'yes'/'no'
-  #y <- ...
   predictions <- purrr::map(ko_tibble, function(.sim_data) {
-
-    purrr::imap(all_models[module_vector], ~
+    purrr::imap_dfc(all_models[module_vector], ~
                   named_predict(.y, .x, .sim_data)
-    ) %>%
-      purrr::map_dfc(~ .x)
-  }) #%>% View()
-
-  #temp <- function(predictions, responseVars) {
-
-  #for the complete data and each set of simulated incomplete data: predict presence/absence of each KEGG module
-  #predictions <- purrr::map(ko_tibble, function(.sim_data) {
-
-  #  purrr::map(all_models[module_vector], ~
-  #               predict(.x, .sim_data)
-  #             ) %>%
-  #    purrr::map_dfc(~ .x) %>%
-  #    dplyr::mutate(dplyr::across(dplyr::everything(), ~ as.double(.x))) %>%
-  #    dplyr::rename_with(~ module_vector)
-  #})
+    )
+  })
 
   confusion_matrices <- purrr::map(predictions, function(.iter) {
     purrr::map2(.iter, dplyr::select(responseVars$pres_abs_tbl, -genome_name), ~
@@ -90,7 +70,7 @@ evaluate_svm <- function(.data, module_vector = NULL) {
                       purrr::flatten() %>%
                       dplyr::as_tibble() %>%
                       dplyr::mutate(model_name = .y, .before = 1) %>%
-                      relocate(c(F1, Precision, Recall, Specificity, `Balanced Accuracy`), .after = 1)
+                      dplyr::relocate(c(F1, Precision, Recall, Specificity, `Balanced Accuracy`), .after = 1)
     )
   })
 
