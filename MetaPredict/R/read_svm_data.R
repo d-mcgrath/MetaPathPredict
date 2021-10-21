@@ -12,7 +12,7 @@
 
 #' @export
 read_data <- function(input_dir = NULL, pattern = '*.tsv', delim = '\t', metadata_file = NULL, metadata_df = NULL,
-                       kofamscan = TRUE, cutoff = 1e-7, custom = FALSE, score_type = c('evalue', 'score', 'none')) {
+                      kofamscan = TRUE, cutoff = 1e-7, custom = FALSE, score_type = c('evalue', 'score', 'none')) {
 
   cli::cli_h1('Formatting data')
 
@@ -96,7 +96,7 @@ read_data <- function(input_dir = NULL, pattern = '*.tsv', delim = '\t', metadat
 
 #' @export
 read_from_dir <- function(.files, .genome_names, cutoff = cutoff, delim = delim,
-                           kofamscan = kofamscan, custom = custom, score_type = score_type) {
+                          kofamscan = kofamscan, custom = custom, score_type = score_type) {
   if (all(kofamscan == TRUE & custom == FALSE)) {
     annotations <- purrr::map2(.files, .genome_names, ~ read_kofam(.x, .y, cutoff = cutoff))
   } else if (all(kofamscan == FALSE & custom == TRUE)) {
@@ -173,3 +173,16 @@ read_custom <- function(.data, .genome_name, cutoff = 1e-7, delim = delim, score
   }
   return(result)
 }
+
+
+
+#' @export
+available_modules <- function() {
+  if (interactive()) {
+    View(module_metadata)
+  } else {
+    print(module_metadata, n = nrow(module_metadata))
+  }
+}
+
+
