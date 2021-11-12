@@ -6,11 +6,11 @@ using namespace Rcpp;
 DataFrame put_na(DataFrame recon, DataFrame pred) {
   for (int column = 1; column < recon.length(); ++column) {
     IntegerVector reconCol = recon[column];
-    NumericVector predCol = pred[column];
+    CharacterVector predCol = pred[column];
 
     for (int x = 0; x < reconCol.length(); ++x) {
       if (reconCol[x] == 1) {
-        predCol[x] = NA_REAL;
+        predCol[x] = NA_STRING;
       } else {
         predCol[x] = predCol[x];
       }

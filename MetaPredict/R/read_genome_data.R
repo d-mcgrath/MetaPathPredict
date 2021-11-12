@@ -8,11 +8,13 @@
 #' @param cutoff Numeric. The desired E-value or score cutoff. Default is 1e-7.
 #' @param custom Logical. If input annotations are not the output of Kofamscan, the column containing KEGG K numbers must be called "k_number". If annotations contain scores - HMM E-values, blast bitscores, etc., then the gene name of each gene must be in a column "gene_name", and the column with the score must be called "evalue" for E-values from HMM hits, or "score" for any other score, e.g., a bitscore.
 #' @param score_type Character: "evalue", "score", or "none". If "evalue", there must be a column in input annotation files called "evalue" for E-values from HMM hits, or "score" for any other score, e.g., a bitscore. If "none", no score column for annotations is required.
+#' @param predict_models Logical. If TRUE, presence/absence predictions will be run when input object is used with metapredict function. Default TRUE
 #' @importFrom magrittr "%>%"
 
 #' @export
-read_data <- function(input_dir = NULL, pattern = '*.tsv', delim = '\t', metadata_file = NULL, metadata_df = NULL,
-                      kofamscan = TRUE, cutoff = 1e-7, custom = FALSE, score_type = c('evalue', 'score', 'none')) {
+read_data <- function(input_dir = NULL, pattern = '*.tsv', delim = '\t', metadata_file = NULL,
+                      metadata_df = NULL, kofamscan = TRUE, cutoff = 1e-7, custom = FALSE,
+                      score_type = c('evalue', 'score', 'none'), predict_models = TRUE) {
 
   cli::cli_h1('Formatting data')
 
@@ -89,6 +91,13 @@ read_data <- function(input_dir = NULL, pattern = '*.tsv', delim = '\t', metadat
   } else {
     cli::cli_alert_info('Did not filter input annotations by any scoring metric.')
   }
+
+  if (predict_models) {
+    annotations <- new('MetaPredictInput', annotations_list = annotations)
+  } else {
+    annotations = new('MetaReconstructInput', annotations_list = annotations)
+  }
+
   return(annotations)
 }
 

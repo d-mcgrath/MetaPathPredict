@@ -1,43 +1,7 @@
-#' This function is used to reconstruct metabolic pathways based on present KEGG Orthology terms. For any
-#' incomplete pathways with missing reactions, it will then calculate the probability that each missing reaction
-#' is present in the input genome but was missed in the sampling process. It takes in user input in the form of
-#' an object created with a read_data function call.
-#' @param data Tibble object created with the read_data function - KEGG orthology annotation data for one or more bacterial genome annotation files.
-#' @param module_vector Character vector. An optional character vector of specific KEGG Modules to scan user annotations for, and optionally to predict for. Default is a character vector containing identifiers for all available modules.
-#' @param predict_models Logical. If TRUE, presence/absence predictions will be run. Default TRUE
-#' @param output_dir Character. The full or relative path to an output directory where result and summary output will be saved as TSV flatfiles
-#' @param output_prefix Character. Optional string to prefix to MetaPredict output files. Default is NULL, resulting in output files with default names.
-#' @param overwrite Logical. If TRUE, output files from running the MetaPredict function that have the same name as existing files in the output directory will overwrite those existing files. Default is FALSE.
 #' @importFrom magrittr "%>%"
 
 
-#' @export
-metapredict <- function(data, module_vector = names(all_models), predict_models = TRUE,
-                        module_detect_type = c('extract', 'detect'),
-                        output_dir = NULL, output_prefix = NULL, overwrite = FALSE) {
-
-  cli::cli_h1('Starting MetaPredict')
-  module_detect_type <- match.arg(module_detect_type)
-  data <- check_data(data, module_vector = module_vector)
-
-  cli::cli_alert_info('Reconstructing KEGG modules presence/absence...')
-  reconstructed_modules <- reconstruct_modules(from = data, module_vector = module_vector, module_detect_type = module_detect_type)
-  if (predict_models == FALSE) {
-    reconstruction_results <- return_reconstructed_modules(from = reconstructed_modules,
-                                                           output_dir = output_dir, output_prefix = output_prefix, overwrite = overwrite)
-    return(reconstruction_results)
-  }
-
-
-  cli::cli_alert_info('Performing prediction calculations...')
-  prediction_results <- return_predictions(from = data, using = reconstructed_modules,
-                                           module_vector = module_vector, module_detect_type = module_detect_type,
-                                           output_dir = output_dir, output_prefix = output_prefix, overwrite = overwrite)
-
-  return(prediction_results)
-}
-
-
+# Various helper functions ------------------------------------------------
 
 reconstruct_modules <- function(from, module_vector = module_vector, module_detect_type = module_detect_type) {
   if (module_detect_type == 'extract') {
@@ -66,69 +30,12 @@ check_data <- function(data, module_vector) {
 
 
 
-return_reconstructed_modules <- function(from, output_dir = output_dir, output_prefix = output_prefix, overwrite = overwrite) {
-  summary <- summarize_recon(.recon = from$pres_abs_tbl, .module_metadata = module_metadata)
-  if (module_detect_type == 'extract') {
-    results <- list(summary = summary, module_reconstructions = from$pres_abs_tbl, module_extractions = from$ko_extractions)
-  } else {
-    results <- list(summary = summary, module_reconstructions = from$pres_abs_tbl)
-  }
-  if (!is.null(output_dir)) {
-    cli::cli_alert_info('All done. Saving results to directory: {output_dir}')
-    save_recon(results, output_dir, output_prefix = output_prefix, overwrite = overwrite)
-  } else {
-    cli::cli_alert_success('All done.')
-    cli::cli_alert_info('To save results, use save_recon().')
-  }
-
-  return(results)
-}
-
-
-
 #' @export
 named_predict <- function(name, model, data) {
   prediction <- predict(model, data)
+
   names(prediction) <- name
   return(prediction)
-}
-
-
-
-return_predictions <- function(from, using,
-                               module_vector = module_vector, module_detect_type = module_detect_type,
-                               output_dir = output_dir, output_prefix = output_prefix, overwrite = overwrite) {
-
-  from <- create_kegg_matrix(from) %>%
-    predict(caret::preProcess(., method = c('center', 'scale')), .) %>%
-    suppressWarnings()
-
-  predictions <- purrr::map2_dfc(all_models[module_vector], names(all_models[module_vector]), ~
-                                   named_predict(.y, .x, from)) %>%
-    suppressWarnings() %>%
-    dplyr::mutate(dplyr::across(dplyr::everything(), ~ as.double(.x))) %>%
-    dplyr::mutate(genome_name = using$pres_abs_tbl$genome_name, .before = 1)
-
-  predictions <- put_na(using$pres_abs_tbl, predictions)
-
-  summary <- summarize_results(using$pres_abs_tbl, .pred = predictions, .module_metadata = module_metadata)
-
-  if (module_detect_type == 'extract') {
-    results <- list(summary = summary, module_reconstructions = using$pres_abs_tbl,
-                    module_predictions = predictions, module_extractions = using$ko_extractions)
-  } else {
-    results <- list(summary = summary, module_reconstructions = using$pres_abs_tbl, module_predictions = predictions)
-  }
-
-  if (!is.null(output_dir)) {
-    cli::cli_alert_info('All done. Saving results to directory: {output_dir}')
-    save_results(results, output_dir, output_prefix = output_prefix, overwrite = overwrite)
-  } else {
-    cli::cli_alert_success('All done.')
-    cli::cli_alert_info('To save results, use save_results().')
-  }
-
-  return(results)
 }
 
 
@@ -390,7 +297,7 @@ extract_modules <- function(.data, .modules) {
     dplyr::group_by(module) %>%
     dplyr::summarize(dplyr::across(dplyr::everything(), ~ if (any(is.na(.x))) {NA_character_} else {paste0(unlist(.x[!is.na(.x)]), collapse = '_')} )) %>% # This aggregates all steps in multi-step steps that have an _A and _B alternate way of completing - and condenses each _A and _B method into a single row, with the genes separated by '_'; if any piece of an alt step is missing, it returns NA instead
     dplyr::ungroup() %>%
-    dplyr::mutate(module = str_replace(module, '(M\\d{5}_\\d{2}_)[:ALPHA:].*', '\\1alt')) %>%
+    dplyr::mutate(module = stringr::str_replace(module, '(M\\d{5}_\\d{2}_)[:ALPHA:].*', '\\1alt')) %>%
     dplyr::group_by(module) %>%
     dplyr::summarize(dplyr::across(dplyr::everything(), ~ paste0(unlist(.x[!is.na(.x)]), collapse = '|'))) %>% #combine alternate versions of the same module step with `|`
     dplyr::ungroup() %>%
@@ -515,5 +422,3 @@ detect_modules_svm <- function(.data, .modules) {
     dplyr::select(-c(temp, k_number))
   return(list(pres_abs_tbl = detected.modules))
 }
-
-
