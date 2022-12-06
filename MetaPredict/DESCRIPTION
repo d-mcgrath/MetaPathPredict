@@ -6,9 +6,7 @@ Date: 2022-11-28
 Author: person(given = "David",
            family = "Geller-McGrath",
            role = c("aut", "cre"),
-           email = "mcgrath1@mit.edu",
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Maintainer: mcgrath1@mit.edu
+           email = "mcgrath1@mit.edu")
 Description: MetaPredict uses machine learning models trained on gene annotation data from thousands of high-quality genomes from bacterial lineages. For single genomes, such as metagenome-assembled genomes (MAGs) or single-amplified genomes (SAGs), the user will input KEGG K number gene annotation flatfiles. The tool will detect KEGG Modules within each set of KEGG Orthology (K number) gene annotations, and then predict the presence/absence of incomplete KEGG Modules.  
 License: GPL (>= 2)
 Imports: 
