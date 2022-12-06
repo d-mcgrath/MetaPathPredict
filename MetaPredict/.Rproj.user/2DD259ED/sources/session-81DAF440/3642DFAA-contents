@@ -23,7 +23,8 @@ Imports:
     vroom (>= 1.6.0),
     recipeselectors (>= 0.0.1),
     FSelectorRcpp (>= 0.3.8),
-    tidymodels (>= 1.0.0)
+    tidymodels (>= 1.0.0),
+    stacks (>= 1.0.0)
 Depends: 
     R (>= 4.2.1),
     data.table (>= 1.14.4)
