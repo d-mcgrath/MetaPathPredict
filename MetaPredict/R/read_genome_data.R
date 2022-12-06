@@ -13,7 +13,7 @@
 
 #' @export
 read_data <- function(input_dir = NULL, pattern = '*.tsv', delim = '\t', metadata_file = NULL,
-                      metadata_df = NULL, kofamscan = TRUE, cutoff = 1e-7, custom = FALSE,
+                      metadata_df = NULL, kofamscan = TRUE, cutoff = 1e-10, custom = FALSE,
                       score_type = c('evalue', 'score', 'none'), predict_models = TRUE) {
 
   cli::cli_h1('Formatting data')
@@ -123,21 +123,52 @@ read_from_dir <- function(.files, .genome_names, cutoff = cutoff, delim = delim,
 
 
 #' @export
-read_kofam <- function(.data, .genome_name, cutoff = 1e-7) {
-  vroom::vroom(.data, show_col_types = FALSE, delim = '\t', progress = FALSE) %>%
-    dtplyr::lazy_dt() %>%
-    dplyr::filter(!stringr::str_detect(`E-value`, '---')) %>%
-    dplyr::select(`gene name`, KO, `E-value`) %>%
-    dplyr::mutate(`E-value` = as.numeric(`E-value`)) %>%
-    dplyr::filter(`E-value` <= cutoff | `E-value` == 0) %>%
-    dplyr::group_by(`gene name`) %>%
-    dplyr::filter(`E-value` == min(`E-value`)) %>%
+read_kofam = function(.data, .genome_name, cutoff = 1e-10) {
+  vroom::vroom(.data, show_col_types = FALSE, delim = '\t') %>%
+    dplyr::rename(adaptive_threshold = 1,
+           gene_name = `gene name`,
+           k_number = KO,
+           e_value = `E-value`) %>%
+    dplyr::filter(!stringr::str_detect(e_value, '---')) %>%
+    dplyr::select(adaptive_threshold, gene_name, k_number, e_value,
+           score, thrshld, `KO definition`) %>%
+    dplyr::mutate(e_value = as.numeric(e_value),
+           score = as.numeric(score),
+           thrshld = as.numeric(thrshld)) %>%
+    dplyr::mutate(final_score = (score / thrshld), .after = thrshld) %>%
+    #filter(`E-value` <= 1e-7 | `E-value` == 0) %>%
+    dplyr::filter(e_value <= cutoff | !is.na(adaptive_threshold)) %>%
+    dplyr::group_by(gene_name) %>%
+    #filter(`E-value` == min(`E-value`)) %>%
+    dplyr::mutate(best_score =
+             if (any(!is.na(final_score))) {
+               max(na.omit(final_score)) #| is.na(final_score)
+             } else {
+               NA_real_
+             }
+    ) %>%
+    dplyr::filter(is.na(best_score) | best_score == final_score) %>%
     dplyr::ungroup() %>%
-    dplyr::select(KO) %>%
-    dplyr::rename(k_number = KO) %>%
-    dplyr::as_tibble() %>%
-    dplyr::mutate(genome_name = .genome_name, .before = 1)
+    dplyr::mutate(genome_name = .genome_name, .before = 1) %>%
+    dplyr::select(c(genome_name, k_number))
 }
+
+
+# read_kofam <- function(.data, .genome_name, cutoff = 1e-7) {
+#   vroom::vroom(.data, show_col_types = FALSE, delim = '\t', progress = FALSE) %>%
+#     dtplyr::lazy_dt() %>%
+#     dplyr::filter(!stringr::str_detect(`E-value`, '---')) %>%
+#     dplyr::select(`gene name`, KO, `E-value`) %>%
+#     dplyr::mutate(`E-value` = as.numeric(`E-value`)) %>%
+#     dplyr::filter(`E-value` <= cutoff | `E-value` == 0) %>%
+#     dplyr::group_by(`gene name`) %>%
+#     dplyr::filter(`E-value` == min(`E-value`)) %>%
+#     dplyr::ungroup() %>%
+#     dplyr::select(KO) %>%
+#     dplyr::rename(k_number = KO) %>%
+#     dplyr::as_tibble() %>%
+#     dplyr::mutate(genome_name = .genome_name, .before = 1)
+# }
 
 
 

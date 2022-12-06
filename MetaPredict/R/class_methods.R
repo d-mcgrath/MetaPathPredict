@@ -76,9 +76,12 @@ setGeneric('metapredict', function(object, ...) {
 
 setMethod(f = 'metapredict',
           signature = 'MetaReconstructInput',
-          definition = function(object, module_vector = names(all_models), #predict_models = TRUE,
+          definition = function(object,
+                                module_vector = all_model_names, #predict_models = TRUE,
                                 module_detect_type = c('extract', 'detect'),
-                                output_dir = NULL, output_prefix = NULL, overwrite = FALSE) {
+                                output_dir = NULL,
+                                output_prefix = NULL,
+                                overwrite = FALSE) {
 
             stopifnot(is(object, 'MetaReconstructInput'))
 
@@ -112,14 +115,23 @@ setMethod(f = 'metapredict',
 #' @param output_dir Character. The full or relative path to an output directory where result and summary output will be saved as TSV flatfiles
 #' @param output_prefix Character. Optional string to prefix to MetaPredict output files. Default is NULL, resulting in output files with default names.
 #' @param overwrite Logical. If TRUE, output files from running the MetaPredict function that have the same name as existing files in the output directory will overwrite those existing files. Default is FALSE.
+#' @param db_path Character. Full or relative path to MetaPredict SQL database.
 
 setMethod(f = 'metapredict',
           signature = 'MetaPredictInput',
-          definition = function(object, module_vector = names(all_models), #predict_models = TRUE,
+          definition = function(object,
+                                module_vector = all_model_names, #predict_models = TRUE,
                                 module_detect_type = c('extract', 'detect'),
-                                output_dir = NULL, output_prefix = NULL, overwrite = FALSE) {
+                                output_dir = NULL,
+                                output_prefix = NULL,
+                                overwrite = FALSE,
+                                db_path = NULL) {
 
             stopifnot(is(object, 'MetaPredictInput'))
+
+            if (is.null(db_path)) {
+              db_path = path_to_database
+            }
 
             cli::cli_h1('Starting MetaPredict')
             module_detect_type <- match.arg(module_detect_type)
@@ -130,18 +142,18 @@ setMethod(f = 'metapredict',
                                                          module_vector = module_vector,
                                                          module_detect_type = module_detect_type)
 
-            cli::cli_alert_info('Performing prediction calculations...')
+            cli::cli_alert_info('Making predictions...')
             prediction_results <- return_predictions(from = object@annotations_list,
                                                      using = reconstructed_modules,
                                                      module_vector = module_vector,
                                                      module_detect_type = module_detect_type,
                                                      output_dir = output_dir,
                                                      output_prefix = output_prefix,
-                                                     overwrite = overwrite)
+                                                     overwrite = overwrite,
+                                                     db_path = db_path)
             return(prediction_results)
           }
 )
-
 
 
 
@@ -195,18 +207,39 @@ return_reconstructed_modules <- function(from,
 
 
 
-return_predictions <- function(from, using,
-                               module_vector = module_vector, module_detect_type = module_detect_type,
-                               output_dir = output_dir, output_prefix = output_prefix, overwrite = overwrite) {
+return_predictions <- function(from,
+                               using,
+                               module_vector = NULL,
+                               module_detect_type = module_detect_type,
+                               output_dir = output_dir,
+                               output_prefix = output_prefix,
+                               overwrite = overwrite,
+                               db_path = db_path) {
 
-  from <- create_kegg_matrix(from) %>%
-    predict(caret::preProcess(., method = c('center', 'scale')), .) %>%
-    suppressWarnings()
+  if (is.null(module_vector)) {
+    module_vector <- all_model_names
+  }
 
-  predictions <- purrr::map2_dfc(all_models[module_vector], names(all_models[module_vector]), ~
-                                   named_predict(.y, .x, from)) %>%
-    suppressWarnings() %>%
-    dplyr::mutate(dplyr::across(dplyr::everything(), ~ as.character(.x))) %>%
+  if (!is.character(module_vector)) {
+    cli::cli_alert_danger('Modules specified must be a character vector of valid KEGG modules for which MetaPredict models are available.')
+    stop()
+  }
+
+  # create feature table used as input for model predictions
+  from <- create_kegg_matrix(from)
+
+  # connect to the model database
+  model_db <- RSQLite::dbConnect(drv = RSQLite::SQLite(),
+                                 dbname = db_path)
+
+  # set up a reference to the database
+  model_db_ref <- dplyr::tbl(model_db, 'models')
+
+  predictions <- purrr::map_dfc(module_vector, ~
+                                   named_predict(model_name = .x,
+                                                 data = from,
+                                                 database_reference = model_db_ref)) |>
+    dplyr::mutate(dplyr::across(dplyr::everything(), ~ as.character(.x))) |>
     dplyr::mutate(genome_name = using$pres_abs_tbl$genome_name, .before = 1)
 
   predictions <- put_na(using$pres_abs_tbl, predictions)

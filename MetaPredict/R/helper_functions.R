@@ -20,8 +20,8 @@ check_data <- function(data, module_vector) {
     stop()
   }
 
-  if (any(!(module_vector %in% names(all_models)))) {
-    bad_modules <- module_vector[!(module_vector %in% names(all_models))]
+  if (any(!(module_vector %in% all_model_names))) {
+    bad_modules <- module_vector[!(module_vector %in% all_model_names)]
     cli::cli_alert_danger('The following module(s) are improperly named or not available at this time: {bad_modules}. Use available_modules() to check which KEGG Modules are currently available for predictions.')
     stop()
   }
@@ -31,11 +31,25 @@ check_data <- function(data, module_vector) {
 
 
 #' @export
-named_predict <- function(name, model, data) {
+named_predict <- function(model_name, data, database_reference) {
+
+  model <- database_reference |>
+    dplyr::filter(model_name == model_name) |>
+    dplyr::collect() |>
+    dplyr::pull(raw_model) |>
+    unserialize_model()
+
   prediction <- predict(model, data)
 
-  names(prediction) <- name
+  names(prediction) <- model_name
   return(prediction)
+}
+
+
+
+# function to properly index and then unserialize a raw model "blob"
+unserialize_model = function(.data) {
+  unserialize(.data[[1]])
 }
 
 
