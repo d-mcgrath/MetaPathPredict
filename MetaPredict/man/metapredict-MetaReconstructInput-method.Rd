@@ -9,7 +9,7 @@ an object created with a read_data function call.}
 \usage{
 \S4method{metapredict}{MetaReconstructInput}(
   object,
-  module_vector = names(all_models),
+  module_vector = all_model_names,
   module_detect_type = c("extract", "detect"),
   output_dir = NULL,
   output_prefix = NULL,

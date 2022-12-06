@@ -11,7 +11,7 @@ read_data(
   metadata_file = NULL,
   metadata_df = NULL,
   kofamscan = TRUE,
-  cutoff = 1e-07,
+  cutoff = 1e-10,
   custom = FALSE,
   score_type = c("evalue", "score", "none"),
   predict_models = TRUE

@@ -1,0 +1,315 @@
+# load required libraries
+library(tidyverse)
+library(dtplyr)
+library(tidymodels)
+library(recipeselectors)
+library(furrr)
+library(stacks)
+
+
+# prepare GEM test datasets w/ downsampled annotations --------------------
+
+setwd('/vortexfs1/omics/pachiadaki/dgellermcgrath/metapredict-benchmarking/gem-mag-data/annotation-subsets/all-tsv')
+plan(multicore, workers = 50) #49000 * 1024 ^2 - 5.8Gb per core, 30 cores total
+options(future.globals.maxSize = 51380224000)
+
+hq_mags = readRDS('/vortexfs1/omics/pachiadaki/dgellermcgrath/ensemble/rdata/full_genome_dataset_data/hq_gem_mag_metadata_169_mags_total.rds')
+
+hq_mags = pull(hq_mags, genome_id)
+
+files = list.files()
+files = files[str_detect(files, paste0(hq_mags, collapse = '|'))]
+genome_names = str_replace(files, '(.*)-ko.tsv', '\\1')
+
+# load all_kegg_modules, patt.kegg_modules, filler (0 row tibble of all columns new test data needs)
+#load('/vortexfs1/omics/pachiadaki/dgellermcgrath/lasso/feature-tables/training-data-072821/allKeggModules-PattKeggModules-080321.RData')
+kegg_rules = readRDS('/vortexfs1/omics/pachiadaki/dgellermcgrath/ensemble/rdata/full_genome_dataset_data/kegg_rules_prevoiusly_all_kegg_modules.rds')
+
+
+get_size = function(.data) {
+  .data %>%
+    object.size() %>%
+    format(units = "Mb")
+}
+
+
+read_kofam = function(.data, .genome_name, cutoff = 1e-10) { # testing 1e-05
+  vroom::vroom(.data, show_col_types = FALSE, delim = '\t') %>%
+    rename(adaptive_threshold = 1,
+           gene_name = `gene name`,
+           k_number = KO,
+           e_value = `E-value`) %>%
+    filter(!str_detect(e_value, '---')) %>%
+    select(adaptive_threshold, gene_name, k_number, e_value,
+           score, thrshld, `KO definition`) %>%
+    mutate(e_value = as.numeric(e_value),
+           score = as.numeric(score),
+           thrshld = as.numeric(thrshld)) %>%
+    mutate(final_score = (score / thrshld), .after = thrshld) %>%
+    #filter(`E-value` <= 1e-7 | `E-value` == 0) %>%
+    filter(e_value <= cutoff | !is.na(adaptive_threshold)) %>%
+    group_by(gene_name) %>%
+    #filter(`E-value` == min(`E-value`)) %>%
+    mutate(best_score =
+             if (any(!is.na(final_score))) {
+               max(na.omit(final_score)) #| is.na(final_score)
+             } else {
+               NA_real_
+             }
+    ) %>%
+    filter(is.na(best_score) | best_score == final_score) %>%
+    ungroup() %>%
+    dplyr::mutate(genome_name = .genome_name, .before = 1) %>%
+    select(c(genome_name, k_number))
+}
+
+
+# read genome kofam tsv gene annotation files in, one by one
+gem_data = future_map2(files, genome_names, ~ read_kofam(.x, .y))
+gem_data = set_names(gem_data, map_chr(gem_data, ~ unique(.x$genome_name)))
+
+res_vars =
+  kegg_rules %>%
+  bind_cols(
+    future_imap_dfc(
+      gem_data, ~
+        kegg_rules %>%
+        mutate(!!.y := map_lgl(rule, function(.rule) {
+          any(.rule %in% .x$k_number)
+        })) %>%
+        select(!!.y)
+    )
+  )
+
+res_vars = res_vars %>%
+  group_by(module, step) %>%
+  summarize(across(where(is.logical), ~ all(.x)))
+
+res_vars = res_vars %>%
+  summarize(across(where(is.logical), ~ all(.x)))
+
+res_vars = res_vars %>%
+  pivot_longer(
+    cols = where(is.logical),
+    names_to = 'genome_name',
+    values_to = 'contains_module'
+  ) %>%
+  pivot_wider(
+    names_from = module,
+    values_from = contains_module
+  )
+
+res_vars = res_vars %>%
+  mutate(across(where(is.logical), ~ as.integer(.x))) %>%
+  mutate(across(where(is.integer), ~ factor(.x, levels = c('0', '1'))))
+
+
+
+filler = readRDS('/vortexfs1/omics/pachiadaki/dgellermcgrath/ensemble/rdata/full_genome_dataset_data/feat_tib_hmm_e10.rds')
+
+filler = filler %>%
+  select(-genome_name) %>%
+  slice(1) %>%
+  mutate(across(everything(), ~ 0L))
+
+
+formatted_test_data = future_imap_dfr(gem_data, ~ {
+  .x %>%
+    mutate(count = 1L) %>%
+    group_by(genome_name, k_number) %>%
+    summarize(count = sum(count), .groups = 'drop') %>%
+    pivot_wider(names_from = k_number, values_from = count) %>%
+    dplyr::bind_cols(dplyr::select(filler, -c(colnames(filler)[colnames(filler) %in% colnames(.)]))) %>%
+    dplyr::select(genome_name, colnames(filler))
+})
+
+# set.seed(123)
+# gem_list = c(
+#   gem_data %>% map(~ .x %>% mutate(prop = 1, .after = 1)),
+#
+#   map(seq(0.9, 0.1, by = -0.1), function(.prop) {
+#     gem_data %>%
+#       map(~ .x %>%
+#             mutate(prop = .prop, .after = 1) %>%
+#             slice_sample(prop = .prop))
+#   }) %>%
+#     flatten()
+# )
+
+
+Rcpp::sourceCpp('/vortexfs1/home/dgellermcgrath/cpp_fns_files/rarefy.cpp')
+
+# create a test_metadata tibble; remove response var/genome name columns from test
+formatted_metadata = select(formatted_test_data, genome_name)
+formatted_test_data = select(formatted_test_data, -genome_name)
+
+# convert test tibble into a matrix for fast sparsification routine via C++ (Rcpp) fn
+if (all(map_chr(formatted_test_data, ~ class(.x)) == 'integer')) {
+  formatted_test_data = as.matrix(formatted_test_data)
+} else {
+  stop('Error: Not all columns were integer class.')
+}
+
+# function to create sparsified/downsampled versions of the test dataset observations
+# this is to simulate incomplete genome annotations, and then to test models on this
+create_downsampled_test_from = function(.test, .metadata) {
+  future_map(
+    .options = furrr_options(seed = TRUE),
+    seq(1, 0.1, by = -0.1), ~
+      rarefy(.test, sample_rate = .x) %>%
+      as_tibble() %>%
+      bind_cols(.metadata) %>%
+      relocate(genome_name, .before = 1) %>%
+      mutate(prop_counts_retained = .x, .after = genome_name)
+  )
+}
+
+# create list of 10 datasets - the original full test data annotations, and
+# incrementally downsampled protein annotations, in 10% increments from
+# 10% of protein annotation counts randomly removed, to 90% randomly removed
+formatted_test_data = create_downsampled_test_from(
+  formatted_test_data, formatted_metadata)
+
+# merge all 10 list component tibbles into one tibble
+formatted_test_data = map_dfr(formatted_test_data, ~ .x)
+
+
+
+
+
+
+
+
+#
+# formatted_test_data = formatted_test_data %>%
+#   unite(c(genome_name, prop), col = 'genome_name')
+
+#
+# gem_data = gem_data %>%
+#   map(~ .x %>% mutate(genome_name = paste0(genome_name, '_1')))
+
+
+#
+test_and_get_conf_matrices_for = function(formatted_test_data,
+                                          module_name,
+                                          model,
+                                          res_vars) {
+
+  model = readRDS(model)
+
+  # create response variable column for all genomes (sparsified + complete)
+  # predict presence/absence of current iteration module using model, creating a preds column
+
+  formatted_test_data = formatted_test_data %>%
+    left_join(res_vars %>%
+                select(genome_name, module_name) %>%
+                rename(y = module_name),
+              by = 'genome_name') %>%
+    relocate(y, .after = genome_name) %>%
+    mutate(preds = predict(model, .) %>% pull(1), .after = y) %>%
+    select(c(genome_name, prop_counts_retained, y, preds)) %>%
+    mutate(y = factor(y, levels = c('0', '1')))
+
+  #create confusion matrix for each downsampled increment of the dataset
+  cm_list = formatted_test_data %>%
+    group_by(prop_counts_retained) %>%
+    group_split() %>%
+    set_names(nm = paste0('prop_', map_dbl(., ~ unique(.x$prop_counts_retained)))) %>%
+    map(~ caret::confusionMatrix(
+      .x$preds, .x$y,
+      positive = '1'))
+
+  return(list(pred_md = formatted_test_data, cm_list = cm_list))
+}
+
+
+safely_test_and_get_conf_matrices_for = safely(test_and_get_conf_matrices_for)
+
+
+# test stacked ensemble models on GEM genomes --------------------------------------------
+
+output_dir = '/vortexfs1/omics/pachiadaki/dgellermcgrath/ensemble/rdata/FINAL_GEM_TEST/'
+
+models = system('realpath /vortexfs1/omics/pachiadaki/dgellermcgrath/ensemble/rdata/final_ensemble_models_july_2022/*.rds', intern = TRUE)
+
+model_names = str_replace(models, '\\/.*\\/+(M\\d{5})_ens.*', '\\1')
+
+ens_pred_res = future_pmap(
+  .progress = TRUE,
+  .options = furrr_options(seed = TRUE),
+  list(
+    list(formatted_test_data),
+    model_names,
+    models,
+    list(res_vars)), ~
+    safely_test_and_get_conf_matrices_for(..1, ..2, ..3, ..4)
+)
+
+ens_pred_res = ens_pred_res %>%
+  set_names(model_names)
+
+
+saveRDS(ens_pred_res, file = paste0(output_dir, 'ENS_FINAL_GEM_TEST_LAST_E-10_hq_169.rds'))
+
+
+
+
+
+
+# test stacked xgboost models on GEM genomes --------------------------------------------
+
+models = system('realpath /vortexfs1/omics/pachiadaki/dgellermcgrath/ensemble/rdata/final_butchered_xgboost_models/*.rds', intern = TRUE)
+
+model_names = str_replace(models, '\\/.*\\/+(M\\d{5})_xgb.*', '\\1')
+
+xgb_pred_res = future_pmap(
+  .progress = TRUE,
+  .options = furrr_options(seed = TRUE),
+  list(
+    list(formatted_test_data),
+    model_names,
+    models,
+    list(res_vars)), ~
+    safely_test_and_get_conf_matrices_for(..1, ..2, ..3, ..4)
+)
+
+xgb_pred_res = xgb_pred_res %>%
+  set_names(model_names)
+
+
+saveRDS(xgb_pred_res, file = paste0(output_dir, 'XGBOOST_FINAL_GEM_TEST_LAST_E-10_hq_169.rds'))
+
+
+
+
+
+
+
+
+
+# test stacked nnet models on GEM genomes --------------------------------------------
+
+models = system('realpath /vortexfs1/omics/pachiadaki/dgellermcgrath/ensemble/rdata/final_butchered_nnet_models/*.rds', intern = TRUE)
+
+model_names = str_replace(models, '\\/.*\\/+(M\\d{5})_nnet.*', '\\1')
+
+nnet_pred_res = future_pmap(
+  .progress = TRUE,
+  .options = furrr_options(seed = TRUE),
+  list(
+    list(formatted_test_data),
+    model_names,
+    models,
+    list(res_vars)), ~
+    safely_test_and_get_conf_matrices_for(..1, ..2, ..3, ..4)
+)
+
+nnet_pred_res = nnet_pred_res %>%
+  set_names(model_names)
+
+
+saveRDS(nnet_pred_res, file = paste0(output_dir, 'NNET_FINAL_GEM_TEST_LAST_E-10_hq_169.rds'))
+
+
+
+

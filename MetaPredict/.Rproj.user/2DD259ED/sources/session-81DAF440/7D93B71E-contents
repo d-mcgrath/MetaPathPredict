@@ -1,0 +1,74 @@
+library(tidyverse)
+
+x = read_data(metadata_df = tibble(
+    filepath = '~/Downloads/genome_test_metapredict/CarAnox_mtb2-1454-ko.tsv',
+    genome_name = 'test_genome'
+  )
+)
+
+
+
+x_results = metapredict(x, module_vector = c('M00001', 'M00596'))
+
+load('data/filler.rda')
+load('data/patt.kegg_modules.rda')
+load('data/all_kegg_modules.rda')
+load('data/all_models.rda')
+
+create_kegg_matrix(x@annotations_list)
+
+object <- check_data(object, module_vector = module_vector)
+
+reconstructed_modules <- reconstruct_modules(from = x@annotations_list,
+                                             module_vector = c('M00001', 'M00002'), #module_vector,
+                                             module_detect_type = 'extract') #module_detect_type)
+
+
+prediction_results <- return_predictions(from = x@annotations_list,
+                                         using = reconstructed_modules,
+                                         module_vector = c('M00001', 'M00002'), #module_vector,
+                                         module_detect_type = 'extract', #module_detect_type,
+                                         output_dir = '~/Downloads/metaP_test', #output_dir,
+                                         output_prefix = 'test_output', #output_prefix,
+                                         overwrite = FALSE) #overwrite)
+
+
+
+
+
+
+library(tidyverse)
+library(tidymodels)
+library(stacks)
+library(recipeselectors)
+
+
+#check object size
+size = function(.data) {
+  .data %>%
+    object.size() %>%
+    format(units = 'Mb')
+}
+
+# function to properly index and then unserialize a raw model "blob"
+unserialize_model = function(.data) {
+  unserialize(.data[[1]])
+}
+
+#connect to the SQL database
+model_db <- RSQLite::dbConnect(
+  drv = RSQLite::SQLite(),
+  dbname = "/vortexfs1/omics/pachiadaki/dgellermcgrath/ensemble/sql_db/model_sqlite.db")
+
+#set up a reference to the database
+model_db_ref = tbl(model_db, 'models')
+
+# code to extract a specified raw model from the SQL database and
+# then unserialize it/load it into RAM
+modelx = model_db_ref %>%
+  filter(model_name == 'M00002') %>%
+  collect() %>%
+  pull(raw_model) %>%
+  unserialize_model()
+
+# works

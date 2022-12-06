@@ -82,6 +82,16 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// rcpp_hello_world
+List rcpp_hello_world();
+RcppExport SEXP _MetaPredict_rcpp_hello_world() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(rcpp_hello_world());
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_MetaPredict_put_na", (DL_FUNC) &_MetaPredict_put_na, 2},
@@ -90,6 +100,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_MetaPredict_na_to_zero", (DL_FUNC) &_MetaPredict_na_to_zero, 1},
     {"_MetaPredict_round_predictions", (DL_FUNC) &_MetaPredict_round_predictions, 1},
     {"_MetaPredict_pivot_longer_c", (DL_FUNC) &_MetaPredict_pivot_longer_c, 5},
+    {"_MetaPredict_rcpp_hello_world", (DL_FUNC) &_MetaPredict_rcpp_hello_world, 0},
     {NULL, NULL, 0}
 };
 

@@ -25,3 +25,7 @@ pivot_longer_c <- function(in_df, names_to, values_to, pivotColNames, keepColNam
     .Call(`_MetaPredict_pivot_longer_c`, in_df, names_to, values_to, pivotColNames, keepColName)
 }
 
+rcpp_hello_world <- function() {
+    .Call(`_MetaPredict_rcpp_hello_world`)
+}
+

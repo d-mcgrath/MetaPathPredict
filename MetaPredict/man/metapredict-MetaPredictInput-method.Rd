@@ -9,11 +9,12 @@ an object created with a read_data function call.}
 \usage{
 \S4method{metapredict}{MetaPredictInput}(
   object,
-  module_vector = names(all_models),
+  module_vector = all_model_names,
   module_detect_type = c("extract", "detect"),
   output_dir = NULL,
   output_prefix = NULL,
-  overwrite = FALSE
+  overwrite = FALSE,
+  db_path = NULL
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ an object created with a read_data function call.}
 \item{output_prefix}{Character. Optional string to prefix to MetaPredict output files. Default is NULL, resulting in output files with default names.}
 
 \item{overwrite}{Logical. If TRUE, output files from running the MetaPredict function that have the same name as existing files in the output directory will overwrite those existing files. Default is FALSE.}
+
+\item{db_path}{Character. Full or relative path to MetaPredict SQL database.}
 }
 \description{
 This function is used to reconstruct metabolic pathways based on present KEGG Orthology terms. For any

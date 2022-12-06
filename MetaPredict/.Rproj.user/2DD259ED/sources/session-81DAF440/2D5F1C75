@@ -1,0 +1,26 @@
+{
+    "id": "2D5F1C75",
+    "path": "~/MetaPredict/R/read_genome_data.R",
+    "project_path": "R/read_genome_data.R",
+    "type": "r_source",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1670349968180.0,
+    "source_on_save": false,
+    "relative_order": 7,
+    "properties": {
+        "source_window_id": "w0xy0ckdanam8",
+        "Source": "Source",
+        "cursorPosition": "24,81",
+        "scrollLine": "10"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1670350045,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1670350045910,
+    "read_only": false,
+    "read_only_alternatives": []
+}
