@@ -1,0 +1,17 @@
+library(MetaPredict)
+library(tidyverse)
+
+devtools::install_github('d-mcgrath/MetaPredict-HPC/MetaPredict', auth_token = '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')
+
+
+input = read_data(
+  metadata_df = tibble(
+  filepath = '~/Downloads/genome_test_metapredict/CarAnox_mtb2-1454-ko.tsv',
+  genome_name = 'test_genome')
+  
+  
+  )
+
+
+
+results = metapredict(input, module_vector = c('M00001', 'M00596'))
