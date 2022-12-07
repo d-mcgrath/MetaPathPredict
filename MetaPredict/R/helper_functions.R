@@ -37,8 +37,7 @@ named_predict <- function(model_name, data, database_reference) {
     dplyr::pull(raw_model) |>
     unserialize_model()
 
-  RSQLite::dbDisconnect()
-  prediction <- stacks::predict.data_stack(model, data)
+  prediction <- predict(model, data)
 
   names(prediction) <- model_name
   return(prediction)
