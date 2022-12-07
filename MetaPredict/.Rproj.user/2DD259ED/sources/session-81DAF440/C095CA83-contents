@@ -176,6 +176,10 @@ summarize_reconstruction <- function(.recon, .module_metadata) {
 
 
 save_results <- function(.results, output_dir, output_prefix = NULL, overwrite = FALSE) {
+
+  .results = list(.results@summary, .results@module_reconstructions,
+                  .results@module_predictions, .results@module_extractions)
+
   if (!dir.exists(output_dir)) {
     cli::cli_alert_warning('Creating output directory {output_dir}')
     dir.create(output_dir)
@@ -190,15 +194,15 @@ save_results <- function(.results, output_dir, output_prefix = NULL, overwrite =
 
   if (length(.results) == 3) {
 
-    if (all(!(paste0(output_prefix, c('summary', 'module_reconstructions', 'module_predictions'), '.tsv') %in% list.files(path = output_dir)))) {
+    if (all(!(paste0(output_prefix, c('summary', 'module_reconstructions', 'module_predictions'), '.tsv') %in%
+              list.files(path = output_dir)))) {
       purrr::walk2(1:length(.results), c('summary', 'module_reconstructions', 'module_predictions'), ~ {
-        readr::write_tsv(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
-      })
+        vroom::vroom_write(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))})
     } else {
       if (overwrite == TRUE) {
         cli::cli_alert_warning('Overwriting existing files with output files.')
         purrr::walk2(1:length(.results), c('summary', 'module_reconstructions', 'module_predictions'), ~ {
-          readr::write_tsv(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
+          vroom::vroom_write(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
         })
       } else {
         for (.attempt in 1:3) {
@@ -206,7 +210,7 @@ save_results <- function(.results, output_dir, output_prefix = NULL, overwrite =
           if (ans == 'y') {
             cli::cli_alert_warning('Overwriting existing files with output files.')
             purrr::walk2(1:length(.results), c('summary', 'module_reconstructions', 'module_predictions'), ~ {
-              readr::write_tsv(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
+              vroom::vroom_write(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
             })
             break
           } else if (ans == 'n') {
@@ -225,13 +229,13 @@ save_results <- function(.results, output_dir, output_prefix = NULL, overwrite =
   } else {
     if (all(!(paste0(output_prefix, c('summary', 'module_reconstructions', 'module_predictions', 'module_extractions'), '.tsv') %in% list.files(path = output_dir)))) {
       purrr::walk2(1:length(.results), c('summary', 'module_reconstructions', 'module_predictions', 'module_extractions'), ~ {
-        readr::write_tsv(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
+        vroom::vroom_write(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
       })
     } else {
       if (overwrite == TRUE) {
         cli::cli_alert_warning('Overwriting existing files with output files.')
         purrr::walk2(1:length(.results), c('summary', 'module_reconstructions', 'module_predictions', 'module_extractions'), ~ {
-          readr::write_tsv(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
+          vroom::vroom_write(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
         })
       } else {
         for (.attempt in 1:3) {
@@ -239,7 +243,7 @@ save_results <- function(.results, output_dir, output_prefix = NULL, overwrite =
           if (ans == 'y') {
             cli::cli_alert_warning('Overwriting existing files with output files.')
             purrr::walk2(1:length(.results), c('summary', 'module_reconstructions', 'module_predictions', 'module_extractions'), ~ {
-              readr::write_tsv(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
+              vroom::vroom_write(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
             })
             break
           } else if (ans == 'n') {
@@ -263,6 +267,9 @@ save_results <- function(.results, output_dir, output_prefix = NULL, overwrite =
 
 
 save_recon <- function(.results, output_dir, output_prefix = NULL, overwrite = FALSE) {
+
+  .results = list(.results@summary, .results@module_reconstructions)
+
   if (!dir.exists(output_dir)) {
     cli::cli_alert_warning('Creating output directory {output_dir}')
     dir.create(output_dir)
@@ -277,13 +284,13 @@ save_recon <- function(.results, output_dir, output_prefix = NULL, overwrite = F
 
   if (all(!(paste0(output_prefix, c('summary', 'module_reconstructions'), '.tsv') %in% list.files(path = output_dir)))) {
     purrr::map2(1:length(.results), c('summary', 'module_reconstructions'), ~ {
-      readr::write_tsv(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
+      vroom::vroom_write(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
     })
   } else {
     if (overwrite == TRUE) {
       cli::cli_alert_warning('Overwriting existing files with output files.')
       purrr::map2(1:length(.results), c('summary', 'module_reconstructions'), ~ {
-        readr::write_tsv(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
+        vroom::vroom_write(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
       })
     } else {
       for (.attempt in 1:3) {
@@ -291,7 +298,7 @@ save_recon <- function(.results, output_dir, output_prefix = NULL, overwrite = F
         if (ans == 'y') {
           cli::cli_alert_warning('Overwriting existing files with output files.')
           purrr::map2(1:length(.results), c('summary', 'module_reconstructions'), ~ {
-            readr::write_tsv(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
+            vroom::vroom_write(.results[[.x]], file = paste0(output_dir, output_prefix, .y, '.tsv'))
           })
           break
         } else if (ans == 'n') {

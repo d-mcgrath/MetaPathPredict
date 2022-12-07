@@ -3,7 +3,7 @@
     "path": "~/MetaPredict/DESCRIPTION",
     "project_path": "DESCRIPTION",
     "type": "dcf",
-    "hash": "0",
+    "hash": "2133632470",
     "contents": "",
     "dirty": false,
     "created": 1670350511448.0,
@@ -12,15 +12,15 @@
     "properties": {
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "31,4",
-        "scrollLine": "1"
+        "cursorPosition": "30,30",
+        "scrollLine": "10"
     },
     "folds": "",
-    "lastKnownWriteTime": 1670441607,
+    "lastKnownWriteTime": 1670443304,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1670441607889,
+    "last_content_update": 1670443304645,
     "read_only": false,
     "read_only_alternatives": []
 }
