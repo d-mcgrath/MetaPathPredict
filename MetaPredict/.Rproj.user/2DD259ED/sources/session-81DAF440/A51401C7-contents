@@ -1,17 +1,23 @@
 library(MetaPredict)
 library(tidyverse)
 
-devtools::install_github('d-mcgrath/MetaPredict-HPC/MetaPredict', auth_token = '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')
+#devtools::install_github('d-mcgrath/MetaPredict-HPC/MetaPredict', auth_token = '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')
 
 
 input = read_data(
-  metadata_df = tibble(
-  filepath = '~/Downloads/genome_test_metapredict/CarAnox_mtb2-1454-ko.tsv',
-  genome_name = 'test_genome')
-  
-  
-  )
-
-
+  metadata_df = data.frame(
+  filepath = rep('~/Downloads/genome_test_metapredict/CarAnox_mtb2-1454-ko.tsv', 2),
+  genome_name = paste0('test_genome_', 1:2)))
 
 results = metapredict(input, module_vector = c('M00001', 'M00596'))
+# works
+
+# testing module detection methods
+old_method = detect_modules(input@annotations_list, .modules = all_model_names)
+
+
+new_method = december_detect_modules(input@annotations_list, .modules = all_model_names)
+
+
+identical(new_method, old_method$pres_abs_tbl)
+# TRUE!!!
