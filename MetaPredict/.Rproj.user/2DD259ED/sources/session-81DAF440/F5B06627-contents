@@ -241,8 +241,6 @@ return_predictions <- function(from,
     dplyr::mutate(dplyr::across(dplyr::everything(), ~ as.character(.x))) |>
     dplyr::mutate(genome_name = using$pres_abs_tbl$genome_name, .before = 1)
 
-  RSQLite::dbDisconnect()
-
   predictions <- put_na(using$pres_abs_tbl, predictions)
 
   summary <- summarize_results(using$pres_abs_tbl, .pred = predictions, .module_metadata = module_metadata)
