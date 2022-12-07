@@ -20,14 +20,16 @@ Imports:
     tibble (>= 3.1.8),
     cli (>= 3.4.1),
     vroom (>= 1.6.0),
-    recipeselectors (>= 0.0.1),
     FSelectorRcpp (>= 0.3.8),
     tidymodels (>= 1.0.0),
     stacks (>= 1.0.0),
-    RSQLite (>= 2.2.1)
+    RSQLite (>= 2.2.1),
+    xgboost (>= 1.6.0),
+    nnet(>= 7.3-18)
 Depends: 
     R (>= 4.2.1),
-    data.table (>= 1.14.4)
+    data.table (>= 1.14.4),
+    recipeselectors (>= 0.0.1)
 LinkingTo: Rcpp
 RoxygenNote: 7.2.1
 Encoding: UTF-8
