@@ -22,14 +22,14 @@ Imports:
     vroom (>= 1.6.0),
     FSelectorRcpp (>= 0.3.8),
     tidymodels (>= 1.0.0),
-    stacks (>= 1.0.0),
     RSQLite (>= 2.2.1),
     xgboost (>= 1.6.0),
     nnet(>= 7.3-18)
 Depends: 
     R (>= 4.2.1),
     data.table (>= 1.14.4),
-    recipeselectors (>= 0.0.1)
+    recipeselectors (>= 0.0.1),
+    stacks (>= 1.0.0)
 LinkingTo: Rcpp
 RoxygenNote: 7.2.1
 Encoding: UTF-8
