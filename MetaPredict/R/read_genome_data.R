@@ -9,7 +9,6 @@
 #' @param custom Logical. If input annotations are not the output of Kofamscan, the column containing KEGG K numbers must be called "k_number". If annotations contain scores - HMM E-values, blast bitscores, etc., then the gene name of each gene must be in a column "gene_name", and the column with the score must be called "evalue" for E-values from HMM hits, or "score" for any other score, e.g., a bitscore.
 #' @param score_type Character: "evalue", "score", or "none". If "evalue", there must be a column in input annotation files called "evalue" for E-values from HMM hits, or "score" for any other score, e.g., a bitscore. If "none", no score column for annotations is required.
 #' @param predict_models Logical. If TRUE, presence/absence predictions will be run when input object is used with metapredict function. Default TRUE
-#' @importFrom magrittr "%>%"
 
 #' @export
 read_data <- function(input_dir = NULL, pattern = '*.tsv', delim = '\t', metadata_file = NULL,
@@ -53,18 +52,18 @@ read_data <- function(input_dir = NULL, pattern = '*.tsv', delim = '\t', metadat
         }
         if (any(is.na(metadata_tbl$genome_name))) {
           cli::cli_alert_warning('Warning: detected ', length(which(is.na(metadata_tbl$genome_name))), 'NA values in the genome_name column. Adding in default genome names for these missing values.')
-          metadata_tbl <- metadata_tbl %>%
+          metadata_tbl <- metadata_tbl |>
             dplyr::mutate(genome_name = dplyr::case_when(is.na(genome_name) ~ paste0('genome_', dplyr::cur_group_rows()),
                                                          TRUE ~ genome_name))
         }
       } else {
         cli::cli_alert_info('genome_name column not detected. Adding genome_name column to metadata, using default name values.')
-        metadata_tbl <- metadata_tbl %>%
+        metadata_tbl <- metadata_tbl |>
           dplyr::mutate(genome_name = paste0('genome_', seq_along(filepath)))
       }
     } else {
-      potential_cases <- metadata_tbl %>%
-        dplyr::select_if(~ any(stringr::str_detect(.x, stringr::regex('\\/|\\~|\\.')))) %>%
+      potential_cases <- metadata_tbl |>
+        dplyr::select_if(~ any(stringr::str_detect(.x, stringr::regex('\\/|\\~|\\.')))) |>
         colnames()
       cli::cli_alert_danger('Error: Does your metadata file/dataframe contain the column name: "filepath" with the full filepath to each of the genome annotations? If not, please add a column named "filepath" to your metadata file/dataframe that contains the genome annotation full filepaths.')
       if (potential_cases > 0) {
@@ -124,49 +123,49 @@ read_from_dir <- function(.files, .genome_names, cutoff = cutoff, delim = delim,
 
 #' @export
 read_kofam = function(.data, .genome_name, cutoff = 1e-10) {
-  vroom::vroom(.data, show_col_types = FALSE, delim = '\t') %>%
+  vroom::vroom(.data, show_col_types = FALSE, delim = '\t') |>
     dplyr::rename(adaptive_threshold = 1,
            gene_name = `gene name`,
            k_number = KO,
-           e_value = `E-value`) %>%
-    dplyr::filter(!stringr::str_detect(e_value, '---')) %>%
+           e_value = `E-value`) |>
+    dplyr::filter(!stringr::str_detect(e_value, '---')) |>
     dplyr::select(adaptive_threshold, gene_name, k_number, e_value,
-           score, thrshld, `KO definition`) %>%
+           score, thrshld, `KO definition`) |>
     dplyr::mutate(e_value = as.numeric(e_value),
            score = as.numeric(score),
-           thrshld = as.numeric(thrshld)) %>%
-    dplyr::mutate(final_score = (score / thrshld), .after = thrshld) %>%
-    #filter(`E-value` <= 1e-7 | `E-value` == 0) %>%
-    dplyr::filter(e_value <= cutoff | !is.na(adaptive_threshold)) %>%
-    dplyr::group_by(gene_name) %>%
-    #filter(`E-value` == min(`E-value`)) %>%
+           thrshld = as.numeric(thrshld)) |>
+    dplyr::mutate(final_score = (score / thrshld), .after = thrshld) |>
+    #filter(`E-value` <= 1e-7 | `E-value` == 0) |>
+    dplyr::filter(e_value <= cutoff | !is.na(adaptive_threshold)) |>
+    dplyr::group_by(gene_name) |>
+    #filter(`E-value` == min(`E-value`)) |>
     dplyr::mutate(best_score =
              if (any(!is.na(final_score))) {
                max(na.omit(final_score)) #| is.na(final_score)
              } else {
                NA_real_
              }
-    ) %>%
-    dplyr::filter(is.na(best_score) | best_score == final_score) %>%
-    dplyr::ungroup() %>%
-    dplyr::mutate(genome_name = .genome_name, .before = 1) %>%
+    ) |>
+    dplyr::filter(is.na(best_score) | best_score == final_score) |>
+    dplyr::ungroup() |>
+    dplyr::mutate(genome_name = .genome_name, .before = 1) |>
     dplyr::select(c(genome_name, k_number))
 }
 
 
 # read_kofam <- function(.data, .genome_name, cutoff = 1e-7) {
-#   vroom::vroom(.data, show_col_types = FALSE, delim = '\t', progress = FALSE) %>%
-#     dtplyr::lazy_dt() %>%
-#     dplyr::filter(!stringr::str_detect(`E-value`, '---')) %>%
-#     dplyr::select(`gene name`, KO, `E-value`) %>%
-#     dplyr::mutate(`E-value` = as.numeric(`E-value`)) %>%
-#     dplyr::filter(`E-value` <= cutoff | `E-value` == 0) %>%
-#     dplyr::group_by(`gene name`) %>%
-#     dplyr::filter(`E-value` == min(`E-value`)) %>%
-#     dplyr::ungroup() %>%
-#     dplyr::select(KO) %>%
-#     dplyr::rename(k_number = KO) %>%
-#     dplyr::as_tibble() %>%
+#   vroom::vroom(.data, show_col_types = FALSE, delim = '\t', progress = FALSE) |>
+#     dtplyr::lazy_dt() |>
+#     dplyr::filter(!stringr::str_detect(`E-value`, '---')) |>
+#     dplyr::select(`gene name`, KO, `E-value`) |>
+#     dplyr::mutate(`E-value` = as.numeric(`E-value`)) |>
+#     dplyr::filter(`E-value` <= cutoff | `E-value` == 0) |>
+#     dplyr::group_by(`gene name`) |>
+#     dplyr::filter(`E-value` == min(`E-value`)) |>
+#     dplyr::ungroup() |>
+#     dplyr::select(KO) |>
+#     dplyr::rename(k_number = KO) |>
+#     dplyr::as_tibble() |>
 #     dplyr::mutate(genome_name = .genome_name, .before = 1)
 # }
 
@@ -178,35 +177,35 @@ read_kofam = function(.data, .genome_name, cutoff = 1e-10) {
 read_custom <- function(.data, .genome_name, cutoff = 1e-7, delim = delim, score_type = 'evalue') {
 
   if (score_type == 'evalue') {
-    result <- vroom::vroom(.data, show_col_types = FALSE, delim = delim, progress = FALSE) %>%
-      dtplyr::lazy_dt() %>%
-      dplyr::select(gene_name, k_number, dplyr::matches('^e_value$|^evalue$|^e-value$')) %>%
-      dplyr::rename(e_value = 3) %>%
-      dplyr::mutate(e_value = as.numeric(e_value)) %>%
-      dplyr::filter(e_value <= cutoff | e_value == 0) %>%
-      dplyr::group_by(gene_name) %>%
-      dplyr::filter(e_value == min(e_value)) %>%
-      dplyr::ungroup() %>%
-      dplyr::select(k_number) %>%
-      dplyr::as_tibble() %>%
+    result <- vroom::vroom(.data, show_col_types = FALSE, delim = delim, progress = FALSE) |>
+      dtplyr::lazy_dt() |>
+      dplyr::select(gene_name, k_number, dplyr::matches('^e_value$|^evalue$|^e-value$')) |>
+      dplyr::rename(e_value = 3) |>
+      dplyr::mutate(e_value = as.numeric(e_value)) |>
+      dplyr::filter(e_value <= cutoff | e_value == 0) |>
+      dplyr::group_by(gene_name) |>
+      dplyr::filter(e_value == min(e_value)) |>
+      dplyr::ungroup() |>
+      dplyr::select(k_number) |>
+      dplyr::as_tibble() |>
       dplyr::mutate(genome_name = .genome_name, .before = 1)
   } else if (score_type == 'score') {
-    result <- vroom::vroom(.data, show_col_types = FALSE, delim = delim, progress = FALSE) %>%
-      dtplyr::lazy_dt() %>%
-      dplyr::select(gene_name, k_number, score) %>%
-      dplyr::mutate(score = as.numeric(score)) %>%
-      dplyr::filter(score >= cutoff) %>%
-      dplyr::group_by(gene_name) %>%
-      dplyr::filter(score == max(score)) %>%
-      dplyr::ungroup() %>%
-      dplyr::select(k_number) %>%
-      dplyr::as_tibble() %>%
+    result <- vroom::vroom(.data, show_col_types = FALSE, delim = delim, progress = FALSE) |>
+      dtplyr::lazy_dt() |>
+      dplyr::select(gene_name, k_number, score) |>
+      dplyr::mutate(score = as.numeric(score)) |>
+      dplyr::filter(score >= cutoff) |>
+      dplyr::group_by(gene_name) |>
+      dplyr::filter(score == max(score)) |>
+      dplyr::ungroup() |>
+      dplyr::select(k_number) |>
+      dplyr::as_tibble() |>
       dplyr::mutate(genome_name = .genome_name, .before = 1)
   } else if (score_type == 'none') {
-    result <- vroom::vroom(.data, show_col_types = FALSE, delim = delim, progress = FALSE) %>%
-      dtplyr::lazy_dt() %>%
-      dplyr::select(k_number) %>%
-      dplyr::as_tibble() %>%
+    result <- vroom::vroom(.data, show_col_types = FALSE, delim = delim, progress = FALSE) |>
+      dtplyr::lazy_dt() |>
+      dplyr::select(k_number) |>
+      dplyr::as_tibble() |>
       dplyr::mutate(genome_name = .genome_name, .before = 1)
   } else {
     cli::cli_alert_danger('Error: Issue with score argument Please make sure it is "evalue", "score", or "none". If score argument is "evalue" or "score", please make sure the score column is named "evalue" or "score".')

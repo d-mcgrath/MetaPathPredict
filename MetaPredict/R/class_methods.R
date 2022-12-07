@@ -1,4 +1,3 @@
-#' @importFrom magrittr "%>%"
 
 # initialize methods ------------------------------------------------------
 
@@ -176,7 +175,7 @@ return_reconstructed_modules <- function(from,
                                          output_prefix = output_prefix,
                                          overwrite = overwrite) {
 
-  summary <- summarize_recon(.recon = from$pres_abs_tbl,
+  summary <- summarize_reconstruction(.recon = from$pres_abs_tbl,
                              .module_metadata = module_metadata)
 
   if (module_detect_type == 'extract') {
