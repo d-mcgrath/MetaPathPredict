@@ -9,7 +9,7 @@ The MetaPredict R package utilizes machine learning models (stacked neural netwo
 devtools::install_github("stevenpawley/recipeselectors")
 
 # GitHub install of MetaPredict
-devtools::install_github("d-mcgrath/MetaPredict-HPC/MetaPredict")
+devtools::install_github("d-mcgrath/MetaPredict/MetaPredict")
 ```
 
 ## Functions
@@ -28,6 +28,6 @@ input <- read_data(
   filepath = 'path/to/genome/annotation/file',
   genome_name = 'test_genome'))
 
-results = metapredict(input)
+results <- metapredict(input)
 
 ```
