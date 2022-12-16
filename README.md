@@ -26,7 +26,7 @@ The following functions can be implemented to run MetaPredict:
 
 - `metapredict` reconstructs KEGG modules within the input annotation dataset and predicts the presence or absence of incomplete or missing KEGG modules. Be sure to include the path to the downloaded SQL database with the `db_path` argument. To specify a specific module or modules, include the module identifier or identifiers as a character vector for the argument `module_vector`. 
 
-To view which KEGG modules MetaPredict has models for, run the following: `available_modules()`.
+- To view which KEGG modules MetaPredict has models for, run the following: `available_modules()`.
 
 ## Basic usage
 
