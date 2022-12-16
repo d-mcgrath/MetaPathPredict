@@ -12,7 +12,7 @@ devtools::install_github("stevenpawley/recipeselectors")
 devtools::install_github("d-mcgrath/MetaPredict/MetaPredict")
 ```
 
-# Download MetaPredict's SQL database
+#### Download MetaPredict's SQL database
 The SQL database containing MetaPredict's models can be downloaded [here](https://zenodo.org/record/7419289)
 
 
