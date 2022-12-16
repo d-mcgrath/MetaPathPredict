@@ -20,7 +20,7 @@ The SQL database containing MetaPredict's models can be downloaded [here](https:
 
 The following functions can be implemented to run MetaPredict:
 
-- `read_data` parses one or more input KEGG Ortholog genome (MAG, SAG, isolate) gene annotation datasets (currently only bacterial genome data is supported). This function currently accepts as input the outhput files from KofamScan and DRAM gene annotation command line tools. Run either of these tools first and then use their output .tsv files as input for MetaPredict.
+- `read_data` parses one or more input KEGG Ortholog genome (MAG, SAG, isolate) gene annotation datasets (currently only bacterial genome data is supported). This function currently accepts as input the output files from KofamScan and DRAM gene annotation command line tools. Run either of these tools first and then use their output .tsv files as input for MetaPredict. A sample gene annotation output file from KofamScan is included in the repository, and is called `genome_annotations.tsv`
 
 - `metapredict` reconstructs KEGG modules within the input annotation dataset and predicts the presence or absence of incomplete or missing KEGG modules. Be sure to include the path to the downloaded SQL database with the `db_path` argument.
 
