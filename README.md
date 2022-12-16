@@ -5,6 +5,8 @@ The MetaPredict R package utilizes machine learning models (stacked neural netwo
 ## Installation
 
 ``` r
+# Run the following commands in an R session:
+
 # GitHub install of recipeselectors package separately
 devtools::install_github("stevenpawley/recipeselectors")
 
@@ -13,7 +15,7 @@ devtools::install_github("d-mcgrath/MetaPredict/MetaPredict")
 ```
 
 #### Download MetaPredict's SQL database
-The SQL database containing MetaPredict's models can be downloaded [here](https://zenodo.org/record/7419289).
+MetaPredict requires an SQL database that contains its machine learning models in order to make predictions. This SQL database can be downloaded [here](https://zenodo.org/record/7419289).
 
 
 ## Functions
