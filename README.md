@@ -24,7 +24,9 @@ The following functions can be implemented to run MetaPredict:
 
 - `read_data` parses one or more input KEGG Ortholog genome (MAG, SAG, isolate) gene annotation datasets (currently only bacterial genome data is supported). This function currently accepts as input the output files from KofamScan and DRAM gene annotation command line tools. Run either of these tools first and then use their output .tsv files as input for MetaPredict. A sample gene annotation output file from KofamScan is included in the repository, and is called `genome_annotations.tsv`. To test MetaPredict or see a sample input, download this file and use it as input.
 
-- `metapredict` reconstructs KEGG modules within the input annotation dataset and predicts the presence or absence of incomplete or missing KEGG modules. Be sure to include the path to the downloaded SQL database with the `db_path` argument.
+- `metapredict` reconstructs KEGG modules within the input annotation dataset and predicts the presence or absence of incomplete or missing KEGG modules. Be sure to include the path to the downloaded SQL database with the `db_path` argument. To specify a specific module or modules, include the module identifier or identifiers as a character vector for the argument `module_vector`. 
+
+To view which KEGG modules MetaPredict has models for, run the following: `available_modules()`.
 
 ## Basic usage
 
@@ -34,6 +36,10 @@ input <- read_data(
   filepath = 'path/to/genome/annotation/file',
   genome_name = 'test_genome'))
 
-results <- metapredict(input, db_path = "/path/to/sql/database")
+# make presence/absence predictions for KEGG modules M00001 and M00005
+results <- metapredict(
+  input,
+  module_vector = c('M00001', 'M00005'),
+  db_path = "/path/to/sql/database")
 
 ```
