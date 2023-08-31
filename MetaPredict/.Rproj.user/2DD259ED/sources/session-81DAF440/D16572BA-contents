@@ -1,5 +1,0 @@
-useDynLib(MetaPredict, .registration=TRUE)
-importFrom(Rcpp, evalCpp)
-importFrom(stacks, predict.data_stack)
-exportPattern("^[[:alpha:]]+")
-
