@@ -1,45 +1,65 @@
 # MetaPathPredict
 
-The MetaPathPredict R package utilizes machine learning models (stacked neural network/XGBoost ensemble and standalone neural network architectures) to predict the presence or absence of KEGG metabolic modules in bacterial genomes recovered from environmental sequencing efforts.
+The MetaPathPredict Python module utilizes deep learning models to predict the presence or absence of KEGG metabolic modules in bacterial genomes recovered from environmental sequencing efforts.
 
 ## Installation
 
-``` r
-# Run the following commands in an R session:
-
-# GitHub install of recipeselectors package separately
-devtools::install_github("stevenpawley/recipeselectors")
+```
+# Run the following commands from a terminal window:
+pip install MetaPathPredict [not available yet]
 
 # GitHub install of MetaPathPredict
-devtools::install_github("d-mcgrath/MetaPathPredict/MetaPredict")
+[insert command here]
 ```
-
-#### Download MetaPathPredict's SQL database
-MetaPathPredict requires an SQL database that contains its machine learning models in order to make predictions. This SQL database can be downloaded [here](https://zenodo.org/record/7419289).
-
 
 ## Functions
 
 The following functions can be implemented to run MetaPathPredict:
 
-- `read_data` parses one or more input KEGG Ortholog genome (MAG, SAG, isolate) gene annotation datasets (currently only bacterial genome data is supported). This function currently accepts as input the output files from KofamScan and DRAM gene annotation command line tools. Run either of these tools first and then use their output .tsv files as input for MetaPathPredict. A sample gene annotation output file from KofamScan is included in the repository, and is called `genome_annotations.tsv`. To test MetaPathPredict or see a sample input, download this file and use it as input.
+- `MetaPathPredictPredict` parses one or more input KEGG Ortholog genome (MAG, SAG, isolate) gene annotation datasets (currently only bacterial genome data is supported). This function currently accepts as input the output files from KofamScan and DRAM gene annotation command line tools. Run either of these tools first and then use their output .tsv files as input for MetaPathPredict. A sample gene annotation output file from KofamScan is included in the repository, and is called `genome_annotations.tsv`. To test MetaPathPredict or see a sample input, download this file and use it as input.
 
-- `metapredict` reconstructs KEGG modules within the input annotation dataset and predicts the presence or absence of incomplete or missing KEGG modules. Be sure to include the path to the downloaded SQL database with the `db_path` argument. To specify a specific module or modules, include the module identifier or identifiers as a character vector for the argument `module_vector`. 
+- This function reconstructs KEGG modules within the input annotation dataset and predicts the presence or absence of incomplete or missing KEGG modules. To specify a specific module or modules, include the module identifier or identifiers as a comma-separated list to the argument `--modules`. 
 
 - To view which KEGG modules MetaPathPredict has models for, run the following: `available_modules()`.
 
 ## Basic usage
 
-``` r
-input <- read_data(
-  metadata_df = data.frame(
-  filepath = 'path/to/genome/annotation/file',
-  genome_name = 'test_genome'))
+```
+# predict method for making KEGG module presence/absence predictions on input gene annotations
+usage: MetaPathPredictPredict [-h] --input INPUT --output OUTPUT --model-file MODEL_IN
 
-# make presence/absence predictions for KEGG modules M00001 and M00005
-results <- metapredict(
-  input,
-  module_vector = c('M00001', 'M00005'),
-  db_path = "/path/to/sql/database")
+options:
+  -h, --help            show this help message and exit
+  --input INPUT, -i INPUT
+                        input file
+  --output OUTPUT, -o OUTPUT
+                        output file
+  --model-file MODEL_IN, -m MODEL_IN
+                        input model file name
 
+
+
+
+# for development or advanced users: training method for training deep learning model to make KEGG module presence/absence predictions
+
+usage: MetaPathPredictTrain [-h] --train-targets TRAIN_TARGETS --train-features TRAIN_FEATURES [--num-epochs NUM_EPOCHS] --model-out MODEL_OUT [--use-gpu]
+                            [--num-hidden-layers NUM_HIDDEN_LAYERS] [--hidden-nodes-per-layer HIDDEN_NODES_PER_LAYER]
+
+options:
+  -h, --help            show this help message and exit
+  --train-targets TRAIN_TARGETS
+                        training targets file
+  --train-features TRAIN_FEATURES
+                        training features
+  --num-epochs NUM_EPOCHS
+                        number of epochs
+  --model-out MODEL_OUT, -m MODEL_OUT
+                        model file name output
+  --use-gpu             use GPU if available
+
+Neural Net parameters:
+  --num-hidden-layers NUM_HIDDEN_LAYERS
+                        number of hidden layers
+  --hidden-nodes-per-layer HIDDEN_NODES_PER_LAYER
+                        number of nodes in each hidden layer
 ```
