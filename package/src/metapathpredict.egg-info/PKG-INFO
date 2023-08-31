@@ -1,0 +1,17 @@
+Metadata-Version: 2.1
+Name: metapathpredict
+Version: 0.0.0
+Summary: Tool for predicting and metabolic pathway on metagenomes
+Home-page: UNKNOWN
+Author: ABCD
+Author-email: davids  and kishoris email
+License: UNKNOWN
+Platform: UNKNOWN
+Classifier: Development Status :: 4 - Beta
+Classifier: Natural Language :: English
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: Linux, MacOS
+Classifier: Programming Language :: Python :: 3.6+
+
+UNKNOWN
+
