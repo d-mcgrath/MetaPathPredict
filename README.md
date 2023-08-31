@@ -16,7 +16,7 @@ pip install MetaPathPredict [not available yet]
 
 The following functions can be implemented to run MetaPathPredict:
 
-- `MetaPathPredictPredict` parses one or more input KEGG Ortholog genome (MAG, SAG, isolate) gene annotation datasets (currently only bacterial genome data is supported). This function currently accepts as input the output files from KofamScan and DRAM gene annotation command line tools. Run either of these tools first and then use their output .tsv files as input for MetaPathPredict. A sample gene annotation output file from KofamScan is included in the repository, and is called `genome_annotations.tsv`. To test MetaPathPredict or see a sample input, download this file and use it as input.
+- `MetaPathPredict` parses one or more input KEGG Ortholog genome (MAG, SAG, isolate) gene annotation datasets (currently only bacterial genome data is supported). This function currently accepts as input the output files from KofamScan and DRAM gene annotation command line tools. Run either of these tools first and then use their output .tsv files as input for MetaPathPredict. A sample gene annotation output file from KofamScan is included in the repository, and is called `genome_annotations.tsv`. To test MetaPathPredict or see a sample input, download this file and use it as input.
 
 - This function reconstructs KEGG modules within the input annotation dataset and predicts the presence or absence of incomplete or missing KEGG modules. To specify a specific module or modules, include the module identifier or identifiers as a comma-separated list to the argument `--modules`. 
 
@@ -26,7 +26,7 @@ The following functions can be implemented to run MetaPathPredict:
 
 ```
 # predict method for making KEGG module presence/absence predictions on input gene annotations
-usage: MetaPathPredictPredict [-h] --input INPUT --output OUTPUT --model-file MODEL_IN
+usage: MetaPathPredict [-h] --input INPUT --output OUTPUT --model-file MODEL_IN
 
 options:
   -h, --help            show this help message and exit
