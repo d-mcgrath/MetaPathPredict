@@ -1,0 +1,4 @@
+[console_scripts]
+MetaPathPredictPredict = metapathpredict.cmdline_models:Models.predict
+MetaPathPredictTrain = metapathpredict.cmdline_models:Models.train
+

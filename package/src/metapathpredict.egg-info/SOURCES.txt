@@ -1,0 +1,7 @@
+setup.py
+src/metapathpredict/cmdline_models.py
+src/metapathpredict.egg-info/PKG-INFO
+src/metapathpredict.egg-info/SOURCES.txt
+src/metapathpredict.egg-info/dependency_links.txt
+src/metapathpredict.egg-info/entry_points.txt
+src/metapathpredict.egg-info/top_level.txt
