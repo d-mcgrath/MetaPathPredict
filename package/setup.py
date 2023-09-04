@@ -11,9 +11,9 @@ CLASSIFIERS = [
 
 setup(
     name="metapathpredict", 
-    description="Tool for predicting and metabolic pathway on metagenomes",
-    author="ABCD",
-    author_email="davids  and kishoris email",
+    description="Tool for predicting the presence or absence of KEGG modules in bacterial genomes",
+    author="D. Geller-McGrath, K.M. Konwar, V.P. Edgcomb, M. Pachiadaki, J.W. Roddy, T.J. Wheeler, J.E. McDermott",
+    author_email="dgellermcgrath@gmail.com, kishori82@gmail.com",
     package_dir={"": "src"},
     packages=["metapathpredict"],
     install_requires=[
