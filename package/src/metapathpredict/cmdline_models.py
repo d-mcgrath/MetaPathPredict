@@ -77,7 +77,7 @@ class CustomModel(nn.Module):
         NUM_HIDDEN_NODES = num_hidden_nodes_per_layer
         self.NUM_HIDDEN_LAYERS = num_hidden_layers
 
-        self.fc1 = nn.Linear(105, NUM_HIDDEN_NODES)
+        self.fc1 = nn.Linear(args.num_features, NUM_HIDDEN_NODES)
         self.relu = nn.ReLU()
         self.dropout = nn.Dropout(0.1)
 
@@ -166,6 +166,14 @@ class Models:
             action="store_true",
             help="use GPU if available",
         )
+        parser.add_argument(
+            "--num-cores",
+            dest="num_cores",
+            required=False,
+            default=10,
+            type=int,
+            help="Number of cores for parallel processing",
+        )
         neural_net_params = parser.add_argument_group("Neural Net parameters")
         neural_net_params.add_argument(
             "--num-hidden-layers",
@@ -181,6 +189,15 @@ class Models:
             default=1024,
             help="number of nodes in each  hidden layer",
         )
+        neural_net_params.add_argument(
+            "--num-features",
+            dest="num_features",
+            default=2000,
+            required=False,
+            type=int,
+            help="number of features to retain from training data",
+        )
+
 
         args = parser.parse_args()
 
@@ -300,7 +317,7 @@ class Models:
 
         batch_size = 10000
         train_data_loader = DataLoader(
-            dataset, batch_size=batch_size, num_workers=20, shuffle=True
+            dataset, batch_size=batch_size, num_workers=args.num_cores, shuffle=True
         )
 
         logging.info(f"loading testing dataset into dataloader")
