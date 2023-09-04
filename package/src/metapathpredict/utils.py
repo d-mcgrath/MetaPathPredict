@@ -162,7 +162,7 @@ def create_feature_df(annotation_list):
 
 
 
-def check_feature_columns(required_columns, feature_df)
+def check_feature_columns(required_columns, feature_df):
   """Checks that all required columns are present for both of MetaPathPredict's models.
 
   Args:
@@ -187,7 +187,7 @@ def check_feature_columns(required_columns, feature_df)
 
 
 
-def select_model_features(required_columns, feature_df)
+def select_model_features(required_columns, feature_df):
   """Selects all required columns for the specified MetaPathPredict model (either model #1 or model #2).
 
   Args:
