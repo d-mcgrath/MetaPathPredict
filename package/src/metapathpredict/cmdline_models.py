@@ -5,7 +5,7 @@ Command Line Interface for MetaPathPredict Tools:
 .. currentmodule:: metapathpredict
 
 class methods:
-   categorize_loans_from_cashflows
+   MetaPathPredict methods
 """
 
 import logging
@@ -77,7 +77,7 @@ class CustomModel(nn.Module):
         NUM_HIDDEN_NODES = num_hidden_nodes_per_layer
         self.NUM_HIDDEN_LAYERS = num_hidden_layers
 
-        self.fc1 = nn.Linear(args.num_features, NUM_HIDDEN_NODES)
+        self.fc1 = nn.Linear(2000, NUM_HIDDEN_NODES)
         self.relu = nn.ReLU()
         self.dropout = nn.Dropout(0.1)
 
@@ -187,7 +187,7 @@ class Models:
             type=int,
             required=False,
             default=1024,
-            help="number of nodes in each  hidden layer",
+            help="number of nodes in each hidden layer",
         )
         neural_net_params.add_argument(
             "--num-features",
@@ -196,6 +196,14 @@ class Models:
             required=False,
             type=int,
             help="number of features to retain from training data",
+        )
+        neural_net_params.add_argument(
+            "--threshold",
+            dest="threshold",
+            default=4732.3,
+            required=False,
+            type=float,
+            help="threshold for SelectKBest CS feature selection",
         )
 
 
@@ -254,7 +262,7 @@ class Models:
             selected_features.append(list(selector.scores_))
 
         # select threshold that retains 2000 features
-        threshold = 4732.3
+        threshold = args.threshold
 
         # # MeanCS
         logging.info(f"total number of features in input: {x_train.shape[1]}")
@@ -387,9 +395,8 @@ class Models:
 
     @classmethod
     def predict(cls, args: Iterable[str] = None) -> int:
-        """Test a model from the input data .
-
-        Read out a DNN model in the keras forma
+        """Predict the presence or absence of select KEGG modules on bacterial
+        annotation data.
 
         Parameters
         ----------
@@ -410,22 +417,28 @@ class Models:
             "-i",
             dest="input",
             required=True,
-            help="input file",
+            help="input file name [required]",
+        )
+        parser.add_argument(
+            "--annotation-format",
+            "-a",
+            dest="annotation_format",
+            required=True,
+            help="annotation format [kofamscan, dram, koala; default: kofamscan]",
         )
         parser.add_argument(
             "--output",
             "-o",
             dest="output",
             required=True,
-            help="output file",
+            help="output file name [required; no default folder created]",
         )
- 
         parser.add_argument(
             "--model-file",
             "-m",
             dest="model_in",
             required=True,
-            help="input model file name",
+            help="input model file location [default: MetaPathPredict folder]",
         )
 
         args = parser.parse_args()
@@ -434,12 +447,37 @@ class Models:
         logging.info(f"reading model file: {args.model_in}")
 
         # load the input features
-        if args.input.endswith('.gz'):
-            input_features = pd.read_table(args.input, compression="gzip")
-        else:
-            input_features = pd.read_table(args.input)
+        
+        # if args.input.endswith('.gz'):
+        #     input_features = pd.read_table(args.input, compression="gzip")
+        # else:
+        #     input_features = pd.read_table(args.input)
+        
+        # if args.input.isMultiple: # somehow check if input is scalar or vector quantity
+        #   files = [args.input] # this whole if statement may not be necessary; verify if so
+        
+        # initiate an InputData class instance
+        files_list = InputData(files = args.input) # somehow set its "files" attribute equal to args.input 
+        
+        if args.annotation_format == "kofamscan":
+          annotationsList = files_list.read_kofamscan_detailed_tsv()
 
-        logging.info(f"reading input features of shape: {input_features.shape[0]} x {input_features.shape[1]}")
+        elif args.annotation_format == "dram":
+          annotationsList = files_list.read_dram_annotation_tsv()
+          
+        elif args.annotation_format == "koala":
+          annotationsList = files_list.read_koala_tsv()
+        
+        else:
+          logging.error("""did not recognize annotation format; use one of "kofamscan", "dram", or "koala""")
+          sys.exit(0)
+
+        input_features = create_feature_df(annotationsList)
+        input_features = check_feature_columns(files_list.requiredColumnsAll, input_features) # have to define requiredColumns
+        input_features = select_model_features(files_list.requiredColumnsModel1, input_features)
+
+
+        logging.info(f"reading args.annotation_format input annotations of shape: {input_features.shape[0]} x {input_features.shape[1]}")
 
         if set(input_features.columns).intersection(
             set(model_file["features"])
