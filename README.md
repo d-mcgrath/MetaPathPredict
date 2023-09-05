@@ -31,18 +31,37 @@ usage: MetaPathPredict [-h] --input INPUT --output OUTPUT --model-file MODEL_IN
 options:
   -h, --help            show this help message and exit
   --input INPUT, -i INPUT
-                        input file
+                        input file name [required]
+  --annotation-format, -a ANNOTATION_FORMAT
+                        annotation format [kofamscan, dram, koala; default: kofamscan]
   --output OUTPUT, -o OUTPUT
-                        output file
+                        output file name [required]
   --model-file MODEL_IN, -m MODEL_IN
-                        input model file name
+                        input model file names [default: model names in models/ directory of the MetaPathPredict folder]
+```
 
 
+## Example with sample dataset
+
+```
+# with one KofamScan gene annotation dataset
+MetaPathPredict -i kofamscan_annotation.tsv -a kofamscan -o /path/to/results/folder/predictions.tsv
+
+# with multiple KofamScan datasets
+MetaPathPredict -i annotations/*.tsv -a kofamscan -o /path/to/results/folder/predictions.tsv
+
+# with one DRAM gene annotation dataset
+MetaPathPredict -i dram_annotation.tsv -a dram -o /path/to/results/folder/predictions.tsv
+
+# with multiple DRAM datasets
+MetaPathPredict -i annotations/*.tsv -a dram -o /path/to/results/folder/predictions.tsv
+```
 
 
-# for development or advanced users: training method for training deep learning model to make KEGG module presence/absence predictions
+## Developer usage
 
-usage: MetaPathPredictTrain [-h] --train-targets TRAIN_TARGETS --train-features TRAIN_FEATURES [--num-epochs NUM_EPOCHS] --model-out MODEL_OUT [--use-gpu]
+```
+usage: MetaPathTrain [-h] --train-targets TRAIN_TARGETS --train-features TRAIN_FEATURES [--num-epochs NUM_EPOCHS] --model-out MODEL_OUT [--use-gpu]
                             [--num-hidden-layers NUM_HIDDEN_LAYERS] [--hidden-nodes-per-layer HIDDEN_NODES_PER_LAYER]
 
 options:
