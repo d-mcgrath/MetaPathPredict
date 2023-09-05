@@ -22,6 +22,8 @@ The following functions can be implemented to run MetaPathPredict:
 
 - To view which KEGG modules MetaPathPredict has models for, run the following: `available_modules()`.
 
+<br>
+
 ## Basic usage
 
 ```
@@ -63,8 +65,9 @@ MetaPathPredict -i annotations/*.tsv -a dram -o /results/predictions.tsv
 ## Developer usage
 
 ```
-usage: MetaPathTrain [-h] --train-targets TRAIN_TARGETS --train-features TRAIN_FEATURES [--num-epochs NUM_EPOCHS] --model-out MODEL_OUT [--use-gpu]
-                            [--num-hidden-layers NUM_HIDDEN_LAYERS] [--hidden-nodes-per-layer HIDDEN_NODES_PER_LAYER]
+usage: MetaPathTrain [-h] --train-targets TRAIN_TARGETS --train-features TRAIN_FEATURES [--num-epochs NUM_EPOCHS] --model-out
+                            MODEL_OUT [--use-gpu] [--num-cores NUM_CORES] [--num-hidden-layers NUM_HIDDEN_LAYERS]
+                            [--hidden-nodes-per-layer HIDDEN_NODES_PER_LAYER] [--num-features NUM_FEATURES]
 
 options:
   -h, --help            show this help message and exit
@@ -77,10 +80,14 @@ options:
   --model-out MODEL_OUT, -m MODEL_OUT
                         model file name output
   --use-gpu             use GPU if available
+  --num-cores NUM_CORES
+                        Number of cores for parallel processing
 
 Neural Net parameters:
   --num-hidden-layers NUM_HIDDEN_LAYERS
                         number of hidden layers
   --hidden-nodes-per-layer HIDDEN_NODES_PER_LAYER
                         number of nodes in each hidden layer
+  --num-features NUM_FEATURES
+                        number of features to retain from training data
 ```
