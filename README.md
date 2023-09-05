@@ -35,28 +35,30 @@ options:
   --annotation-format, -a ANNOTATION_FORMAT
                         annotation format [kofamscan, dram, koala; default: kofamscan]
   --output OUTPUT, -o OUTPUT
-                        output file name [required]
+                        output file name [required; no default folder created]
   --model-file MODEL_IN, -m MODEL_IN
-                        input model file names [default: model names in models/ directory of the MetaPathPredict folder]
+                        input model file names [default: models/ directory of the MetaPathPredict folder]
 ```
 
+<br>
 
-## Example with sample dataset
+## Example usage with sample datasets
 
 ```
 # with one KofamScan gene annotation dataset
-MetaPathPredict -i kofamscan_annotation.tsv -a kofamscan -o /path/to/results/folder/predictions.tsv
+MetaPathPredict -i kofamscan_annotation.tsv -a kofamscan -o /results/predictions.tsv
 
 # with multiple KofamScan datasets
-MetaPathPredict -i annotations/*.tsv -a kofamscan -o /path/to/results/folder/predictions.tsv
+MetaPathPredict -i annotations/*.tsv -a kofamscan -o /results/predictions.tsv
 
 # with one DRAM gene annotation dataset
-MetaPathPredict -i dram_annotation.tsv -a dram -o /path/to/results/folder/predictions.tsv
+MetaPathPredict -i dram_annotation.tsv -a dram -o /results/predictions.tsv
 
 # with multiple DRAM datasets
-MetaPathPredict -i annotations/*.tsv -a dram -o /path/to/results/folder/predictions.tsv
+MetaPathPredict -i annotations/*.tsv -a dram -o /results/predictions.tsv
 ```
 
+<br>
 
 ## Developer usage
 
