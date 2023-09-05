@@ -16,11 +16,11 @@ pip install MetaPathPredict [not available yet]
 
 The following functions can be implemented to run MetaPathPredict:
 
-- `MetaPathPredict` parses one or more input KEGG Ortholog genome (MAG, SAG, isolate) gene annotation datasets (currently only bacterial genome data is supported). This function currently accepts as input the output files from KofamScan and DRAM gene annotation command line tools. Run either of these tools first and then use their output .tsv files as input for MetaPathPredict. A sample gene annotation output file from KofamScan is included in the repository, and is called `genome_annotations.tsv`. To test MetaPathPredict or see a sample input, download this file and use it as input.
+- `MetaPathPredict` parses one or more input KEGG Ortholog gene annotation datasets (currently only bacterial genome data is supported). This function currently accepts as input the output files from KofamScan, DRAM, BlastKoala, and GhostKoala gene annotation tools. Run any of these tools first and then use one or more of their output gene annotation files as input to MetaPathPredict. A sample of each annotation output file form is included in this repository. To test MetaPathPredict or see a sample input file for use with this tool, download the repository, install MetaPathPredict, and run predictions on one or more of the sample gene annotation files.
 
-- This function reconstructs KEGG modules within the input annotation dataset and predicts the presence or absence of incomplete or missing KEGG modules. To specify a specific module or modules, include the module identifier or identifiers as a comma-separated list to the argument `--modules`. 
+- The `MetaPathPredict` function reconstructs KEGG modules within the input annotation dataset and predicts the presence or absence of incomplete or missing KEGG modules. To specify a specific KEGG module or modules to reconstruct and predict, include the module identifier (e.g., M00001) or identifiers as a comma-separated list to the argument `--kegg-modules`. 
 
-- To view which KEGG modules MetaPathPredict has models for, run the following: `available_modules()`.
+- To view which KEGG modules MetaPathPredict has models for, run the following: `AvailableModules`.
 
 <br>
 
@@ -36,6 +36,8 @@ options:
                         input file name [required]
   --annotation-format, -a ANNOTATION_FORMAT
                         annotation format [kofamscan, dram, koala; default: kofamscan]
+  --kegg-modules, -m MODULES
+                        a comma-separated list of modules to reconstruct and predict
   --output OUTPUT, -o OUTPUT
                         output file name [required; no default folder created]
   --model-file MODEL_IN, -m MODEL_IN
@@ -44,19 +46,19 @@ options:
 
 <br>
 
-## Example usage with sample datasets
+## Example with sample datasets
 
 ```
 # with one KofamScan gene annotation dataset
 MetaPathPredict -i kofamscan_annotation.tsv -a kofamscan -o /results/predictions.tsv
 
-# with multiple KofamScan datasets
+# with multiple KofamScan datasets in a directory
 MetaPathPredict -i annotations/*.tsv -a kofamscan -o /results/predictions.tsv
 
 # with one DRAM gene annotation dataset
 MetaPathPredict -i dram_annotation.tsv -a dram -o /results/predictions.tsv
 
-# with multiple DRAM datasets
+# with multiple DRAM datasets in a directory
 MetaPathPredict -i annotations/*.tsv -a dram -o /results/predictions.tsv
 ```
 
