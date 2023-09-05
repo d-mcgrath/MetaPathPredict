@@ -46,7 +46,7 @@ options:
 
 <br>
 
-## Example with sample datasets
+## Examples with sample datasets
 
 ```
 # with one KofamScan gene annotation dataset
