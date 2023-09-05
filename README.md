@@ -20,7 +20,7 @@ The following functions can be implemented to run MetaPathPredict:
 
 - The `MetaPathPredict` function reconstructs KEGG modules within the input annotation dataset and predicts the presence or absence of incomplete or missing KEGG modules. To specify a specific KEGG module or modules to reconstruct and predict, include the module identifier (e.g., M00001) or identifiers as a comma-separated list to the argument `--kegg-modules`. 
 
-- To view which KEGG modules MetaPathPredict has models for, run the following: `AvailableModules`.
+- To view which KEGG modules MetaPathPredict can reconstruct and make predictions for, run the following command: `AvailableModules`.
 
 <br>
 
