@@ -457,25 +457,26 @@ class Models:
         #   files = [args.input] # this whole if statement may not be necessary; verify if so
         
         # initiate an InputData class instance
-        files_list = InputData(files = args.input) # somehow set its "files" attribute equal to args.input 
+        files_list = InputData() 
+        files_list.files = args.input # set a "files" attribute equal to args.input 
         
         if args.annotation_format == "kofamscan":
-          annotationsList = files_list.read_kofamscan_detailed_tsv()
+          annotations = files_list.read_kofamscan_detailed_tsv()
 
         elif args.annotation_format == "dram":
-          annotationsList = files_list.read_dram_annotation_tsv()
+          annotations = files_list.read_dram_annotation_tsv()
           
         elif args.annotation_format == "koala":
-          annotationsList = files_list.read_koala_tsv()
+          annotations = files_list.read_koala_tsv()
         
         else:
           logging.error("""did not recognize annotation format; use one of "kofamscan", "dram", or "koala""")
           sys.exit(0)
-
-        input_features = create_feature_df(annotationsList)
-        input_features = check_feature_columns(files_list.requiredColumnsAll, input_features) # have to define requiredColumns
-        input_features = select_model_features(files_list.requiredColumnsModel1, input_features)
-
+          
+        input_features = AnnotationList()
+        input_features.annotations = annotations
+        input_features.feature_df = input_features.create_feature_df()
+        input_features = input_features.check_feature_columns().select_model_features()
 
         logging.info(f"reading args.annotation_format input annotations of shape: {input_features.shape[0]} x {input_features.shape[1]}")
 
