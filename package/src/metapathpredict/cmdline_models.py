@@ -29,7 +29,7 @@ import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader, TensorDataset
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from sklearn.feature_selection import chi2, SelectKBest
+from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.metrics import classification_report
 import torch
 import torch.nn as nn
@@ -200,10 +200,10 @@ class Models:
         neural_net_params.add_argument(
             "--threshold",
             dest="threshold",
-            default=4732.3,
+            default=6432,
             required=False,
             type=float,
-            help="threshold for SelectKBest CS feature selection",
+            help="threshold for SelectKBest feature selection",
         )
 
 
@@ -251,13 +251,29 @@ class Models:
         print("x_train", x_train.shape, " y_train ", y_train.shape)
         print("x_val", x_val.shape, " y_val ", y_val.shape)
         print("x_test", x_test.shape, " y_test ", y_test.shape)
+        
+        
+        
+        # Initialize the StandardScaler
+        scaler = StandardScaler()
+        
+        # Fit the scaler to training data and transform it
+        # and then transform val and test data w/ the fitted scaler object 
+        # (std. dev., variance, etc. are based on training data columns)
+        scaled_features = scaler.fit_transform(x_train)
+        x_train = pd.DataFrame(scaled_features, index = x_train.index, columns = x_train.columns)
+        x_val = pd.DataFrame(scaler.transform(x_val), index = x_val.index, columns = x_val.columns) 
+        x_test = pd.DataFrame(scaler.transform(x_test), index = x_test.index, columns = x_test.columns) 
+        logging.info(f"normalizing the training input features")
+        
+        
 
         # feature selection based only on the training data
-        # Select features according to the k highest scores.
-        # Chi-squared stats of non-negative features
+        # Select features according to the k highest F-values
+        # from running ANOVA on y_train and x_train
         selected_features = []
         for label in y_train:
-            selector = SelectKBest(chi2, k="all")
+            selector = SelectKBest(f_classif, k = 'all')
             selector.fit(x_train, y_train[label])
             selected_features.append(list(selector.scores_))
 
@@ -281,12 +297,12 @@ class Models:
         logging.info(f"Using labels : {str(labels_used)}")
 
         # Initialize the StandardScaler
-        scaler = StandardScaler()
+        #scaler = StandardScaler()
 
         # Fit the scaler to your data and transform it
-        x_train2 = scaler.fit_transform(x_train2)
-        x_val2 = scaler.fit_transform(x_val2)
-        logging.info(f"normalizing the training input features")
+        #x_train2 = scaler.fit_transform(x_train2)
+        #x_val2 = scaler.fit_transform(x_val2)
+        #logging.info(f"normalizing the training input features")
 
         y_train = np.asarray(y_train.values)
         y_val = np.asarray(y_val.values)
@@ -318,6 +334,8 @@ class Models:
         no_transform = transforms.Compose([])
 
         # dataset DataLoader
+        x_train2 = np.asarray(x_train2)
+        x_val2 = np.asarray(x_val2)
         print("xtrain2", x_train2.shape, y_train.shape)
 
         logging.info(f"loading training dataset into dataloader")
@@ -370,8 +388,8 @@ class Models:
             )
 
         # assess the model on test data
-        x_test2 = scaler.fit_transform(x_test2)
-        logging.info(f"normalizing the test input features")
+        #x_test2 = scaler.fit_transform(x_test2)
+        #logging.info(f"normalizing the test input features")
         x_test2 = torch.tensor(x_test2, dtype=torch.float32)
         logging.info(f"converting test inputs to torch.tensor")
 
@@ -500,7 +518,8 @@ class Models:
         scaler = StandardScaler()
 
         # Fit the scaler to your data and transform it
-        features = scaler.fit_transform(features)
+        #features = scaler.fit_transform(features)
+        features = scaler.transform(features)
         logging.info(f"normalizing the input features")
 
         # convert to pytorch.tensor
