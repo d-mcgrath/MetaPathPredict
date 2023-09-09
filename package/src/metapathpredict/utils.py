@@ -2,18 +2,17 @@ import csv
 import pandas as pd
 import re
 import gzip
+import numpy as np
 
-
-# turn "args.input" into a class that inherits some data reading and formatting functions
 
 class InputData:
   
     """Data parsing functions of input data"""
 
 
-    def __init__(self):
-      self.files = args.input # somehow set this attribute dynamically to input file paths
-
+    def __init__(self, files, annotations = []):
+      self.files = files
+      self.annotations = annotations
 
     def read_kofamscan_detailed_tsv(self):
       """Reads in multiple .tsv files, each with columns: 0: "surpassed_threshold", 
@@ -25,16 +24,16 @@ class InputData:
       score-to-adaptive-threshold ratio, and picks the annotation with the highest
       ratio.
     
-      Args:
-        files: A list of .tsv file names.
-    
       Returns:
         A list of lists, where each inner list is the annotation data from one file.
       """
-      kofam_list = []
+
+      if type(self.files) is str:
+        self.files = [self.files]
       
       for file in self.files:
         lines = []
+        
         if file.endswith(".gz"):
           with gzip.open(file, "rb") as f:
             for row in f:
@@ -69,9 +68,8 @@ class InputData:
         data["file_name"] = file
         data = data[["file_name", "gene_identifier", "k_number", "definition"]]
         
-        kofam_list.append(data)
+        self.annotations.append(data)
         
-      return kofam_list
     
     
     def read_dram_annotation_tsv(self):
@@ -79,14 +77,14 @@ class InputData:
       as column 0, "k_number"" as column 1, and "definition" as column 2. Keeps 
       only rows where a gene had a KEGG Ortholog annotation.
     
-      Args:
-        files: A list of .tsv file names.
-    
       Returns:
         A list of lists, where each inner list is the annotation data from one file.
       """
+      
       pattern = "K[0-9]{5}"
-      dram_list = []
+      
+      if type(self.files) is str:
+        self.files = [self.files]
       
       for file in self.files:
         lines = []
@@ -108,24 +106,23 @@ class InputData:
         data = data[["file_name", "gene_identifier", "k_number", "definition"]]
     
         
-        dram_list.append(data)
+        self.annotations.append(data)
         
-      return dram_list
-    
+
 
     def read_koala_tsv(self):
       """Reads in multiple blastKoala or ghostKoala .tsv files, keeping the 
       "gene_identifer" as column 0, "k_number"" as column 1, and "definition" as 
       column 2. Keeps only rows where a gene had a KEGG Ortholog annotation.
     
-      Args:
-        files: A list of .tsv file names.
-    
       Returns:
         A list of lists, where each inner list is the annotation data from one file.
       """
+      
       pattern = "K[0-9]{5}"
-      koala_list = []
+
+      if type(self.files) is str:
+        self.files = [self.files]
       
       for file in self.files:
         lines = []
@@ -146,10 +143,8 @@ class InputData:
         data["file_name"] = file
         data = data[["file_name", "gene_identifier", "k_number", "definition"]]
     
-        koala_list.append(data)
+        self.annotations.append(data)
         
-      return koala_list
-
 
 
 class AnnotationList:
@@ -157,37 +152,36 @@ class AnnotationList:
     """Data formatting functions to feed formatted data to the MetaPathPredict function"""
 
   
-    def __init__(self):
-      self.requiredColumnsAll = [] # add list of all required columns for model #1 and model #2
-      self.requiredColumnsModel1 = [] # add list of all required columns for model #1
-      self.requiredColumnsModel2 = [] # add list of all required columns for model #2
+    def __init__(self, requiredColumnsAll, requiredColumnsModel1, requiredColumnsModel2, annotations, feature_df = pd.DataFrame()):
+      self.requiredColumnsAll = requiredColumnsAll # all required columns for model #1 and model #2
+      self.requiredColumnsModel1 = requiredColumnsModel1 # list of all required columns for model #1
+      self.requiredColumnsModel2 = requiredColumnsModel2 # list of all required columns for model #2
+      self.annotations = annotations
+      self.feature_df = feature_df
+
 
 
     def create_feature_df(self):
       """Converts as list of annotations into a Pandas feature DataFrame.
     
-      Args:
-        annotations: A list of DataFrames.
-    
       Returns:
         A Pandas DataFrame.
       """
-      data = pd.DataFrame()
+
       for df in self.annotations:
         df["count"] = 1
-        data = pd.concat([data, df], axis = 0)
+        self.feature_df = pd.concat([self.feature_df, df], axis = 0)
       
-      data = data.groupby(["file_name", "k_number"]).agg(count=("count", "sum")).reset_index().pivot_table(
+      self.feature_df = self.feature_df.groupby(["file_name", "k_number"]).agg(count=("count", "sum")).reset_index().pivot_table(
       index = "file_name",
       columns = "k_number",
       values = "count",
       aggfunc = "first")
       
-      data = data.replace(np.NaN, 0)
-      data = data.where(data <= 1, 1)
+      self.feature_df = self.feature_df.replace(np.NaN, 0)
+      self.feature_df = self.feature_df.where(self.feature_df <= 1, 1)
     
-      return data
-    
+
 
     def check_feature_columns(self):
       """Checks that all required columns are present for both of MetaPathPredict's models.
@@ -199,29 +193,35 @@ class AnnotationList:
       Returns:
         A Pandas DataFrame.
       """
-    
-      for column in self.requiredColumnsAll
-        if column not in self.feature_df.columns
-          feature_df[column] = 0
       
-      for column in self.feature_df.columns
-        if column not in self.requiredColumnsAll
-          self.feature_df.drop([column], axis = 1)
-    
-      return self.feature_df
+      cols_to_add = [col for col in self.requiredColumnsAll if col not in self.feature_df.columns]
+      self.feature_df.loc[:, cols_to_add] = 0
+      
+      cols_to_drop = [col for col in self.feature_df.columns if col not in self.requiredColumnsAll]
+      self.feature_df.drop(cols_to_drop, axis = 1, inplace = True)
+      
+      self.feature_df = self.feature_df.reindex(self.requiredColumnsAll, axis = 1)
+      
     
 
     def select_model_features(self):
       """Selects all required columns for the specified MetaPathPredict model (either model #1 or model #2).
-    
-      Args:
-        required_columns: A list of all required column names.
-        feature_df: A DataFrame containing all predictor columns for both of MetaPathPredict's models.
     
       Returns:
         A Pandas DataFrame.
       """
     
       self.feature_df = self.feature_df[self.requiredColumnsModel1]
+      self.feature_df = self.feature_df.reindex(self.requiredColumnsModel1, axis = 1)
+      
+
+
+    def transform_model_features(self, scaler):
+      """Transforms all required columns for the specified MetaPathPredict model (either model #1 or model #2).
     
-      return self.feature_df
+      Returns:
+        A Pandas DataFrame.
+      """
+
+      scaled_features = scaler.transform(self.feature_df)
+      self.feature_df = pd.DataFrame(scaled_features, index = self.feature_df.index, columns = self.feature_df.columns)
