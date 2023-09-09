@@ -21,8 +21,8 @@ setup(
     entry_points={
         "console_scripts": [
             # trains and tests the CPR models
-            "MetaPathPredictTrain = metapathpredict.cmdline_models:Models.train", 
-            "MetaPathPredictPredict = metapathpredict.cmdline_models:Models.predict", 
+            "MetaPathTrain = metapathpredict.cmdline_models:Models.train", 
+            "MetaPathPredict = metapathpredict.cmdline_models:Models.predict", 
         ]
     },
     classifiers=CLASSIFIERS,

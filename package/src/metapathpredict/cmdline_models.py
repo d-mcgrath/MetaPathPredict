@@ -5,7 +5,7 @@ Command Line Interface for MetaPathPredict Tools:
 .. currentmodule:: metapathpredict
 
 class methods:
-   categorize_loans_from_cashflows
+   MetaPathPredict methods
 """
 
 import logging
@@ -29,10 +29,14 @@ import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader, TensorDataset
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from sklearn.feature_selection import chi2, SelectKBest
+from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.metrics import classification_report
 import torch
 import torch.nn as nn
+
+from metapathpredict.utils import InputData
+from metapathpredict.utils import AnnotationList
+
 
 
 # CUDA for PyTorch
@@ -77,7 +81,7 @@ class CustomModel(nn.Module):
         NUM_HIDDEN_NODES = num_hidden_nodes_per_layer
         self.NUM_HIDDEN_LAYERS = num_hidden_layers
 
-        self.fc1 = nn.Linear(args.num_features, NUM_HIDDEN_NODES)
+        self.fc1 = nn.Linear(2000, NUM_HIDDEN_NODES)
         self.relu = nn.ReLU()
         self.dropout = nn.Dropout(0.1)
 
@@ -187,7 +191,7 @@ class Models:
             type=int,
             required=False,
             default=1024,
-            help="number of nodes in each  hidden layer",
+            help="number of nodes in each hidden layer",
         )
         neural_net_params.add_argument(
             "--num-features",
@@ -196,6 +200,14 @@ class Models:
             required=False,
             type=int,
             help="number of features to retain from training data",
+        )
+        neural_net_params.add_argument(
+            "--threshold",
+            dest="threshold",
+            default=6432,
+            required=False,
+            type=float,
+            help="threshold for SelectKBest feature selection",
         )
 
 
@@ -243,18 +255,34 @@ class Models:
         print("x_train", x_train.shape, " y_train ", y_train.shape)
         print("x_val", x_val.shape, " y_val ", y_val.shape)
         print("x_test", x_test.shape, " y_test ", y_test.shape)
+        
+        
+        
+        # Initialize the StandardScaler
+        scaler = StandardScaler()
+        
+        # Fit the scaler to training data and transform it
+        # and then transform val and test data w/ the fitted scaler object 
+        # (std. dev., variance, etc. are based on training data columns)
+        scaled_features = scaler.fit_transform(x_train)
+        x_train = pd.DataFrame(scaled_features, index = x_train.index, columns = x_train.columns)
+        x_val = pd.DataFrame(scaler.transform(x_val), index = x_val.index, columns = x_val.columns) 
+        x_test = pd.DataFrame(scaler.transform(x_test), index = x_test.index, columns = x_test.columns) 
+        logging.info(f"normalizing the training input features")
+        
+        
 
         # feature selection based only on the training data
-        # Select features according to the k highest scores.
-        # Chi-squared stats of non-negative features
+        # Select features according to the k highest F-values
+        # from running ANOVA on y_train and x_train
         selected_features = []
         for label in y_train:
-            selector = SelectKBest(chi2, k="all")
+            selector = SelectKBest(f_classif, k = 'all')
             selector.fit(x_train, y_train[label])
             selected_features.append(list(selector.scores_))
 
         # select threshold that retains 2000 features
-        threshold = 4732.3
+        threshold = args.threshold
 
         # # MeanCS
         logging.info(f"total number of features in input: {x_train.shape[1]}")
@@ -273,12 +301,12 @@ class Models:
         logging.info(f"Using labels : {str(labels_used)}")
 
         # Initialize the StandardScaler
-        scaler = StandardScaler()
+        #scaler = StandardScaler()
 
         # Fit the scaler to your data and transform it
-        x_train2 = scaler.fit_transform(x_train2)
-        x_val2 = scaler.fit_transform(x_val2)
-        logging.info(f"normalizing the training input features")
+        #x_train2 = scaler.fit_transform(x_train2)
+        #x_val2 = scaler.fit_transform(x_val2)
+        #logging.info(f"normalizing the training input features")
 
         y_train = np.asarray(y_train.values)
         y_val = np.asarray(y_val.values)
@@ -310,6 +338,8 @@ class Models:
         no_transform = transforms.Compose([])
 
         # dataset DataLoader
+        x_train2 = np.asarray(x_train2)
+        x_val2 = np.asarray(x_val2)
         print("xtrain2", x_train2.shape, y_train.shape)
 
         logging.info(f"loading training dataset into dataloader")
@@ -362,8 +392,7 @@ class Models:
             )
 
         # assess the model on test data
-        x_test2 = scaler.fit_transform(x_test2)
-        logging.info(f"normalizing the test input features")
+        x_test2 = np.asarray(x_test2)
         x_test2 = torch.tensor(x_test2, dtype=torch.float32)
         logging.info(f"converting test inputs to torch.tensor")
 
@@ -387,9 +416,8 @@ class Models:
 
     @classmethod
     def predict(cls, args: Iterable[str] = None) -> int:
-        """Test a model from the input data .
-
-        Read out a DNN model in the keras forma
+        """Predict the presence or absence of select KEGG modules on bacterial
+        annotation data.
 
         Parameters
         ----------
@@ -410,62 +438,103 @@ class Models:
             "-i",
             dest="input",
             required=True,
-            help="input file",
+            help="input file name [required]",
+        )
+        parser.add_argument(
+            "--annotation-format",
+            "-a",
+            dest="annotation_format",
+            required=True,
+            help="annotation format [kofamscan, dram, koala; default: kofamscan]",
         )
         parser.add_argument(
             "--output",
             "-o",
             dest="output",
             required=True,
-            help="output file",
+            help="output file name [required; no default folder created]",
         )
- 
         parser.add_argument(
             "--model-file",
             "-m",
             dest="model_in",
             required=True,
-            help="input model file name",
+            help="input model file location [default: MetaPathPredict folder]",
+        )
+        parser.add_argument(
+            "--scaler-file",
+            "-s",
+            dest="common_scaler_in",
+            required=True,
+            help="input scaler file location [default: MetaPathPredict folder]",
         )
 
         args = parser.parse_args()
+        
+        with open(args.common_scaler_in,'rb') as f:
+          commonClassifierScaler = pickle.load(f)
 
         model_file = torch.load(args.model_in)
         logging.info(f"reading model file: {args.model_in}")
+        logging.info(f"reading scaler file: {args.common_scaler_in}")
 
         # load the input features
-        if args.input.endswith('.gz'):
-            input_features = pd.read_table(args.input, compression="gzip")
+        files_list = InputData(files = args.input) 
+        
+        if args.annotation_format == "kofamscan":
+          files_list.read_kofamscan_detailed_tsv()
+          
+        elif args.annotation_format == "dram":
+          files_list.read_dram_annotation_tsv()
+          
+        elif args.annotation_format == "koala":
+          files_list.read_koala_tsv()
+        
         else:
-            input_features = pd.read_table(args.input)
+          logging.error("""did not recognize annotation format; use one of "kofamscan", "dram", or "koala""")
+          sys.exit(0)
+          
+        input_features = AnnotationList(
+          requiredColumnsAll = commonClassifierScaler.feature_names_in_, # add list of all required columns for model #1 and model #2
+          requiredColumnsModel1 = commonClassifierScaler.feature_names_in_, # add list of all required columns for model #1
+          requiredColumnsModel2 = commonClassifierScaler.feature_names_in_, # add list of all required columns for model #2
+          annotations = files_list.annotations)
 
-        logging.info(f"reading input features of shape: {input_features.shape[0]} x {input_features.shape[1]}")
+        input_features.create_feature_df()
+        input_features.check_feature_columns()
+        input_features.select_model_features()
+        input_features.transform_model_features(commonClassifierScaler)
+        
 
-        if set(input_features.columns).intersection(
-            set(model_file["features"])
-        ) != set(model_file["features"]):
-            print("input file is missing some features expected by the model")
-            logging.error("input file is missing some features expected by the model")
-
-            # check which feature is missing
-            for feature_name in model_file['features']: 
-                if feature_name not in set(input_features.columns):
-                    logging.error(f"missing expected feature: {feature_name}")
-            logging.shutdown()
-            sys.exit(0)
-
-        features = input_features[model_file["features"]]
-        logging.info(f"reading input features from file: {args.input}")
+        # logging.info(f"reading args.annotation_format input annotations of shape: {input_features.shape[0]} x {input_features.shape[1]}")
+        # logging.info(f"normalizing the input features")
+        # 
+        # if set(input_features.columns).intersection(
+        #     set(model_file["features"])
+        # ) != set(model_file["features"]):
+        #     print("input file is missing some features expected by the model")
+        #     logging.error("input file is missing some features expected by the model")
+        # 
+        #     # check which feature is missing
+        #     for feature_name in model_file['features']: 
+        #         if feature_name not in set(input_features.columns):
+        #             logging.error(f"missing expected feature: {feature_name}")
+        #     logging.shutdown()
+        #     sys.exit(0)
+        # 
+        # features = input_features[model_file["features"]]
+        # logging.info(f"reading input features from file: {args.input}")
 
         # Initialize the StandardScaler
-        scaler = StandardScaler()
+        #scaler = StandardScaler()
 
         # Fit the scaler to your data and transform it
-        features = scaler.fit_transform(features)
-        logging.info(f"normalizing the input features")
+        #features = scaler.fit_transform(features)
+        #features = scaler.transform(features)
+        #logging.info(f"normalizing the input features")
 
         # convert to pytorch.tensor
-        features = torch.tensor(features, dtype=torch.float32)
+        features = torch.tensor(np.asarray(input_features.feature_df), dtype=torch.float32)
 
         # predict
         predictions_test = model_file['model'](features)
