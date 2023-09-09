@@ -34,6 +34,10 @@ from sklearn.metrics import classification_report
 import torch
 import torch.nn as nn
 
+from metapathpredict.utils import InputData
+from metapathpredict.utils import AnnotationList
+
+
 
 # CUDA for PyTorch
 use_cuda = torch.cuda.is_available()
@@ -388,8 +392,7 @@ class Models:
             )
 
         # assess the model on test data
-        #x_test2 = scaler.fit_transform(x_test2)
-        #logging.info(f"normalizing the test input features")
+        x_test2 = np.asarray(x_test2)
         x_test2 = torch.tensor(x_test2, dtype=torch.float32)
         logging.info(f"converting test inputs to torch.tensor")
 
@@ -458,72 +461,80 @@ class Models:
             required=True,
             help="input model file location [default: MetaPathPredict folder]",
         )
+        parser.add_argument(
+            "--scaler-file",
+            "-s",
+            dest="common_scaler_in",
+            required=True,
+            help="input scaler file location [default: MetaPathPredict folder]",
+        )
 
         args = parser.parse_args()
+        
+        with open(args.common_scaler_in,'rb') as f:
+          commonClassifierScaler = pickle.load(f)
 
         model_file = torch.load(args.model_in)
         logging.info(f"reading model file: {args.model_in}")
+        logging.info(f"reading scaler file: {args.common_scaler_in}")
 
         # load the input features
-        
-        # if args.input.endswith('.gz'):
-        #     input_features = pd.read_table(args.input, compression="gzip")
-        # else:
-        #     input_features = pd.read_table(args.input)
-        
-        # if args.input.isMultiple: # somehow check if input is scalar or vector quantity
-        #   files = [args.input] # this whole if statement may not be necessary; verify if so
-        
-        # initiate an InputData class instance
-        files_list = InputData() 
-        files_list.files = args.input # set a "files" attribute equal to args.input 
+        files_list = InputData(files = args.input) 
         
         if args.annotation_format == "kofamscan":
-          annotations = files_list.read_kofamscan_detailed_tsv()
-
+          files_list.read_kofamscan_detailed_tsv()
+          
         elif args.annotation_format == "dram":
-          annotations = files_list.read_dram_annotation_tsv()
+          files_list.read_dram_annotation_tsv()
           
         elif args.annotation_format == "koala":
-          annotations = files_list.read_koala_tsv()
+          files_list.read_koala_tsv()
         
         else:
           logging.error("""did not recognize annotation format; use one of "kofamscan", "dram", or "koala""")
           sys.exit(0)
           
-        input_features = AnnotationList()
-        input_features.annotations = annotations
-        input_features.feature_df = input_features.create_feature_df()
-        input_features = input_features.check_feature_columns().select_model_features()
+        input_features = AnnotationList(
+          requiredColumnsAll = commonClassifierScaler.feature_names_in_, # add list of all required columns for model #1 and model #2
+          requiredColumnsModel1 = commonClassifierScaler.feature_names_in_, # add list of all required columns for model #1
+          requiredColumnsModel2 = commonClassifierScaler.feature_names_in_, # add list of all required columns for model #2
+          annotations = files_list.annotations)
 
-        logging.info(f"reading args.annotation_format input annotations of shape: {input_features.shape[0]} x {input_features.shape[1]}")
+        input_features.create_feature_df()
+        input_features.check_feature_columns()
+        input_features.select_model_features()
+        input_features.transform_model_features(commonClassifierScaler)
+        
 
-        if set(input_features.columns).intersection(
-            set(model_file["features"])
-        ) != set(model_file["features"]):
-            print("input file is missing some features expected by the model")
-            logging.error("input file is missing some features expected by the model")
-
-            # check which feature is missing
-            for feature_name in model_file['features']: 
-                if feature_name not in set(input_features.columns):
-                    logging.error(f"missing expected feature: {feature_name}")
-            logging.shutdown()
-            sys.exit(0)
-
-        features = input_features[model_file["features"]]
-        logging.info(f"reading input features from file: {args.input}")
+        # logging.info(f"reading args.annotation_format input annotations of shape: {input_features.shape[0]} x {input_features.shape[1]}")
+        # logging.info(f"normalizing the input features")
+        # 
+        # if set(input_features.columns).intersection(
+        #     set(model_file["features"])
+        # ) != set(model_file["features"]):
+        #     print("input file is missing some features expected by the model")
+        #     logging.error("input file is missing some features expected by the model")
+        # 
+        #     # check which feature is missing
+        #     for feature_name in model_file['features']: 
+        #         if feature_name not in set(input_features.columns):
+        #             logging.error(f"missing expected feature: {feature_name}")
+        #     logging.shutdown()
+        #     sys.exit(0)
+        # 
+        # features = input_features[model_file["features"]]
+        # logging.info(f"reading input features from file: {args.input}")
 
         # Initialize the StandardScaler
-        scaler = StandardScaler()
+        #scaler = StandardScaler()
 
         # Fit the scaler to your data and transform it
         #features = scaler.fit_transform(features)
-        features = scaler.transform(features)
-        logging.info(f"normalizing the input features")
+        #features = scaler.transform(features)
+        #logging.info(f"normalizing the input features")
 
         # convert to pytorch.tensor
-        features = torch.tensor(features, dtype=torch.float32)
+        features = torch.tensor(np.asarray(input_features.feature_df), dtype=torch.float32)
 
         # predict
         predictions_test = model_file['model'](features)
