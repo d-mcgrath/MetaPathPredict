@@ -1,8 +1,8 @@
 import csv
-import pandas as pd
 import re
 import gzip
 import numpy as np
+import pandas as pd
 
 
 class InputData:
@@ -152,10 +152,10 @@ class AnnotationList:
     """Data formatting functions to feed formatted data to the MetaPathPredict function"""
 
   
-    def __init__(self, requiredColumnsAll, requiredColumnsModel1, requiredColumnsModel2, annotations, feature_df = pd.DataFrame()):
+    def __init__(self, requiredColumnsAll, requiredColumnsModel0, requiredColumnsModel1, annotations, feature_df = pd.DataFrame()):
       self.requiredColumnsAll = requiredColumnsAll # all required columns for model #1 and model #2
-      self.requiredColumnsModel1 = requiredColumnsModel1 # list of all required columns for model #1
-      self.requiredColumnsModel2 = requiredColumnsModel2 # list of all required columns for model #2
+      self.requiredColumnsModel0 = requiredColumnsModel0 # list of all required columns for model #1
+      self.requiredColumnsModel1 = requiredColumnsModel1 # list of all required columns for model #2
       self.annotations = annotations
       self.feature_df = feature_df
 
@@ -186,23 +186,24 @@ class AnnotationList:
     def check_feature_columns(self):
       """Checks that all required columns are present for both of MetaPathPredict's models.
     
-      Args:
-        requiredColumnsAll: A list of all required column names.
-        feature_df: A DataFrame containing all predictor columns for both of MetaPathPredict's models.
-    
       Returns:
         A Pandas DataFrame.
       """
       
       cols_to_add = [col for col in self.requiredColumnsAll if col not in self.feature_df.columns]
-      self.feature_df.loc[:, cols_to_add] = 0
-      
+      #self.feature_df.loc[:, cols_to_add] = 0
+      col_dict = dict.fromkeys(cols_to_add, 0)
+      temp_df = pd.DataFrame(col_dict, index = self.feature_df.index)
+      self.feature_df = pd.concat([self.feature_df, temp_df], axis = 1)
+
       cols_to_drop = [col for col in self.feature_df.columns if col not in self.requiredColumnsAll]
       self.feature_df.drop(cols_to_drop, axis = 1, inplace = True)
       
       self.feature_df = self.feature_df.reindex(self.requiredColumnsAll, axis = 1)
       
-    
+      self.feature_df = [self.feature_df, self.feature_df]
+      
+
 
     def select_model_features(self):
       """Selects all required columns for the specified MetaPathPredict model (either model #1 or model #2).
@@ -210,18 +211,24 @@ class AnnotationList:
       Returns:
         A Pandas DataFrame.
       """
-    
-      self.feature_df = self.feature_df[self.requiredColumnsModel1]
-      self.feature_df = self.feature_df.reindex(self.requiredColumnsModel1, axis = 1)
       
+      self.feature_df[0] = self.feature_df[0][self.requiredColumnsModel0]
+      self.feature_df[0] = self.feature_df[0].reindex(self.requiredColumnsModel0, axis = 1)
+
+      self.feature_df[1] = self.feature_df[1][self.requiredColumnsModel1]
+      self.feature_df[1] = self.feature_df[1].reindex(self.requiredColumnsModel1, axis = 1)
 
 
-    def transform_model_features(self, scaler):
+
+    def transform_model_features(self, scaler_0, scaler_1):
       """Transforms all required columns for the specified MetaPathPredict model (either model #1 or model #2).
     
       Returns:
         A Pandas DataFrame.
       """
 
-      scaled_features = scaler.transform(self.feature_df)
-      self.feature_df = pd.DataFrame(scaled_features, index = self.feature_df.index, columns = self.feature_df.columns)
+      scaled_features_0 = scaler_0.transform(self.feature_df[0])
+      self.feature_df[0] = pd.DataFrame(scaled_features_0, index = self.feature_df[0].index, columns = self.feature_df[0].columns)
+
+      scaled_features_1 = scaler_1.transform(self.feature_df[1])
+      self.feature_df[1] = pd.DataFrame(scaled_features_1, index = self.feature_df[1].index, columns = self.feature_df[1].columns)
