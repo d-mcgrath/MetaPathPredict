@@ -18,7 +18,7 @@ The following functions can be implemented to run MetaPathPredict:
 
 - `MetaPathPredict` parses one or more input KEGG Ortholog gene annotation datasets (currently only bacterial genome data is supported). This function currently accepts as input the output files from KofamScan, DRAM, BlastKoala, and GhostKoala gene annotation tools. Run any of these tools first and then use one or more of their output gene annotation files as input to MetaPathPredict. A sample of each annotation output file form is included in this repository. To test MetaPathPredict or see a sample input file for use with this tool, download the repository, install MetaPathPredict, and run predictions on one or more of the sample gene annotation files.
 
-- The `MetaPathPredict` function reconstructs KEGG modules within the input annotation dataset and predicts the presence or absence of incomplete or missing KEGG modules. To specify a specific KEGG module or modules to reconstruct and predict, include the module identifier (e.g., M00001) or identifiers as a comma-separated list to the argument `--kegg-modules`. 
+- The `MetaPathPredict` function reconstructs KEGG modules within the input annotation dataset and predicts the presence or absence of incomplete or missing KEGG modules. To specify a specific KEGG module or modules to reconstruct and predict, include the module identifier (e.g., M00001) or identifiers as a space-separated list to the argument `--kegg-modules`. 
 
 - To view which KEGG modules MetaPathPredict can reconstruct and make predictions for, run the following command: `AvailableModules`.
 
