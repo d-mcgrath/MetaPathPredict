@@ -48,7 +48,8 @@ options:
                         input scaler files location [default: MetaPathPredict folder]
   --kegg-modules KEGG_MODULES [KEGG_MODULES ...], -k KEGG_MODULES [KEGG_MODULES ...]
                         KEGG modules to predict [default: MetaPathPredict KEGG
-                        modules]```
+                        modules]
+```
 
 <br>
 
