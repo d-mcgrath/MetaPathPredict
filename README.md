@@ -63,6 +63,7 @@ MetaPathPredict -i kofamscan_annotations_1.tsv -a kofamscan -o /results/predicti
 MetaPathPredict \
 -i kofamscan_annotations_1.tsv kofamscan_annotations_2.tsv kofamscan_annotations_3.tsv \
 -a kofamscan \
+-k M00001 M00003 \
 -o /results/predictions.tsv
 
 # Multiple KofamScan datasets in a directory
