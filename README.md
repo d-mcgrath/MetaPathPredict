@@ -28,7 +28,7 @@ The following functions can be implemented to run MetaPathPredict:
 
 ```
 # predict method for making KEGG module presence/absence predictions on input gene annotations
-usage: MetaPathPredictPredict [-h] --input INPUT [INPUT ...] --annotation-format
+usage: MetaPathPredict [-h] --input INPUT [INPUT ...] --annotation-format
                               ANNOTATION_FORMAT --output OUTPUT --model-files MODEL_IN
                               [MODEL_IN ...] --scaler-files SCALER_IN [SCALER_IN ...]
                               [--kegg-modules KEGG_MODULES [KEGG_MODULES ...]]
@@ -80,7 +80,7 @@ MetaPathPredict -i annotations/*.tsv -a dram -o /results/predictions.tsv
 ## Developer usage
 
 ```
-usage: MetaPathPredictTrain [-h] --train-targets TRAIN_TARGETS --train-features
+usage: MetaPathTrain [-h] --train-targets TRAIN_TARGETS --train-features
                             TRAIN_FEATURES [--num-epochs NUM_EPOCHS] --model-out
                             MODEL_OUT [--use-gpu] [--num-cores NUM_CORES]
                             [--num-hidden-layers NUM_HIDDEN_LAYERS]
