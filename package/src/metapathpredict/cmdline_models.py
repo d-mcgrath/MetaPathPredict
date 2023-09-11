@@ -556,8 +556,8 @@ class Models:
         out_df = pd.concat(predictions_list, axis = 1)
 
         if args.kegg_modules is not None:
-          if all(modules in out_df.columns for module in args.kegg_modules):
-            out_df = out_df[[args.kegg_modules]]
+          if all(modules in out_df.columns for modules in args.kegg_modules):
+            out_df = out_df[args.kegg_modules]
           else:
             logging.error("""Did not recognize one or more KEGG modules specified with --kegg-modules; keeping all prediction columns""")
 
