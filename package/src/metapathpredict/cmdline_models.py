@@ -23,7 +23,6 @@ import pandas as pd
 from typing import Iterable, List, Dict, Set, Optional, Sequence
 from itertools import chain
 
-
 from torchvision import transforms
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader, TensorDataset
@@ -56,6 +55,7 @@ logging.basicConfig(
 )
 
 
+
 class CustomDataset(Dataset):
     def __init__(self, data, targets, transform=None):
         print("type", type(data), data.shape)
@@ -75,6 +75,7 @@ class CustomDataset(Dataset):
         return features, target
 
 
+
 class CustomModel(nn.Module):
     def __init__(self, num_hidden_nodes_per_layer=1024, num_hidden_layers=5):
         super(CustomModel, self).__init__()
@@ -91,7 +92,7 @@ class CustomModel(nn.Module):
             for i in range(num_hidden_layers)
         ]
 
-        self.output_layer = nn.Linear(NUM_HIDDEN_NODES, 96)
+        self.output_layer = nn.Linear(NUM_HIDDEN_NODES, 94)
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
@@ -110,6 +111,7 @@ class CustomModel(nn.Module):
         x = self.output_layer(x)
         x = self.sigmoid(x)
         return x
+
 
 
 class Models:
@@ -286,7 +288,7 @@ class Models:
 
         # # MeanCS
         logging.info(f"total number of features in input: {x_train.shape[1]}")
-        selected_features2 = np.mean(selected_features, axis=0) > threshold
+        selected_features2 = np.mean(selected_features, axis = 0) > threshold
         logging.info(f"number of features selected for training: {sum(selected_features2)}")
 
         # create new training, validation, and test datasets retaining only the 2000 top features
@@ -414,6 +416,8 @@ class Models:
         torch.save(model_file, args.model_out)
         logging.info(f"writing model file: {args.model_out}")
 
+
+
     @classmethod
     def predict(cls, args: Iterable[str] = None) -> int:
         """Predict the presence or absence of select KEGG modules on bacterial
@@ -436,9 +440,11 @@ class Models:
         parser.add_argument(
             "--input",
             "-i",
+            action = "extend",
+            nargs = "+",
             dest="input",
             required=True,
-            help="input file name [required]",
+            help="input file path(s) [required]",
         )
         parser.add_argument(
             "--annotation-format",
@@ -455,28 +461,47 @@ class Models:
             help="output file name [required; no default folder created]",
         )
         parser.add_argument(
-            "--model-file",
+            "--model-files",
             "-m",
+            action="extend",
+            nargs="+",
             dest="model_in",
             required=True,
-            help="input model file location [default: MetaPathPredict folder]",
+            help="input model files location [default: MetaPathPredict folder]",
         )
         parser.add_argument(
-            "--scaler-file",
+            "--scaler-files",
             "-s",
-            dest="common_scaler_in",
+            action="extend",
+            nargs="+",
+            dest="scaler_in",
             required=True,
-            help="input scaler file location [default: MetaPathPredict folder]",
+            help="input scaler files location [default: MetaPathPredict folder]",
         )
+        parser.add_argument(
+            "--kegg-modules",
+            "-k",
+            dest="kegg_modules",
+            required=False,
+            default=None,
+            action="extend",
+            nargs="+",
+            help="KEGG modules to predict [default: MetaPathPredict KEGG modules]",
+        )
+
 
         args = parser.parse_args()
         
-        with open(args.common_scaler_in,'rb') as f:
+        with open(args.scaler_in[0],'rb') as f:
           commonClassifierScaler = pickle.load(f)
+          
+        with open(args.scaler_in[1],'rb') as g:
+          rareClassifierScaler = pickle.load(g)
 
-        model_file = torch.load(args.model_in)
-        logging.info(f"reading model file: {args.model_in}")
-        logging.info(f"reading scaler file: {args.common_scaler_in}")
+        models = [torch.load(args.model_in[0]), torch.load(args.model_in[1])]
+        
+        logging.info(f"reading model files: {args.model_in[0]}, {args.model_in[1]}")
+        logging.info(f"reading scaler files: {args.scaler_in[0]}, {args.scaler_in[1]}")
 
         # load the input features
         files_list = InputData(files = args.input) 
@@ -491,59 +516,54 @@ class Models:
           files_list.read_koala_tsv()
         
         else:
-          logging.error("""did not recognize annotation format; use one of "kofamscan", "dram", or "koala""")
+          logging.error("""Did not recognize annotation format; use "kofamscan", "dram", or "koala""""")
           sys.exit(0)
           
+          
+        model_0_cols = np.ndarray.tolist(commonClassifierScaler.feature_names_in_)
+        model_1_cols = np.ndarray.tolist(rareClassifierScaler.feature_names_in_)
+        reqColsAll = list(set(model_0_cols).union(set(model_1_cols)))
+          
         input_features = AnnotationList(
-          requiredColumnsAll = commonClassifierScaler.feature_names_in_, # add list of all required columns for model #1 and model #2
-          requiredColumnsModel1 = commonClassifierScaler.feature_names_in_, # add list of all required columns for model #1
-          requiredColumnsModel2 = commonClassifierScaler.feature_names_in_, # add list of all required columns for model #2
+          requiredColumnsAll = reqColsAll, # add list of all required columns for model #1 and model #2
+          requiredColumnsModel0 = commonClassifierScaler.feature_names_in_, # add list of all required columns for model #1
+          requiredColumnsModel1 = rareClassifierScaler.feature_names_in_, # add list of all required columns for model #2
           annotations = files_list.annotations)
 
         input_features.create_feature_df()
         input_features.check_feature_columns()
         input_features.select_model_features()
-        input_features.transform_model_features(commonClassifierScaler)
+        input_features.transform_model_features(commonClassifierScaler, rareClassifierScaler)
+
+
+        predictions_list = []
+        for x in range(2):
+          
+          # convert to pytorch.tensor
+          features = torch.tensor(np.asarray(input_features.feature_df[x]), dtype=torch.float32)
+
+          # predict
+          predictions = models[x]['model'](features)
+
+          # round predictions
+          roundedPreds = np.round(predictions.detach().numpy())
+          
+          predsDf = pd.DataFrame(data = roundedPreds, columns = models[x]['labels']).astype(int)
+  
+          predictions_list.append(predsDf)
+
         
+        out_df = pd.concat(predictions_list, axis = 1)
 
-        # logging.info(f"reading args.annotation_format input annotations of shape: {input_features.shape[0]} x {input_features.shape[1]}")
-        # logging.info(f"normalizing the input features")
-        # 
-        # if set(input_features.columns).intersection(
-        #     set(model_file["features"])
-        # ) != set(model_file["features"]):
-        #     print("input file is missing some features expected by the model")
-        #     logging.error("input file is missing some features expected by the model")
-        # 
-        #     # check which feature is missing
-        #     for feature_name in model_file['features']: 
-        #         if feature_name not in set(input_features.columns):
-        #             logging.error(f"missing expected feature: {feature_name}")
-        #     logging.shutdown()
-        #     sys.exit(0)
-        # 
-        # features = input_features[model_file["features"]]
-        # logging.info(f"reading input features from file: {args.input}")
+        if args.kegg_modules is not None:
+          if all(modules in out_df.columns for module in args.kegg_modules):
+            out_df = out_df[[args.kegg_modules]]
+          else:
+            logging.error("""Did not recognize one or more KEGG modules specified with --kegg-modules; keeping all prediction columns""")
 
-        # Initialize the StandardScaler
-        #scaler = StandardScaler()
-
-        # Fit the scaler to your data and transform it
-        #features = scaler.fit_transform(features)
-        #features = scaler.transform(features)
-        #logging.info(f"normalizing the input features")
-
-        # convert to pytorch.tensor
-        features = torch.tensor(np.asarray(input_features.feature_df), dtype=torch.float32)
-
-        # predict
-        predictions_test = model_file['model'](features)
-
-        # round predictions
-        roundedTestPreds = np.round(predictions_test.detach().numpy())
-
-        out_df = pd.DataFrame(data=roundedTestPreds, columns = model_file['labels']).astype(int)
+        out_df.insert(loc = 0, column = 'file', value = args.input)
+        
         logging.info(f"writing output to file: {args.output}")
         out_df.to_csv(args.output, sep='\t', index=None)
 
-        logging.info(f"output matrix size: {out_df.shape[0]} x {out_df.shape[1]}")
+        logging.info(f"Output matrix size: {out_df.shape[0]} x {out_df.shape[1]}")
