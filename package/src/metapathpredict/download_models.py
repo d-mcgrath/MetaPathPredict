@@ -1,5 +1,6 @@
 import pyxet
 import importlib
+from importlib import resources
 
 
 class Download:
@@ -14,7 +15,7 @@ class Download:
 
       """
       print("Downloading MetaPathPredict models...")
-      module_dir = importlib.resources.files('metapathpredict')
+      module_dir = resources.files('metapathpredict')
       data_dir = module_dir.joinpath("data/")
       model_0_dl_path = "xet://dgellermcgrath/MetaPathPredict/main/package/src/metapathpredict/data/model_0.keras"
       model_1_dl_path = "xet://dgellermcgrath/MetaPathPredict/main/package/src/metapathpredict/data/model_1.keras"
