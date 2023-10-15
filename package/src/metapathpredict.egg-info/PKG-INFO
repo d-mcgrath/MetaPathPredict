@@ -1,17 +1,11 @@
 Metadata-Version: 2.1
 Name: metapathpredict
 Version: 0.0.0
-Summary: Tool for predicting and metabolic pathway on metagenomes
-Home-page: UNKNOWN
-Author: ABCD
-Author-email: davids  and kishoris email
-License: UNKNOWN
-Platform: UNKNOWN
+Summary: Tool for predicting the presence or absence of KEGG modules in bacterial genomes
+Author: D. Geller-McGrath, K.M. Konwar, V.P. Edgcomb, M. Pachiadaki, J.W. Roddy, T.J. Wheeler, J.E. McDermott
+Author-email: dgellermcgrath@gmail.com, kishori82@gmail.com
 Classifier: Development Status :: 4 - Beta
 Classifier: Natural Language :: English
 Classifier: License :: OSI Approved :: BSD License
-Classifier: Operating System :: Linux, MacOS
-Classifier: Programming Language :: Python :: 3.6+
-
-UNKNOWN
-
+Classifier: Operating System :: Linux, MacOS, Windows
+Classifier: Programming Language :: Python :: 3.10.6+

@@ -57,17 +57,18 @@ params = {"batch_size": 64, "shuffle": True, "num_workers": 6}
 
 #Configure the logging system
 logging.basicConfig(
-    filename='HISTORYlistener.log',
-    level=logging.DEBUG,
-    format='%(asctime)s %(levelname)s %(module)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S')
+    filename='metapathpredict.log',
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(module)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S")
 
 root = logging.getLogger()
-root.setLevel(logging.DEBUG)
+root.setLevel(logging.INFO)
 
 handler = logging.StreamHandler(sys.stdout)
-handler.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setLevel(logging.INFO)
+formatter = logging.Formatter("%(asctime)s %(levelname)s %(module)s - %(message)s",
+                              "%Y-%m-%d %H:%M:%S")
 handler.setFormatter(formatter)
 root.addHandler(handler)
 
@@ -497,22 +498,26 @@ class Models:
         module_dir = importlib.resources.files('metapathpredict')
         data_dir = module_dir.joinpath("data/")
         
-        scaler_0_path = module_dir.joinpath("data/model_0_scaler.pkl")
-        scaler_1_path = module_dir.joinpath("data/model_1_scaler.pkl")
+        # scaler_0_path = module_dir.joinpath("data/model_0_scaler.pkl")
+        # scaler_1_path = module_dir.joinpath("data/model_1_scaler.pkl")
         
         model_0_path = module_dir.joinpath("data/model_0.keras")
         model_1_path = module_dir.joinpath("data/model_1.keras")
         
         labels_path = module_dir.joinpath("data/labels.pkl")
+        requiredCols_path = module_dir.joinpath("data/requiredCols.pkl")
 
-        with open(scaler_0_path, "rb") as f:
-          model_0_scaler = pickle.load(f)
-          
-        with open(scaler_1_path, "rb") as f:
-          model_1_scaler = pickle.load(f)
+        # with open(scaler_0_path, "rb") as f:
+        #   model_0_scaler = pickle.load(f)
+        #   
+        # with open(scaler_1_path, "rb") as f:
+        #   model_1_scaler = pickle.load(f)
           
         with open(labels_path, "rb") as f:
           labels = pickle.load(f)
+          
+        with open(requiredCols_path, "rb") as f:
+          requiredCols = pickle.load(f)
 
         #models = [torch.load(model_0_path), torch.load(model_1_path)]
         models = [keras.models.load_model(model_0_path), keras.models.load_model(model_1_path)]
@@ -545,20 +550,22 @@ class Models:
           
         logging.info(f"Reading input files with format: {args.annotation_format}")
           
-        model_0_cols = np.ndarray.tolist(model_0_scaler.feature_names_in_)
-        model_1_cols = np.ndarray.tolist(model_1_scaler.feature_names_in_)
-        reqColsAll = list(set(model_0_cols).union(set(model_1_cols)))
-          
+        # model_0_cols = np.ndarray.tolist(model_0_scaler.feature_names_in_)
+        # model_1_cols = np.ndarray.tolist(model_1_scaler.feature_names_in_)
+        # reqColsAll = list(set(model_0_cols).union(set(model_1_cols)))
+
+        reqColsAll = requiredCols
+        
         input_features = AnnotationList(
           requiredColumnsAll = reqColsAll, # add list of all required columns for model #1 and model #2
-          requiredColumnsModel0 = model_0_scaler.feature_names_in_, # add list of all required columns for model #1
-          requiredColumnsModel1 = model_1_scaler.feature_names_in_, # add list of all required columns for model #2
+          #requiredColumnsModel0 = model_0_scaler.feature_names_in_, # add list of all required columns for model #1
+          #requiredColumnsModel1 = model_1_scaler.feature_names_in_, # add list of all required columns for model #2
           annotations = files_list.annotations)
 
         input_features.create_feature_df()
         input_features.check_feature_columns()
-        input_features.select_model_features()
-        input_features.transform_model_features(model_0_scaler, model_1_scaler)
+        # input_features.select_model_features()
+        # input_features.transform_model_features(model_0_scaler, model_1_scaler)
 
         logging.info("Making KEGG module presence/absence predictions")
 
@@ -581,7 +588,402 @@ class Models:
 
           predictions_list.append(predsDf)
           
-          logging.info(f"Model {x} completed predictions")
+          logging.info(f"Model {x} completed making predictions")
+          
+        logging.info("All done.")
+
+        out_df = pd.concat(predictions_list, axis = 1)
+
+        if args.kegg_modules is not None:
+          if all(modules in out_df.columns for modules in args.kegg_modules):
+            out_df = out_df[args.kegg_modules]
+          else:
+            logging.error("""Did not recognize one or more KEGG modules specified with --kegg-modules; keeping all prediction columns""")
+
+        out_df.insert(loc = 0, column = 'file', value = args.input)
+        
+        logging.info(f"Writing output to file: {args.output}")
+        out_df.to_csv(args.output, sep='\t', index=None)
+
+        #logging.info(f"Output matrix size: {out_df.shape[0]} x {out_df.shape[1]}")
+
+
+
+    @classmethod
+    def show_available_modules(cls, args: Iterable[str] = None) -> int:
+
+        """List available KEGG modules for presence/absence prediction.
+
+        Parameters
+        ----------
+        args : Iterable[str], optional
+            value of None, when passed to `parser.parse_args` causes the parser to
+            read `sys.argv`
+
+        Returns
+        -------
+        return_call : 0
+            return call if the program completes successfully
+
+        """
+
+        module_dir = importlib.resources.files('metapathpredict')
+
+        metapathmodules_path = module_dir.joinpath("data/metapathmodules.pkl")
+
+        with open(metapathmodules_path, "rb") as f:
+          metapathmodules = pickle.load(f)
+        
+        pd.set_option('display.max_rows', None)
+        pd.set_option('max_colwidth', None)
+
+        print(metapathmodules)
+          
+        
+    @classmethod
+    def predict_from_feature_table(cls, args: Iterable[str] = None) -> int:
+        """Predict the presence or absence of select KEGG modules on bacterial
+        annotation data -- from an input feature table of KEGG K numbers
+
+        Parameters
+        ----------
+        args : Iterable[str], optional
+            value of None, when passed to `parser.parse_args` causes the parser to
+            read `sys.argv`
+
+        Returns
+        -------
+        return_call : 0
+            return call if the program completes successfully
+
+        """
+        
+        # disable tensorflow info messages
+        os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
+
+        parser = argparse.ArgumentParser()
+
+        parser.add_argument(
+            "--input",
+            "-i",
+            dest="input",
+            required=True,
+            help="input file path(s) and name(s) [required]",
+        )
+        parser.add_argument(
+            "--kegg-modules",
+            "-k",
+            dest="kegg_modules",
+            required=False,
+            default=None,
+            action="extend",
+            nargs="+",
+            help="KEGG modules to predict [default: MetaPathPredict KEGG modules]",
+        )
+        parser.add_argument(
+            "--output",
+            "-o",
+            dest="output",
+            required=True,
+            help="output file path and name [required]",
+        )
+
+        args = parser.parse_args()
+        
+        module_dir = importlib.resources.files('metapathpredict')
+        data_dir = module_dir.joinpath("data/")
+        
+        # scaler_0_path = module_dir.joinpath("data/model_0_scaler.pkl")
+        # scaler_1_path = module_dir.joinpath("data/model_1_scaler.pkl")
+        
+        model_0_path = module_dir.joinpath("data/model_0.keras")
+        model_1_path = module_dir.joinpath("data/model_1.keras")
+        
+        labels_path = module_dir.joinpath("data/labels.pkl")
+        requiredCols_path = module_dir.joinpath("data/requiredCols.pkl")
+
+        # with open(scaler_0_path, "rb") as f:
+        #   model_0_scaler = pickle.load(f)
+        #   
+        # with open(scaler_1_path, "rb") as f:
+        #   model_1_scaler = pickle.load(f)
+          
+        with open(labels_path, "rb") as f:
+          labels = pickle.load(f)
+          
+        with open(requiredCols_path, "rb") as f:
+          requiredCols = pickle.load(f)
+
+        #models = [torch.load(model_0_path), torch.load(model_1_path)]
+        models = [keras.models.load_model(model_0_path), keras.models.load_model(model_1_path)]
+        
+        # logging.info(f"reading model files: {args.model_in[0]}, {args.model_in[1]}")
+        # logging.info(f"reading scaler files: {args.scaler_in[0]}, {args.scaler_in[1]}")
+        
+        # logging.info(f"Reading model files from directory: {data_dir}")
+        # logging.info(f"Reading scaler files from directory: {data_dir}")
+
+
+        # load the input features
+        features = pd.read_csv(args.input, sep = "\t")
+        # files_list = InputData(files = args.input) 
+        # 
+        # if args.annotation_format == "kofamscan":
+        #   files_list.read_kofamscan_detailed_tsv()
+        #   
+        # elif args.annotation_format == "kofamkoala":
+        #   files_list.read_kofamkoala()
+        #   
+        # elif args.annotation_format == "dram":
+        #   files_list.read_dram_annotation_tsv()
+        #   
+        # elif args.annotation_format == "koala":
+        #   files_list.read_koala_tsv()
+        # 
+        # else:
+        #   logging.error("""Did not recognize annotation format; use "kofamscan", "kofamkoala", "dram", or "koala""""")
+        #   sys.exit(0)
+        #   
+        # logging.info(f"Reading input files with format: {args.annotation_format}")
+          
+        # model_0_cols = np.ndarray.tolist(model_0_scaler.feature_names_in_)
+        # model_1_cols = np.ndarray.tolist(model_1_scaler.feature_names_in_)
+        # reqColsAll = list(set(model_0_cols).union(set(model_1_cols)))
+        
+        #reqColsAll = np.ndarray.tolist(model_0_scaler.feature_names_in_)
+        reqColsAll = requiredCols
+          
+        input_features = AnnotationList(
+          requiredColumnsAll = reqColsAll, # add list of all required columns for model #1 and model #2
+          requiredColumnsModel0 = "blank", # add list of all required columns for model #1
+          requiredColumnsModel1 = "blank", # add list of all required columns for model #2
+          annotations = "blank")
+
+        #input_features.create_feature_df()
+        input_features.feature_df = features
+        input_features.check_feature_columns()
+        # input_features.select_model_features()
+        # input_features.transform_model_features(model_0_scaler, model_1_scaler)
+
+        logging.info("Making KEGG module presence/absence predictions")
+
+        predictions_list = []
+        for x in range(2):
+          
+          #features = torch.tensor(np.asarray(input_features.feature_df[x]), dtype=torch.float32)
+
+          # predict
+          #predictions = models[x]['model'](features)
+          logging.info(f"Model {x} is making predictions")
+          predictions = models[x].predict(input_features.feature_df[x])
+
+          # round predictions
+          #roundedPreds = np.round(predictions.detach().numpy())
+          roundedPreds = np.round(predictions)
+          
+          #predsDf = pd.DataFrame(data = roundedPreds, columns = models[x]['labels']).astype(int)
+          predsDf = pd.DataFrame(data = roundedPreds, columns = labels[x]).astype(int)
+
+          predictions_list.append(predsDf)
+          
+          logging.info(f"Model {x} completed making predictions")
+          
+        logging.info("All done.")
+
+        out_df = pd.concat(predictions_list, axis = 1)
+
+        if args.kegg_modules is not None:
+          if all(modules in out_df.columns for modules in args.kegg_modules):
+            out_df = out_df[args.kegg_modules]
+          else:
+            logging.error("""Did not recognize one or more KEGG modules specified with --kegg-modules; keeping all prediction columns""")
+
+        out_df.insert(loc = 0, column = 'file', value = args.input)
+        
+        logging.info(f"Writing output to file: {args.output}")
+        out_df.to_csv(args.output, sep='\t', index=None)
+
+        #logging.info(f"Output matrix size: {out_df.shape[0]} x {out_df.shape[1]}")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    @classmethod
+    def predict_from_feature_table_fs_models(cls, args: Iterable[str] = None) -> int:
+        """Predict the presence or absence of select KEGG modules on bacterial
+        annotation data -- from an input feature table of KEGG K numbers
+
+        Parameters
+        ----------
+        args : Iterable[str], optional
+            value of None, when passed to `parser.parse_args` causes the parser to
+            read `sys.argv`
+
+        Returns
+        -------
+        return_call : 0
+            return call if the program completes successfully
+
+        """
+        
+        # disable tensorflow info messages
+        os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
+
+        parser = argparse.ArgumentParser()
+
+        parser.add_argument(
+            "--input",
+            "-i",
+            dest="input",
+            required=True,
+            help="input file path(s) and name(s) [required]",
+        )
+        parser.add_argument(
+            "--kegg-modules",
+            "-k",
+            dest="kegg_modules",
+            required=False,
+            default=None,
+            action="extend",
+            nargs="+",
+            help="KEGG modules to predict [default: MetaPathPredict KEGG modules]",
+        )
+        parser.add_argument(
+            "--output",
+            "-o",
+            dest="output",
+            required=True,
+            help="output file path and name [required]",
+        )
+
+        args = parser.parse_args()
+        
+        module_dir = importlib.resources.files('metapathpredict')
+        data_dir = module_dir.joinpath("data/")
+        
+        # scaler_0_path = module_dir.joinpath("data/model_0_scaler.pkl")
+        # scaler_1_path = module_dir.joinpath("data/model_1_scaler.pkl")
+        
+        model_0_path = module_dir.joinpath("data/model_0.keras")
+        model_1_path = module_dir.joinpath("data/model_1.keras")
+        
+        labels_path = module_dir.joinpath("data/labels.pkl")
+        requiredCols_path = module_dir.joinpath("data/requiredCols.pkl")
+        
+        requiredColumnsModel0_path = module_dir.joinpath("data/requiredColumnsModel0.pkl")
+        requiredColumnsModel1_path = module_dir.joinpath("data/requiredColumnsModel1.pkl")
+
+        # with open(scaler_0_path, "rb") as f:
+        #   model_0_scaler = pickle.load(f)
+        #   
+        # with open(scaler_1_path, "rb") as f:
+        #   model_1_scaler = pickle.load(f)
+          
+        with open(labels_path, "rb") as f:
+          labels = pickle.load(f)
+          
+        with open(requiredCols_path, "rb") as f:
+          requiredCols = pickle.load(f)
+          
+        with open(requiredColumnsModel0_path, "rb") as f:
+          model_0_features = pickle.load(f)
+
+        with open(requiredColumnsModel1_path, "rb") as f:
+          model_1_features = pickle.load(f)
+
+
+        #models = [torch.load(model_0_path), torch.load(model_1_path)]
+        models = [keras.models.load_model(model_0_path), keras.models.load_model(model_1_path)]
+        
+        # logging.info(f"reading model files: {args.model_in[0]}, {args.model_in[1]}")
+        # logging.info(f"reading scaler files: {args.scaler_in[0]}, {args.scaler_in[1]}")
+        
+        # logging.info(f"Reading model files from directory: {data_dir}")
+        # logging.info(f"Reading scaler files from directory: {data_dir}")
+
+
+        # load the input features
+        features = pd.read_csv(args.input, sep = "\t")
+        # files_list = InputData(files = args.input) 
+        # 
+        # if args.annotation_format == "kofamscan":
+        #   files_list.read_kofamscan_detailed_tsv()
+        #   
+        # elif args.annotation_format == "kofamkoala":
+        #   files_list.read_kofamkoala()
+        #   
+        # elif args.annotation_format == "dram":
+        #   files_list.read_dram_annotation_tsv()
+        #   
+        # elif args.annotation_format == "koala":
+        #   files_list.read_koala_tsv()
+        # 
+        # else:
+        #   logging.error("""Did not recognize annotation format; use "kofamscan", "kofamkoala", "dram", or "koala""""")
+        #   sys.exit(0)
+        #   
+        # logging.info(f"Reading input files with format: {args.annotation_format}")
+          
+        # model_0_cols = np.ndarray.tolist(model_0_scaler.feature_names_in_)
+        # model_1_cols = np.ndarray.tolist(model_1_scaler.feature_names_in_)
+        # reqColsAll = list(set(model_0_cols).union(set(model_1_cols)))
+        
+        #reqColsAll = np.ndarray.tolist(model_0_scaler.feature_names_in_)
+        reqColsAll = requiredCols
+          
+        input_features = AnnotationList(
+          requiredColumnsAll = reqColsAll, # add list of all required columns for model #1 and model #2
+          requiredColumnsModel0 = model_0_features, # add list of all required columns for model #1
+          requiredColumnsModel1 = model_1_features, # add list of all required columns for model #2
+          annotations = "blank")
+
+        #input_features.create_feature_df()
+        input_features.feature_df = features
+        input_features.check_feature_columns()
+        input_features.select_model_features()
+        # input_features.transform_model_features(model_0_scaler, model_1_scaler)
+
+        logging.info("Making KEGG module presence/absence predictions")
+
+        predictions_list = []
+        for x in range(2):
+          
+          #features = torch.tensor(np.asarray(input_features.feature_df[x]), dtype=torch.float32)
+
+          # predict
+          #predictions = models[x]['model'](features)
+          logging.info(f"Model {x} is making predictions")
+          predictions = models[x].predict(input_features.feature_df[x])
+
+          # round predictions
+          #roundedPreds = np.round(predictions.detach().numpy())
+          roundedPreds = np.round(predictions)
+          
+          #predsDf = pd.DataFrame(data = roundedPreds, columns = models[x]['labels']).astype(int)
+          predsDf = pd.DataFrame(data = roundedPreds, columns = labels[x]).astype(int)
+
+          predictions_list.append(predsDf)
+          
+          logging.info(f"Model {x} completed making predictions")
           
         logging.info("All done.")
 

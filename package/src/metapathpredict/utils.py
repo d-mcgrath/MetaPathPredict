@@ -70,10 +70,91 @@ class InputData:
         
         self.annotations.append(data)
         
+        
+        
+        
+    def read_kofamkoala(self):
+      """Reads in multiple .tsv files, each with columns: 0: "gene_identifier", 
+      1: 'k_number', 2: "adaptive_threshold", 3: "score", 4: "evalue", 
+      5: "definition", 6: "definition_2". Keeps only rows where 
+      "surpassed_threshold" is equal to "*". When there are duplicate values in 
+      "gene name", keeps the row containing the highest value in the "score" 
+      column. If column "gene name" contains multiple rows with the same maximum 
+      value, calculates the score-to-adaptive-threshold ratio, and picks the 
+      annotation with the highest ratio.
+    
+      Returns:
+        A list of lists, where each inner list is the annotation data from one file.
+      """
+
+      if type(self.files) is str:
+        self.files = [self.files]
+      
+      for file in self.files:
+        lines = []
+        
+        if file.endswith(".gz"):
+          with gzip.open(file, "rb") as f:
+             for row in f:
+              if row.decode().split("\t")[0] == "gene":
+                continue
+              elif row.decode().split("\t")[3] == "-":
+                continue
+              elif row.decode().split("\t")[2] == "-":
+                if float(row.decode().split("\t")[4]) <= 1e-50:
+                  lines.append(row.decode().split("\t"))
+                else:
+                  continue
+              else:
+                if float(row.decode().split("\t")[3]) > float(row.decode().split("\t")[2]):
+                  lines.append(row.decode().split("\t"))
+        else:
+          with open(file, "rb") as f:
+            for row in f:
+              if row.decode().split("\t")[0] == "gene":
+                continue
+              elif row.decode().split("\t")[3] == "-":
+                continue
+              elif row.decode().split("\t")[2] == "-":
+                if float(row.decode().split("\t")[4]) <= 1e-50:
+                  lines.append(row.decode().split("\t"))
+                else:
+                  continue
+              else:
+                if float(row.decode().split("\t")[3]) > float(row.decode().split("\t")[2]):
+                  lines.append(row.decode().split("\t"))
+        
+        data = pd.DataFrame(lines)
+        data.rename(columns={0: "gene_identifier", 1: 'k_number',
+        2: "adaptive_threshold", 3: "score", 4: "evalue",
+        5: "definition", 6: "definition_2"}, inplace=True)
+        
+        data.loc[data["adaptive_threshold"] == "-", "adaptive_threshold"] = 1
+              
+        data[["adaptive_threshold", "score", "evalue"]] = data[["adaptive_threshold", "score", "evalue"]].apply(pd.to_numeric, axis = 1)
+        data = data.groupby("gene_identifier").apply(lambda group: group.loc[group["score"] == group["score"].max()]).reset_index(level = 0, drop = True)
+              
+        data["group_size"] = data.groupby(["gene_identifier"]).transform("size")
+              
+        if data["group_size"].max() > 1:
+          n_genes = (data[['gene_identifier', 'group_size']].drop_duplicates()['group_size'] > 1).sum()
+          print(f"""{n_genes} gene(s) contained multiple annotations that surpassed the adaptive threshold. 
+          Picking the annotation with the highest score-to-adaptive_threshold ratio for these genes.""")
+                
+        data["ratio"] = data["score"] / data["adaptive_threshold"]
+        data = data.groupby("gene_identifier", group_keys = False).apply(lambda group: group.loc[group["ratio"] == group["ratio"].max()]).reset_index(level = 0, drop = True)
+              
+        data = data.drop(["ratio"], axis = 1)
+      
+        data["file_name"] = file
+        data = data[["file_name", "gene_identifier", "k_number", "definition"]]
+        
+        self.annotations.append(data)
+
     
     
     def read_dram_annotation_tsv(self):
-      """Reads in multiple DRAM annotation.tsv files, keeping the "gene_identifer" 
+      """Reads in multiple DRAM annotation.tsv files, keeping the "gene_identifier" 
       as column 0, "k_number"" as column 1, and "definition" as column 2. Keeps 
       only rows where a gene had a KEGG Ortholog annotation.
     
@@ -100,7 +181,7 @@ class InputData:
                 lines.append(row.decode().split("\t"))
         
         data = pd.DataFrame(lines)[[0,8,9]]
-        data.rename(columns={0: "gene_identifer", 8: 'k_number',
+        data.rename(columns={0: "gene_identifier", 8: 'k_number',
         9: "definition"}, inplace=True)
         data["file_name"] = file
         data = data[["file_name", "gene_identifier", "k_number", "definition"]]
@@ -112,7 +193,7 @@ class InputData:
 
     def read_koala_tsv(self):
       """Reads in multiple blastKoala or ghostKoala .tsv files, keeping the 
-      "gene_identifer" as column 0, "k_number"" as column 1, and "definition" as 
+      "gene_identifier" as column 0, "k_number"" as column 1, and "definition" as 
       column 2. Keeps only rows where a gene had a KEGG Ortholog annotation.
     
       Returns:
@@ -138,7 +219,7 @@ class InputData:
                 lines.append(row.decode().split("\t"))
         
         data = pd.DataFrame(lines)[[0,1,2]]
-        data.rename(columns={0: "gene_identifer", 1: 'k_number',
+        data.rename(columns={0: "gene_identifier", 1: 'k_number',
         2: "definition"}, inplace=True)
         data["file_name"] = file
         data = data[["file_name", "gene_identifier", "k_number", "definition"]]
@@ -152,7 +233,7 @@ class AnnotationList:
     """Data formatting functions to feed formatted data to the MetaPathPredict function"""
 
   
-    def __init__(self, requiredColumnsAll, requiredColumnsModel0, requiredColumnsModel1, annotations, feature_df = pd.DataFrame()):
+    def __init__(self, requiredColumnsAll, requiredColumnsModel0, requiredColumnsModel1, annotations, feature_df = pd.DataFrame()): 
       self.requiredColumnsAll = requiredColumnsAll # all required columns for model #1 and model #2
       self.requiredColumnsModel0 = requiredColumnsModel0 # list of all required columns for model #1
       self.requiredColumnsModel1 = requiredColumnsModel1 # list of all required columns for model #2
@@ -206,12 +287,12 @@ class AnnotationList:
 
 
     def select_model_features(self):
-      """Selects all required columns for the specified MetaPathPredict model (either model #1 or model #2).
-    
+      """Selects all required columns for the specified MetaPathPredict model (both model #1 and model #2).
+
       Returns:
         A Pandas DataFrame.
       """
-      
+
       self.feature_df[0] = self.feature_df[0][self.requiredColumnsModel0]
       self.feature_df[0] = self.feature_df[0].reindex(self.requiredColumnsModel0, axis = 1)
 
@@ -220,15 +301,15 @@ class AnnotationList:
 
 
 
-    def transform_model_features(self, scaler_0, scaler_1):
-      """Transforms all required columns for the specified MetaPathPredict model (either model #1 or model #2).
-    
-      Returns:
-        A Pandas DataFrame.
-      """
-
-      scaled_features_0 = scaler_0.transform(self.feature_df[0])
-      self.feature_df[0] = pd.DataFrame(scaled_features_0, index = self.feature_df[0].index, columns = self.feature_df[0].columns)
-
-      scaled_features_1 = scaler_1.transform(self.feature_df[1])
-      self.feature_df[1] = pd.DataFrame(scaled_features_1, index = self.feature_df[1].index, columns = self.feature_df[1].columns)
+    # def transform_model_features(self, scaler_0, scaler_1):
+    #   """Transforms all required columns for the specified MetaPathPredict model (both model #1 and model #2).
+    # 
+    #   Returns:
+    #     A Pandas DataFrame.
+    #   """
+    # 
+    #   scaled_features_0 = scaler_0.transform(self.feature_df[0])
+    #   self.feature_df[0] = pd.DataFrame(scaled_features_0, index = self.feature_df[0].index, columns = self.feature_df[0].columns)
+    # 
+    #   scaled_features_1 = scaler_1.transform(self.feature_df[1])
+    #   self.feature_df[1] = pd.DataFrame(scaled_features_1, index = self.feature_df[1].index, columns = self.feature_df[1].columns)
