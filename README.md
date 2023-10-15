@@ -28,7 +28,12 @@ NOTE: You will be prompted (y/n) to confirm creating this conda environment. Now
 conda activate MetaPathPredict
 ```
 
-NOTE: To install Pytorch, you must pick which [version](https://pytorch.org/get-started/locally/) to install from conda.
+3. pip install pyxet:
+```bash
+pip install pyxet
+```
+
+4. Install Pytorch. To do this, you must pick which [version](https://pytorch.org/get-started/locally/) to install from conda.
 
 To install the Linux CPU version, use the following:
 
@@ -48,13 +53,12 @@ To install the Windows CPU version, use the following:
 conda install pytorch torchvision torchaudio cpuonly -c pytorch
 ```
 
-
-Once complete, pip install MetaPathPredict:
+5. Once complete, pip install MetaPathPredict:
 ```bash
 pip install MetaPathPredict/package
 ```
 
-3. Download MetaPathPredict's models by running the following command:
+6. Download MetaPathPredict's models by running the following command:
 ```bash
 DownloadModels
 ```
