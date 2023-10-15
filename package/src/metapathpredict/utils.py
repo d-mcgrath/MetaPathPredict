@@ -286,18 +286,18 @@ class AnnotationList:
       
 
 
-    def select_model_features(self):
-      """Selects all required columns for the specified MetaPathPredict model (both model #1 and model #2).
-
-      Returns:
-        A Pandas DataFrame.
-      """
-
-      self.feature_df[0] = self.feature_df[0][self.requiredColumnsModel0]
-      self.feature_df[0] = self.feature_df[0].reindex(self.requiredColumnsModel0, axis = 1)
-
-      self.feature_df[1] = self.feature_df[1][self.requiredColumnsModel1]
-      self.feature_df[1] = self.feature_df[1].reindex(self.requiredColumnsModel1, axis = 1)
+    # def select_model_features(self):
+    #   """Selects all required columns for the specified MetaPathPredict model (both model #1 and model #2).
+    # 
+    #   Returns:
+    #     A Pandas DataFrame.
+    #   """
+    # 
+    #   self.feature_df[0] = self.feature_df[0][self.requiredColumnsModel0]
+    #   self.feature_df[0] = self.feature_df[0].reindex(self.requiredColumnsModel0, axis = 1)
+    # 
+    #   self.feature_df[1] = self.feature_df[1][self.requiredColumnsModel1]
+    #   self.feature_df[1] = self.feature_df[1].reindex(self.requiredColumnsModel1, axis = 1)
 
 
 

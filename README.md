@@ -20,8 +20,7 @@ to the desired download location, e.g., `~/Downloads` on MacOS):
 
 2. In a Terminal/Command Prompt window, run the following commands from the parent directory the MetaPathPredict repository was cloned to:
 ```bash
-conda create -n MetaPathPredict python=3.10.6 scikit-learn=1.3.0 tensorflow=2.10.0 numpy=1.23.4 pandas=1.5.2 
-keras=2.10.0
+conda create -n MetaPathPredict python=3.10.6 scikit-learn=1.3.0 tensorflow=2.10.0 numpy=1.23.4 pandas=1.5.2 keras=2.10.0 git=2.40.1
 ```
 NOTE: You will be prompted (y/n) to confirm creating this conda environment. Now activate it:
 
@@ -29,7 +28,7 @@ NOTE: You will be prompted (y/n) to confirm creating this conda environment. Now
 conda activate MetaPathPredict
 ```
 
-3. pip install pyxet:
+3. Install pyxet:
 ```bash
 pip install pyxet
 ```

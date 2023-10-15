@@ -558,8 +558,8 @@ class Models:
         
         input_features = AnnotationList(
           requiredColumnsAll = reqColsAll, # add list of all required columns for model #1 and model #2
-          #requiredColumnsModel0 = model_0_scaler.feature_names_in_, # add list of all required columns for model #1
-          #requiredColumnsModel1 = model_1_scaler.feature_names_in_, # add list of all required columns for model #2
+          requiredColumnsModel0 = "blank", #model_0_scaler.feature_names_in_, # add list of all required columns for model #1
+          requiredColumnsModel1 = "blank", #model_1_scaler.feature_names_in_, # add list of all required columns for model #2
           annotations = files_list.annotations)
 
         input_features.create_feature_df()
@@ -570,25 +570,25 @@ class Models:
         logging.info("Making KEGG module presence/absence predictions")
 
         predictions_list = []
-        for x in range(2):
+        for prediction_iteration in range(2):
           
           #features = torch.tensor(np.asarray(input_features.feature_df[x]), dtype=torch.float32)
 
           # predict
           #predictions = models[x]['model'](features)
-          logging.info(f"Model {x} is making predictions")
-          predictions = models[x].predict(input_features.feature_df[x])
+          logging.info(f"Model {prediction_iteration} is making predictions")
+          predictions = models[prediction_iteration].predict(input_features.feature_df[prediction_iteration])
 
           # round predictions
           #roundedPreds = np.round(predictions.detach().numpy())
           roundedPreds = np.round(predictions)
           
           #predsDf = pd.DataFrame(data = roundedPreds, columns = models[x]['labels']).astype(int)
-          predsDf = pd.DataFrame(data = roundedPreds, columns = labels[x]).astype(int)
+          predsDf = pd.DataFrame(data = roundedPreds, columns = labels[prediction_iteration]).astype(int)
 
           predictions_list.append(predsDf)
           
-          logging.info(f"Model {x} completed making predictions")
+          logging.info(f"Model {prediction_iteration} completed making predictions")
           
         logging.info("All done.")
 
@@ -639,6 +639,7 @@ class Models:
 
         print(metapathmodules)
           
+        
         
     @classmethod
     def predict_from_feature_table(cls, args: Iterable[str] = None) -> int:
@@ -804,26 +805,6 @@ class Models:
         out_df.to_csv(args.output, sep='\t', index=None)
 
         #logging.info(f"Output matrix size: {out_df.shape[0]} x {out_df.shape[1]}")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
