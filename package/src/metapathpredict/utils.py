@@ -210,12 +210,12 @@ class InputData:
         if file.endswith(".gz"):
           with gzip.open(file, "rb") as f:
             for row in f:
-              if re.match(pattern, row.decode().split("\t")[0]):
+              if re.match(pattern, row.decode().split("\t")[1]):
                 lines.append(row.decode().split("\t"))
         else:
           with open(file, "rb") as f:
             for row in f:
-              if re.match(pattern, row.decode().split("\t")[0]):
+              if re.match(pattern, row.decode().split("\t")[1]):
                 lines.append(row.decode().split("\t"))
         
         data = pd.DataFrame(lines)[[0,1,2]]
