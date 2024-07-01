@@ -1,6 +1,6 @@
 # MetaPathPredict
 
-The MetaPathPredict Python module utilizes deep learning models to predict the presence or absence of KEGG metabolic modules in bacterial genomes recovered from environmental sequencing efforts.
+The MetaPathPredict Python module utilizes deep learning models to predict the presence or absence of KEGG metabolic modules in bacterial genomes recovered from environmental sequencing efforts. MetaPathPredict can be used on bacterial genomes ranging in degree of estimated completeness, from partial to high-quality genomes. The current version has been designed for use on genomes that do not contain contamination.
 
 ## Installation
 
