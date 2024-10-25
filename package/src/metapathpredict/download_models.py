@@ -53,5 +53,5 @@ class Download:
       # fs = pyxet.XetFS()  # fsspec filesystem
       # fs.get(model_0_dl_path, str(model_0_install_path))
       # fs.get(model_1_dl_path, str(model_1_install_path))
-      print("Models were downloaded to: " + download_destination)
+      print("Models were downloaded to: " + str(download_destination))
       print("All done. Use MetaPathPredict -h to see how to make predictions.")
