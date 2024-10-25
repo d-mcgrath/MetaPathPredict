@@ -32,6 +32,8 @@ class Download:
       
       model_0_final_path = module_dir.joinpath("data/model_0.keras")
       model_1_final_path = module_dir.joinpath("data/model_1.keras")
+      
+      download_destination = module_dir.joinpath("data/")
 
       hf_hub_download(repo_id="dgellermcgrath/MetaPathPredict", filename="MetaPathPredict_model_0.keras", local_dir=model_0_install_path, force_download=True)
       hf_hub_download(repo_id="dgellermcgrath/MetaPathPredict", filename="MetaPathPredict_model_1.keras", local_dir=model_1_install_path, force_download=True)
@@ -51,4 +53,5 @@ class Download:
       # fs = pyxet.XetFS()  # fsspec filesystem
       # fs.get(model_0_dl_path, str(model_0_install_path))
       # fs.get(model_1_dl_path, str(model_1_install_path))
+      print("Models were downloaded to: " + download_destination)
       print("All done. Use MetaPathPredict -h to see how to make predictions.")
