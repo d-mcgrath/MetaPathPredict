@@ -35,13 +35,16 @@ class Download:
 
       hf_hub_download(repo_id="dgellermcgrath/MetaPathPredict", filename="MetaPathPredict_model_0.keras", local_dir=model_0_install_path, force_download=True)
       hf_hub_download(repo_id="dgellermcgrath/MetaPathPredict", filename="MetaPathPredict_model_1.keras", local_dir=model_1_install_path, force_download=True)
-
+      
+      # rename the model directories downloaded from HuggingFace
       shutil.move(model_0_install_path, model_0_renamed_dir_path)
       shutil.move(model_1_install_path, model_1_renamed_dir_path)
       
-      shutil.move(model_0_initial_path, model_0_install_path)
-      shutil.move(model_1_initial_path, model_1_install_path)
-
+      # move the models out of their directories and rename them
+      shutil.move(model_0_initial_path, model_0_final_path)
+      shutil.move(model_1_initial_path, model_1_final_path)
+      
+      # remove the directories downloaded from HuggingFace
       shutil.rmtree(model_0_renamed_dir_path)
       shutil.rmtree(model_1_renamed_dir_path)
 
