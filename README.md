@@ -28,9 +28,9 @@ NOTE: You will be prompted (y/n) to confirm creating this conda environment. Now
 conda activate MetaPathPredict
 ```
 
-3. Install pyxet:
+3. Install the `huggingface_hub` library:
 ```bash
-pip install pyxet
+pip install --upgrade huggingface_hub
 ```
 
 4. Once complete, pip install MetaPathPredict:
@@ -44,9 +44,6 @@ DownloadModels
 ```
 
 Note: MetaPathPredict is now installed in the `MetaPathPredict` conda environment. Activate the conda environment prior to any use of MetaPathPredict.
-
-### XetHub install:
-Follow the instructions from the MetaPathPredict [XetHub](https://xethub.com/dgellermcgrath/MetaPathPredict) repository.
 
 ### pip install:
 [not available yet]
