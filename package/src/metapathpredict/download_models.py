@@ -21,17 +21,20 @@ class Download:
       data_dir = module_dir.joinpath("data/")
       # model_0_dl_path = "xet://dgellermcgrath/MetaPathPredict/main/package/src/metapathpredict/data/model_0.keras"
       # model_1_dl_path = "xet://dgellermcgrath/MetaPathPredict/main/package/src/metapathpredict/data/model_1.keras"
-      model_0_install_path = module_dir.joinpath("data/model_0.keras")
-      model_1_install_path = module_dir.joinpath("data/model_1.keras")
+      model_0_install_path = module_dir.joinpath("data/MetaPathPredict_model_0.keras")
+      model_1_install_path = module_dir.joinpath("data/MetaPathPredict_model_1.keras")
       
       model_0_renamed_dir_path = module_dir.joinpath("data/model_0.keras_directory")
       model_1_renamed_dir_path = module_dir.joinpath("data/model_1.keras_directory")
       
-      model_0_initial_path = module_dir.joinpath("data/model_0.keras_directory/model_0.keras")
-      model_1_initial_path = module_dir.joinpath("data/model_1.keras_directory/model_1.keras")
+      model_0_initial_path = module_dir.joinpath("data/model_0.keras_directory/MetaPathPredict_model_0.keras")
+      model_1_initial_path = module_dir.joinpath("data/model_1.keras_directory/MetaPathPredict_model_1.keras")
+      
+      model_0_final_path = module_dir.joinpath("data/model_0.keras")
+      model_1_final_path = module_dir.joinpath("data/model_1.keras")
 
-      hf_hub_download(repo_id="dgellermcgrath/MetaPathPredict", filename="model_0.keras", local_dir=model_0_install_path, force_download=True)
-      hf_hub_download(repo_id="dgellermcgrath/MetaPathPredict", filename="model_1.keras", local_dir=model_1_install_path, force_download=True)
+      hf_hub_download(repo_id="dgellermcgrath/MetaPathPredict", filename="MetaPathPredict_model_0.keras", local_dir=model_0_install_path, force_download=True)
+      hf_hub_download(repo_id="dgellermcgrath/MetaPathPredict", filename="MetaPathPredict_model_1.keras", local_dir=model_1_install_path, force_download=True)
 
       shutil.move(model_0_install_path, model_0_renamed_dir_path)
       shutil.move(model_1_install_path, model_1_renamed_dir_path)
