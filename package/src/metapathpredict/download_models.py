@@ -35,8 +35,8 @@ class Download:
       
       download_destination = module_dir.joinpath("data/")
 
-      hf_hub_download(repo_id="dgellermcgrath/MetaPathPredict", filename="MetaPathPredict_model_0.keras", local_dir=model_0_install_path, force_download=True, local_dir_use_symlinks=False)
-      hf_hub_download(repo_id="dgellermcgrath/MetaPathPredict", filename="MetaPathPredict_model_1.keras", local_dir=model_1_install_path, force_download=True, local_dir_use_symlinks=False)
+      hf_hub_download(repo_id="dgellermcgrath/MetaPathPredict", filename="MetaPathPredict_model_0.keras", local_dir=model_0_install_path, force_download=True)
+      hf_hub_download(repo_id="dgellermcgrath/MetaPathPredict", filename="MetaPathPredict_model_1.keras", local_dir=model_1_install_path, force_download=True)
       
       # rename the model directories downloaded from HuggingFace
       shutil.move(model_0_install_path, model_0_renamed_dir_path)
