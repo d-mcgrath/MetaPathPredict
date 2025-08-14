@@ -1,4 +1,3 @@
-MANIFEST.in
 setup.py
 src/metapathpredict/MetaPathPredict.py
 src/metapathpredict/__init__.py
@@ -13,6 +12,4 @@ src/metapathpredict.egg-info/top_level.txt
 src/metapathpredict/data/__init__.py
 src/metapathpredict/data/labels.pkl
 src/metapathpredict/data/metapathmodules.pkl
-src/metapathpredict/data/model_0.keras
-src/metapathpredict/data/model_1.keras
 src/metapathpredict/data/requiredCols.pkl
